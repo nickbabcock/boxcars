@@ -24,6 +24,14 @@ named!(length_encoded,
     )
 );
 
+named!(text_encoded<&[u8], &str>,
+    chain!(
+        size: le_u32 ~
+        data: take_str!(size),
+        || {data}
+    )
+);
+
 named!(f<&[u8],A>,
     chain!(
         header_size:  le_i32 ~
