@@ -1,0 +1,6 @@
+[package]
+name = "boxcars"
+version = "0.1.0"
+authors = ["nick"]
+
+[dependencies]
