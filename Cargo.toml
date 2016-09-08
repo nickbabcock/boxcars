@@ -5,3 +5,4 @@ authors = ["nick"]
 
 [dependencies]
 nom = "^1.2.4"
+crc = "^1.3.0"
