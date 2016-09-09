@@ -178,12 +178,9 @@ mod tests {
 
     #[test]
     fn rdict_one_element() {
-        let data = [0x0B, 0x00, 0x00, 0x00, b'P', b'l', b'a', b'y', b'e', b'r', b'N', b'a', b'm', b'e', 0x00,
-                    0x0c, 0x00, 0x00, 0x00, b'S', b't', b'r', b'P', b'r', b'o', b'p', b'e', b'r', b't', b'y', 0x00,
-                    0x0f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00,
-                    b'N', b'i', b'c', b'k', 0x00,
-                    0x05, 0x00, 0x00, 0x00, b'N', b'o', b'n', b'e', 0x00 ];
-        let r = super::rdict(&data);
-        assert_eq!(r, Done(&[][..],  vec![("PlayerName", super::RProp::Str("Nick".to_string()))]));
+        // dd skip=$((0x1269)) count=$((0x12a8 - 0x1269)) if=rumble.replay of=rdict_one.replay bs=1
+        let data = include_bytes!("../assets/rdict_one.replay");
+        let r = super::rdict(data);
+        assert_eq!(r, Done(&[][..],  vec![("PlayerName", super::RProp::Str("comagoosie".to_string()))]));
     }
 }
