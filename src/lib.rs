@@ -55,6 +55,9 @@ named!(str_prop<&[u8], RProp>,
   chain!(le_u64 ~ x: text_encoded,
     || {RProp::Str(x.to_string())}));
 
+named!(int_prop<&[u8], RProp>,
+    chain!(le_u64 ~ x: le_u32,
+        || {RProp::Int(x)}));
 
 named!(rprop_encoded<&[u8], RProp>,
   switch!(text_encoded,
@@ -62,7 +65,7 @@ named!(rprop_encoded<&[u8], RProp>,
     "BoolProperty" => call!(str_prop) |
     "ByteProperty" => call!(str_prop)|
     "FloatProperty" => call!(str_prop) |
-    "IntProperty" => call!(str_prop) |
+    "IntProperty" => call!(int_prop) |
     "NameProperty" => call!(str_prop) |
     "QWordProperty" => call!(str_prop) |
     "StrProperty" => call!(str_prop)
@@ -182,5 +185,13 @@ mod tests {
         let data = include_bytes!("../assets/rdict_one.replay");
         let r = super::rdict(data);
         assert_eq!(r, Done(&[][..],  vec![("PlayerName", super::RProp::Str("comagoosie".to_string()))]));
+    }
+
+    #[test]
+    fn rdict_one_int_element() {
+        // dd skip=$((0x250)) count=$((0x284 - 0x250)) if=rumble.replay of=rdict_int.replay bs=1
+        let data = include_bytes!("../assets/rdict_int.replay");
+        let r = super::rdict(data);
+        assert_eq!(r, Done(&[][..],  vec![("PlayerTeam", super::RProp::Int(0))]));
     }
 }
