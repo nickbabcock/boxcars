@@ -215,17 +215,19 @@ mod tests {
         assert_eq!(r, Done(&[][..],  vec![("bBot", super::RProp::Bool(false))]));
     }
 
+    fn append_none(input: &[u8]) -> Vec<u8> {
+        let append = [0x05, 0x00, 0x00, 0x00, b'N', b'o', b'n', b'e', 0x00];
+        let mut v = Vec::new();
+        v.extend_from_slice(input);
+        v.extend_from_slice(&append);
+        v
+    }
+
     #[test]
     fn rdict_one_name_element() {
         // dd skip=$((0x1237)) count=$((0x1269 - 0x1237)) if=rumble.replay of=rdict_name.replay bs=1
-        let raw_data = include_bytes!("../assets/rdict_name.replay");
-
-        // Couldn't find a `None` after a NameProperty so we append our own
-        let append = [0x05, 0x00, 0x00, 0x00, b'N', b'o', b'n', b'e', 0x00];
-        let mut v = Vec::new();
-        v.extend_from_slice(raw_data);
-        v.extend_from_slice(&append);
-        let r = super::rdict(&v);
+        let data = append_none(include_bytes!("../assets/rdict_name.replay"));
+        let r = super::rdict(&data);
         assert_eq!(r, Done(&[][..],  vec![("MatchType", super::RProp::Name("Online".to_string()))]));
 
     }
@@ -233,14 +235,8 @@ mod tests {
     #[test]
     fn rdict_one_float_element() {
         // dd skip=$((0x10a2)) count=$((0x10ce - 0x10a2)) if=rumble.replay of=rdict_float.replay bs=1
-        let raw_data = include_bytes!("../assets/rdict_float.replay");
-
-        // Couldn't find a `None` after the property so we append our own
-        let append = [0x05, 0x00, 0x00, 0x00, b'N', b'o', b'n', b'e', 0x00];
-        let mut v = Vec::new();
-        v.extend_from_slice(raw_data);
-        v.extend_from_slice(&append);
-        let r = super::rdict(&v);
+        let data = append_none(include_bytes!("../assets/rdict_float.replay"));
+        let r = super::rdict(&data);
         assert_eq!(r, Done(&[][..],  vec![("RecordFPS", super::RProp::Float(30.0))]));
     }
 }
