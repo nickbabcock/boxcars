@@ -71,6 +71,10 @@ named!(float_prop<&[u8], RProp>,
     chain!(le_u64 ~ x: le_f32,
         || {RProp::Float(x)}));
 
+named!(qword_prop<&[u8], RProp>,
+    chain!(le_u64 ~ x: le_u64,
+        || {RProp::QWord(x)}));
+
 named!(rprop_encoded<&[u8], RProp>,
   switch!(text_encoded,
     "ArrayProperty" => call!(str_prop) |
@@ -79,7 +83,7 @@ named!(rprop_encoded<&[u8], RProp>,
     "FloatProperty" => call!(float_prop) |
     "IntProperty" => call!(int_prop) |
     "NameProperty" => call!(name_prop) |
-    "QWordProperty" => call!(str_prop) |
+    "QWordProperty" => call!(qword_prop) |
     "StrProperty" => call!(str_prop)
   )
 );
@@ -238,5 +242,13 @@ mod tests {
         let data = append_none(include_bytes!("../assets/rdict_float.replay"));
         let r = super::rdict(&data);
         assert_eq!(r, Done(&[][..],  vec![("RecordFPS", super::RProp::Float(30.0))]));
+    }
+
+    #[test]
+    fn rdict_one_qword_element() {
+        // dd skip=$((0x576)) count=$((0x5a5 - 0x576)) if=rumble.replay of=rdict_qword.replay bs=1
+        let data = append_none(include_bytes!("../assets/rdict_qword.replay"));
+        let r = super::rdict(&data);
+        assert_eq!(r, Done(&[][..],  vec![("OnlineID", super::RProp::QWord(76561198101748375))]));
     }
 }
