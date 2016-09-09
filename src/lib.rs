@@ -6,7 +6,7 @@ extern crate nom;
 
 extern crate crc;
 
-use nom::{HexDisplay, Needed, IResult, ErrorKind, le_i32, le_u64, le_u32, le_u8, le_u16, length_value,
+use nom::{HexDisplay, Needed, IResult, ErrorKind, le_i32, le_u64, le_u32, le_u8, le_u16, length_value, le_f32,
           FileProducer};
 use nom::Err;
 use nom::IResult::*;
@@ -67,12 +67,16 @@ named!(bool_prop<&[u8], RProp>,
     chain!(le_u64 ~ x: le_u8,
         || {RProp::Bool(x == 1)}));
 
+named!(float_prop<&[u8], RProp>,
+    chain!(le_u64 ~ x: le_f32,
+        || {RProp::Float(x)}));
+
 named!(rprop_encoded<&[u8], RProp>,
   switch!(text_encoded,
     "ArrayProperty" => call!(str_prop) |
     "BoolProperty" => call!(bool_prop) |
     "ByteProperty" => call!(str_prop)|
-    "FloatProperty" => call!(str_prop) |
+    "FloatProperty" => call!(float_prop) |
     "IntProperty" => call!(int_prop) |
     "NameProperty" => call!(name_prop) |
     "QWordProperty" => call!(str_prop) |
@@ -224,5 +228,19 @@ mod tests {
         let r = super::rdict(&v);
         assert_eq!(r, Done(&[][..],  vec![("MatchType", super::RProp::Name("Online".to_string()))]));
 
+    }
+
+    #[test]
+    fn rdict_one_float_element() {
+        // dd skip=$((0x10a2)) count=$((0x10ce - 0x10a2)) if=rumble.replay of=rdict_float.replay bs=1
+        let raw_data = include_bytes!("../assets/rdict_float.replay");
+
+        // Couldn't find a `None` after the property so we append our own
+        let append = [0x05, 0x00, 0x00, 0x00, b'N', b'o', b'n', b'e', 0x00];
+        let mut v = Vec::new();
+        v.extend_from_slice(raw_data);
+        v.extend_from_slice(&append);
+        let r = super::rdict(&v);
+        assert_eq!(r, Done(&[][..],  vec![("RecordFPS", super::RProp::Float(30.0))]));
     }
 }
