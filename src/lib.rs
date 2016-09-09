@@ -17,6 +17,13 @@ struct A {
 }
 
 #[derive(PartialEq,Debug)]
+pub struct KeyFrame {
+  time: f32,
+  frame: u32,
+  position: u32
+}
+
+#[derive(PartialEq,Debug)]
 enum RProp {
     Array(Vec<Vec<(String, RProp)>>),
     Bool(bool),
@@ -158,11 +165,21 @@ named!(f<&[u8],A>,
     )
 );
 
+named!(keyframe_list<&[u8], Vec<KeyFrame> >,
+  chain!(size: le_u32 ~ elems: count!(keyframe_encoded, size as usize), || {elems}));
+
+named!(keyframe_encoded<&[u8], KeyFrame>,
+  chain!(time: le_f32 ~
+         frame: le_u32 ~
+         position: le_u32,
+         || {KeyFrame {time: time, frame: frame, position: position}}));
+
 
 #[cfg(test)]
 mod tests {
     use nom::IResult::{Done, Error, Incomplete};
     use nom::Needed::Size;
+    use super::*;
     use super::RProp::*;
     use super::{length_encoded};
 
@@ -318,4 +335,28 @@ mod tests {
         let r = super::rdict(&data);
         assert_eq!(r, Done(&[][..],  vec![("Platform".to_string(), Byte)]));
     }
+
+    #[test]
+    fn key_frame_decode() {
+        let data = include_bytes!("../assets/rumble.replay");
+        let r = super::keyframe_encoded(&data[0x12da..0x12da + 12]);
+        assert_eq!(r, Done(&[][..], KeyFrame { time: 16.297668, frame: 208, position: 137273 } ));
+    }
+
+    #[test]
+    fn single_key_frame_list() {
+        let data = include_bytes!("../assets/rumble.replay");
+
+        // List is 2A long, each keyframe is 12 bytes. Then add four for list length = 508
+        let r = super::keyframe_list(&data[0x12ca..0x12ca + 508]);
+        match r {
+          Done(i, val) => {
+            // There are 42 key frames in this list
+            assert_eq!(val.len(), 42);
+            assert_eq!(i, &[][..]);
+          }
+          _ => { assert!(false); }
+        }
+    }
+
 }
