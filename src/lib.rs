@@ -75,14 +75,6 @@ named!(qword_prop<&[u8], RProp>,
     chain!(le_u64 ~ x: le_u64,
         || {RProp::QWord(x)}));
 
-named!(plain_byte2<&[u8], RProp>,
-    chain!(text_encoded,
-        || {RProp::Byte}));
-
-fn plain_byte(input: &[u8]) -> IResult<&[u8], RProp> {
-    return IResult::Done(input, RProp::Byte);
-}
-
 fn byte_switch(input: &[u8]) -> IResult<&[u8], RProp> {
     match text_encoded(input) {
         IResult::Done(i, "OnlinePlatform_Steam") => IResult::Done(i, RProp::Byte),
@@ -92,8 +84,7 @@ fn byte_switch(input: &[u8]) -> IResult<&[u8], RProp> {
     }
 }
 
-named!(byte_prop<&[u8], RProp>,
-    chain!(le_u64 ~ res: byte_switch, || {res}));
+named!(byte_prop<&[u8], RProp>, chain!(le_u64 ~ res: byte_switch, || {res}));
 
 named!(array_prop<&[u8], RProp>,
     chain!(
