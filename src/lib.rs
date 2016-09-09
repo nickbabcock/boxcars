@@ -59,10 +59,14 @@ named!(int_prop<&[u8], RProp>,
     chain!(le_u64 ~ x: le_u32,
         || {RProp::Int(x)}));
 
+named!(bool_prop<&[u8], RProp>,
+    chain!(le_u64 ~ x: le_u8,
+        || {RProp::Bool(x == 1)}));
+
 named!(rprop_encoded<&[u8], RProp>,
   switch!(text_encoded,
     "ArrayProperty" => call!(str_prop) |
-    "BoolProperty" => call!(str_prop) |
+    "BoolProperty" => call!(bool_prop) |
     "ByteProperty" => call!(str_prop)|
     "FloatProperty" => call!(str_prop) |
     "IntProperty" => call!(int_prop) |
@@ -193,5 +197,13 @@ mod tests {
         let data = include_bytes!("../assets/rdict_int.replay");
         let r = super::rdict(data);
         assert_eq!(r, Done(&[][..],  vec![("PlayerTeam", super::RProp::Int(0))]));
+    }
+
+    #[test]
+    fn rdict_one_bool_element() {
+        // dd skip=$((0xa0f)) count=$((0xa3b - 0xa0f)) if=rumble.replay of=rdict_bool.replay bs=1
+        let data = include_bytes!("../assets/rdict_bool.replay");
+        let r = super::rdict(data);
+        assert_eq!(r, Done(&[][..],  vec![("bBot", super::RProp::Bool(false))]));
     }
 }
