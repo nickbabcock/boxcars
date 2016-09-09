@@ -6,13 +6,14 @@ extern crate nom;
 
 extern crate crc;
 
-use nom::{HexDisplay,Needed,IResult,ErrorKind,le_i32,le_u32,le_u8,le_u16,length_value,FileProducer};
+use nom::{HexDisplay, Needed, IResult, ErrorKind, le_i32, le_u32, le_u8, le_u16, length_value,
+          FileProducer};
 use nom::Err;
 use nom::IResult::*;
 
 struct A {
-  a: u8,
-  b: u8
+    a: u8,
+    b: u8,
 }
 
 enum RProp {
@@ -23,22 +24,22 @@ enum RProp {
     Int(u32),
     Name(String),
     QWord(u64),
-    Str(String)
+    Str(String),
 }
 
 named!(length_encoded,
-    chain!(
+       chain!(
         size: le_u32 ~
         crc: le_u32 ~
         data: take!(size),
         || {data}
-    )
-);
+    ));
 
 /// Text is encoded with a leading int that denotes the number of bytes that
 /// the text spans. The last byte in the text will be null terminated, so we trim
 /// it off. It may seem redundant to store this information, but stackoverflow contains
 /// a nice reasoning for why it may have been done this way:
+///
 /// http://stackoverflow.com/questions/6293457/why-are-c-net-strings-length-prefixed-and-null-terminated
 named!(text_encoded<&[u8], &str>,
     chain!(
