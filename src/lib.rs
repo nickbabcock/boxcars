@@ -51,42 +51,36 @@ mod tests {
     use nom::Needed::Size;
 
     #[test]
-    fn it_works() {
-        let data = include_bytes!("../assets/missing-header-data.replay");
-        let r = super::length_encoded(data);
-        let expected : &[u8] = &data[..];
-        assert_eq!(r, Incomplete(Size(3534)));
+    fn missing_header_data() {
+        let data = include_bytes!("../assets/rumble.replay");
+        let r = super::length_encoded(&data[..8]);
+        assert_eq!(r, Incomplete(Size(4776)));
     }
 
     #[test]
-    fn it_works2() {
-        let data = include_bytes!("../assets/incomplete-header-data.replay");
-        let r = super::length_encoded(data);
-        let expected : &[u8] = &data[..];
-        assert_eq!(r, Incomplete(Size(3534)));
+    fn incomplete_header_data() {
+        let data = include_bytes!("../assets/rumble.replay");
+        let r = super::length_encoded(&data[..9]);
+        assert_eq!(r, Incomplete(Size(4776)));
     }
 
     #[test]
-    fn it_works3() {
-        let data : [u8; 0] = [];
-        let r = super::length_encoded(&data);
-        let expected : &[u8] = &data[..];
+    fn missing_header() {
+        let r = super::length_encoded(&[]);
         assert_eq!(r, Incomplete(Size(4)));
     }
 
     #[test]
-    fn it_works4() {
-        let data = include_bytes!("../assets/missing-header-crc.replay");
-        let r = super::length_encoded(data);
-        let expected : &[u8] = &data[..];
+    fn missing_crc_data() {
+        let data = include_bytes!("../assets/rumble.replay");
+        let r = super::length_encoded(&data[..4]);
         assert_eq!(r, Incomplete(Size(8)));
     }
 
     #[test]
-    fn it_works5() {
+    fn parse_a_header_with_zero_data() {
         let data = [0, 0, 0, 0, 0, 0, 0, 0];
         let r = super::length_encoded(&data);
-        let expected : &[u8] = &data[..];
         assert_eq!(r, Done(&[][..], &[][..]));
     }
 }
