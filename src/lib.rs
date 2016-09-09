@@ -24,10 +24,16 @@ named!(length_encoded,
     )
 );
 
+/// Text is encoded with a leading int that denotes the number of bytes that
+/// the text spans. The last byte in the text will be null terminated, so we trim
+/// it off. It may seem redundant to store this information, but stackoverflow contains
+/// a nice reasoning for why it may have been done this way:
+/// http://stackoverflow.com/questions/6293457/why-are-c-net-strings-length-prefixed-and-null-terminated
 named!(text_encoded<&[u8], &str>,
     chain!(
         size: le_u32 ~
-        data: take_str!(size),
+        data: take_str!(size - 1) ~
+        take!(1),
         || {data}
     )
 );
@@ -82,5 +88,13 @@ mod tests {
         let data = [0, 0, 0, 0, 0, 0, 0, 0];
         let r = super::length_encoded(&data);
         assert_eq!(r, Done(&[][..], &[][..]));
+    }
+
+    #[test]
+    fn parse_text_encoding() {
+        // dd skip=16 count=28 if=rumble.replay of=text.replay bs=1
+        let data = include_bytes!("../assets/text.replay");
+        let r = super::text_encoded(data);
+        assert_eq!(r, Done(&[][..], "TAGame.Replay_Soccar_TA"));
     }
 }
