@@ -6,7 +6,7 @@ extern crate nom;
 
 extern crate crc;
 
-use nom::{HexDisplay, Needed, IResult, ErrorKind, le_i32, le_u32, le_u8, le_u16, length_value,
+use nom::{HexDisplay, Needed, IResult, ErrorKind, le_i32, le_u64, le_u32, le_u8, le_u16, length_value,
           FileProducer};
 use nom::Err;
 use nom::IResult::*;
@@ -16,6 +16,7 @@ struct A {
     b: u8,
 }
 
+#[derive(PartialEq,Debug)]
 enum RProp {
     Array(Box<[RProp]>),
     Bool(bool),
@@ -50,7 +51,10 @@ named!(text_encoded<&[u8], &str>,
     )
 );
 
-named!(str_prop<&[u8], RProp>, map!(map!(text_encoded, str::to_string), RProp::Str));
+named!(str_prop<&[u8], RProp>,
+  chain!(le_u64 ~ x: text_encoded,
+    || {RProp::Str(x.to_string())}));
+
 
 named!(rprop_encoded<&[u8], RProp>,
   switch!(text_encoded,
@@ -64,6 +68,46 @@ named!(rprop_encoded<&[u8], RProp>,
     "StrProperty" => call!(str_prop)
   )
 );
+
+fn rdict(input: &[u8]) -> IResult<&[u8], Vec<(&str, RProp)> > {
+    let mut v: Vec<(&str, RProp)> = Vec::new();
+    let mut res: IResult<&[u8], Vec<(&str, RProp)>> = IResult::Done(input, Vec::new());
+    let mut done = false;
+    let mut cslice = input;
+
+    while !done {
+      match text_encoded(cslice) {
+        IResult::Done(i, txt) => {
+          cslice = i;
+          match txt {
+            "None" => { done = true }
+            _ => {
+              match rprop_encoded(cslice) {
+                IResult::Done(inp, val) => { cslice = inp; v.push((txt, val)); },
+                IResult::Incomplete(a) => { res = IResult::Incomplete(a); done = true },
+                IResult::Error(a) => { res = IResult::Error(a); done = true }
+              }
+            }
+          }
+        },
+
+        IResult::Incomplete(a) => {
+          done = true;
+          res = IResult::Incomplete(a);
+        },
+
+        IResult::Error(a) => {
+          done = true;
+          res = IResult::Error(a);
+        }
+      }
+    }
+
+    match res {
+      IResult::Done(a, b) => IResult::Done(cslice, v),
+      _ => res
+    }
+}
 
 named!(f<&[u8],A>,
     chain!(
@@ -123,5 +167,23 @@ mod tests {
         let data = include_bytes!("../assets/text.replay");
         let r = super::text_encoded(data);
         assert_eq!(r, Done(&[][..], "TAGame.Replay_Soccar_TA"));
+    }
+
+    #[test]
+    fn rdict_no_elements() {
+        let data = [0x05, 0x00, 0x00, 0x00, b'N', b'o', b'n', b'e', 0x00];
+        let r = super::rdict(&data);
+        assert_eq!(r, Done(&[][..],  Vec::new()));
+    }
+
+    #[test]
+    fn rdict_one_element() {
+        let data = [0x0B, 0x00, 0x00, 0x00, b'P', b'l', b'a', b'y', b'e', b'r', b'N', b'a', b'm', b'e', 0x00,
+                    0x0c, 0x00, 0x00, 0x00, b'S', b't', b'r', b'P', b'r', b'o', b'p', b'e', b'r', b't', b'y', 0x00,
+                    0x0f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00,
+                    b'N', b'i', b'c', b'k', 0x00,
+                    0x05, 0x00, 0x00, 0x00, b'N', b'o', b'n', b'e', 0x00 ];
+        let r = super::rdict(&data);
+        assert_eq!(r, Done(&[][..],  vec![("PlayerName", super::RProp::Str("Nick".to_string()))]));
     }
 }
