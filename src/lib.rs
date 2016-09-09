@@ -153,38 +153,39 @@ mod tests {
     use nom::IResult::{Done, Error, Incomplete};
     use nom::Needed::Size;
     use super::RProp::*;
+    use super::{length_encoded};
 
     #[test]
     fn missing_header_data() {
         let data = include_bytes!("../assets/rumble.replay");
-        let r = super::length_encoded(&data[..8]);
+        let r = length_encoded(&data[..8]);
         assert_eq!(r, Incomplete(Size(4776)));
     }
 
     #[test]
     fn incomplete_header_data() {
         let data = include_bytes!("../assets/rumble.replay");
-        let r = super::length_encoded(&data[..9]);
+        let r = length_encoded(&data[..9]);
         assert_eq!(r, Incomplete(Size(4776)));
     }
 
     #[test]
     fn missing_header() {
-        let r = super::length_encoded(&[]);
+        let r = length_encoded(&[]);
         assert_eq!(r, Incomplete(Size(4)));
     }
 
     #[test]
     fn missing_crc_data() {
         let data = include_bytes!("../assets/rumble.replay");
-        let r = super::length_encoded(&data[..4]);
+        let r = length_encoded(&data[..4]);
         assert_eq!(r, Incomplete(Size(8)));
     }
 
     #[test]
     fn parse_a_header_with_zero_data() {
         let data = [0, 0, 0, 0, 0, 0, 0, 0];
-        let r = super::length_encoded(&data);
+        let r = length_encoded(&data);
         assert_eq!(r, Done(&[][..], &[][..]));
     }
 
@@ -208,7 +209,7 @@ mod tests {
         // dd skip=$((0x1269)) count=$((0x12a8 - 0x1269)) if=rumble.replay of=rdict_one.replay bs=1
         let data = include_bytes!("../assets/rdict_one.replay");
         let r = super::rdict(data);
-        assert_eq!(r, Done(&[][..],  vec![("PlayerName".to_string(), super::RProp::Str("comagoosie".to_string()))]));
+        assert_eq!(r, Done(&[][..],  vec![("PlayerName".to_string(), Str("comagoosie".to_string()))]));
     }
 
     #[test]
@@ -216,7 +217,7 @@ mod tests {
         // dd skip=$((0x250)) count=$((0x284 - 0x250)) if=rumble.replay of=rdict_int.replay bs=1
         let data = include_bytes!("../assets/rdict_int.replay");
         let r = super::rdict(data);
-        assert_eq!(r, Done(&[][..],  vec![("PlayerTeam".to_string(), super::RProp::Int(0))]));
+        assert_eq!(r, Done(&[][..],  vec![("PlayerTeam".to_string(), Int(0))]));
     }
 
     #[test]
@@ -224,7 +225,7 @@ mod tests {
         // dd skip=$((0xa0f)) count=$((0xa3b - 0xa0f)) if=rumble.replay of=rdict_bool.replay bs=1
         let data = include_bytes!("../assets/rdict_bool.replay");
         let r = super::rdict(data);
-        assert_eq!(r, Done(&[][..],  vec![("bBot".to_string(), super::RProp::Bool(false))]));
+        assert_eq!(r, Done(&[][..],  vec![("bBot".to_string(), Bool(false))]));
     }
 
     fn append_none(input: &[u8]) -> Vec<u8> {
@@ -240,7 +241,7 @@ mod tests {
         // dd skip=$((0x1237)) count=$((0x1269 - 0x1237)) if=rumble.replay of=rdict_name.replay bs=1
         let data = append_none(include_bytes!("../assets/rdict_name.replay"));
         let r = super::rdict(&data);
-        assert_eq!(r, Done(&[][..],  vec![("MatchType".to_string(), super::RProp::Name("Online".to_string()))]));
+        assert_eq!(r, Done(&[][..],  vec![("MatchType".to_string(), Name("Online".to_string()))]));
 
     }
 
@@ -249,7 +250,7 @@ mod tests {
         // dd skip=$((0x10a2)) count=$((0x10ce - 0x10a2)) if=rumble.replay of=rdict_float.replay bs=1
         let data = append_none(include_bytes!("../assets/rdict_float.replay"));
         let r = super::rdict(&data);
-        assert_eq!(r, Done(&[][..],  vec![("RecordFPS".to_string(), super::RProp::Float(30.0))]));
+        assert_eq!(r, Done(&[][..],  vec![("RecordFPS".to_string(), Float(30.0))]));
     }
 
     #[test]
@@ -257,7 +258,7 @@ mod tests {
         // dd skip=$((0x576)) count=$((0x5a5 - 0x576)) if=rumble.replay of=rdict_qword.replay bs=1
         let data = append_none(include_bytes!("../assets/rdict_qword.replay"));
         let r = super::rdict(&data);
-        assert_eq!(r, Done(&[][..],  vec![("OnlineID".to_string(), super::RProp::QWord(76561198101748375))]));
+        assert_eq!(r, Done(&[][..],  vec![("OnlineID".to_string(), QWord(76561198101748375))]));
     }
 
     #[test]
@@ -296,6 +297,6 @@ mod tests {
                 ("PlayerTeam".to_string(), Int(0))
             ]
         ];
-        assert_eq!(r, Done(&[][..],  vec![("Goals".to_string(), super::RProp::Array(expected))]));
+        assert_eq!(r, Done(&[][..],  vec![("Goals".to_string(), Array(expected))]));
     }
 }
