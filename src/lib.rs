@@ -20,7 +20,7 @@ struct A {
 enum RProp {
     Array(Vec<Vec<(String, RProp)>>),
     Bool(bool),
-    Byte(u8),
+    Byte,
     Float(f32),
     Int(u32),
     Name(String),
@@ -75,6 +75,26 @@ named!(qword_prop<&[u8], RProp>,
     chain!(le_u64 ~ x: le_u64,
         || {RProp::QWord(x)}));
 
+named!(plain_byte2<&[u8], RProp>,
+    chain!(text_encoded,
+        || {RProp::Byte}));
+
+fn plain_byte(input: &[u8]) -> IResult<&[u8], RProp> {
+    return IResult::Done(input, RProp::Byte);
+}
+
+fn byte_switch(input: &[u8]) -> IResult<&[u8], RProp> {
+    match text_encoded(input) {
+        IResult::Done(i, "OnlinePlatform_Steam") => IResult::Done(i, RProp::Byte),
+        IResult::Done(i, _) => map!(i, text_encoded, |_| {RProp::Byte}),
+        IResult::Incomplete(a) => IResult::Incomplete(a),
+        IResult::Error(a) => IResult::Error(a)
+    }
+}
+
+named!(byte_prop<&[u8], RProp>,
+    chain!(le_u64 ~ res: byte_switch, || {res}));
+
 named!(array_prop<&[u8], RProp>,
     chain!(
         le_u64 ~
@@ -86,7 +106,7 @@ named!(rprop_encoded<&[u8], RProp>,
   switch!(text_encoded,
     "ArrayProperty" => call!(array_prop) |
     "BoolProperty" => call!(bool_prop) |
-    "ByteProperty" => call!(str_prop)|
+    "ByteProperty" => call!(byte_prop) |
     "FloatProperty" => call!(float_prop) |
     "IntProperty" => call!(int_prop) |
     "NameProperty" => call!(name_prop) |
@@ -130,7 +150,7 @@ fn rdict(input: &[u8]) -> IResult<&[u8], Vec<(String, RProp)> > {
     }
 
     match res {
-      IResult::Done(a, b) => IResult::Done(cslice, v),
+      IResult::Done(_, _) => IResult::Done(cslice, v),
       _ => res
     }
 }
@@ -263,7 +283,7 @@ mod tests {
 
     #[test]
     fn rdict_one_array_element() {
-        // dd skip=$((0x576)) count=$((0x5a5 - 0x576)) if=rumble.replay of=rdict_qword.replay bs=1
+        // dd skip=$((0xab)) count=$((0x3f7 + 36)) if=rumble.replay of=rdict_array.replay bs=1
         let data = append_none(include_bytes!("../assets/rdict_array.replay"));
         let r = super::rdict(&data);
         let expected = vec![
@@ -298,5 +318,13 @@ mod tests {
             ]
         ];
         assert_eq!(r, Done(&[][..],  vec![("Goals".to_string(), Array(expected))]));
+    }
+
+    #[test]
+    fn rdict_one_byte_element() {
+        // dd skip=$((0xdf0)) count=$((0xe41 - 0xdf0)) if=rumble.replay of=rdict_byte.replay bs=1
+        let data = append_none(include_bytes!("../assets/rdict_byte.replay"));
+        let r = super::rdict(&data);
+        assert_eq!(r, Done(&[][..],  vec![("Platform".to_string(), Byte)]));
     }
 }
