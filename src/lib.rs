@@ -18,7 +18,7 @@ struct A {
 
 #[derive(PartialEq,Debug)]
 enum RProp {
-    Array(Box<[RProp]>),
+    Array(Vec<Vec<(String, RProp)>>),
     Bool(bool),
     Byte(u8),
     Float(f32),
@@ -75,9 +75,16 @@ named!(qword_prop<&[u8], RProp>,
     chain!(le_u64 ~ x: le_u64,
         || {RProp::QWord(x)}));
 
+named!(array_prop<&[u8], RProp>,
+    chain!(
+        le_u64 ~
+        size: le_u32 ~
+        elems: count!(rdict, size as usize),
+        || {RProp::Array(elems)}));
+
 named!(rprop_encoded<&[u8], RProp>,
   switch!(text_encoded,
-    "ArrayProperty" => call!(str_prop) |
+    "ArrayProperty" => call!(array_prop) |
     "BoolProperty" => call!(bool_prop) |
     "ByteProperty" => call!(str_prop)|
     "FloatProperty" => call!(float_prop) |
@@ -88,9 +95,9 @@ named!(rprop_encoded<&[u8], RProp>,
   )
 );
 
-fn rdict(input: &[u8]) -> IResult<&[u8], Vec<(&str, RProp)> > {
-    let mut v: Vec<(&str, RProp)> = Vec::new();
-    let mut res: IResult<&[u8], Vec<(&str, RProp)>> = IResult::Done(input, Vec::new());
+fn rdict(input: &[u8]) -> IResult<&[u8], Vec<(String, RProp)> > {
+    let mut v: Vec<(String, RProp)> = Vec::new();
+    let mut res: IResult<&[u8], Vec<(String, RProp)>> = IResult::Done(input, Vec::new());
     let mut done = false;
     let mut cslice = input;
 
@@ -102,7 +109,7 @@ fn rdict(input: &[u8]) -> IResult<&[u8], Vec<(&str, RProp)> > {
             "None" => { done = true }
             _ => {
               match rprop_encoded(cslice) {
-                IResult::Done(inp, val) => { cslice = inp; v.push((txt, val)); },
+                IResult::Done(inp, val) => { cslice = inp; v.push((txt.to_string(), val)); },
                 IResult::Incomplete(a) => { res = IResult::Incomplete(a); done = true },
                 IResult::Error(a) => { res = IResult::Error(a); done = true }
               }
@@ -145,6 +152,7 @@ named!(f<&[u8],A>,
 mod tests {
     use nom::IResult::{Done, Error, Incomplete};
     use nom::Needed::Size;
+    use super::RProp::*;
 
     #[test]
     fn missing_header_data() {
@@ -200,7 +208,7 @@ mod tests {
         // dd skip=$((0x1269)) count=$((0x12a8 - 0x1269)) if=rumble.replay of=rdict_one.replay bs=1
         let data = include_bytes!("../assets/rdict_one.replay");
         let r = super::rdict(data);
-        assert_eq!(r, Done(&[][..],  vec![("PlayerName", super::RProp::Str("comagoosie".to_string()))]));
+        assert_eq!(r, Done(&[][..],  vec![("PlayerName".to_string(), super::RProp::Str("comagoosie".to_string()))]));
     }
 
     #[test]
@@ -208,7 +216,7 @@ mod tests {
         // dd skip=$((0x250)) count=$((0x284 - 0x250)) if=rumble.replay of=rdict_int.replay bs=1
         let data = include_bytes!("../assets/rdict_int.replay");
         let r = super::rdict(data);
-        assert_eq!(r, Done(&[][..],  vec![("PlayerTeam", super::RProp::Int(0))]));
+        assert_eq!(r, Done(&[][..],  vec![("PlayerTeam".to_string(), super::RProp::Int(0))]));
     }
 
     #[test]
@@ -216,7 +224,7 @@ mod tests {
         // dd skip=$((0xa0f)) count=$((0xa3b - 0xa0f)) if=rumble.replay of=rdict_bool.replay bs=1
         let data = include_bytes!("../assets/rdict_bool.replay");
         let r = super::rdict(data);
-        assert_eq!(r, Done(&[][..],  vec![("bBot", super::RProp::Bool(false))]));
+        assert_eq!(r, Done(&[][..],  vec![("bBot".to_string(), super::RProp::Bool(false))]));
     }
 
     fn append_none(input: &[u8]) -> Vec<u8> {
@@ -232,7 +240,7 @@ mod tests {
         // dd skip=$((0x1237)) count=$((0x1269 - 0x1237)) if=rumble.replay of=rdict_name.replay bs=1
         let data = append_none(include_bytes!("../assets/rdict_name.replay"));
         let r = super::rdict(&data);
-        assert_eq!(r, Done(&[][..],  vec![("MatchType", super::RProp::Name("Online".to_string()))]));
+        assert_eq!(r, Done(&[][..],  vec![("MatchType".to_string(), super::RProp::Name("Online".to_string()))]));
 
     }
 
@@ -241,7 +249,7 @@ mod tests {
         // dd skip=$((0x10a2)) count=$((0x10ce - 0x10a2)) if=rumble.replay of=rdict_float.replay bs=1
         let data = append_none(include_bytes!("../assets/rdict_float.replay"));
         let r = super::rdict(&data);
-        assert_eq!(r, Done(&[][..],  vec![("RecordFPS", super::RProp::Float(30.0))]));
+        assert_eq!(r, Done(&[][..],  vec![("RecordFPS".to_string(), super::RProp::Float(30.0))]));
     }
 
     #[test]
@@ -249,6 +257,45 @@ mod tests {
         // dd skip=$((0x576)) count=$((0x5a5 - 0x576)) if=rumble.replay of=rdict_qword.replay bs=1
         let data = append_none(include_bytes!("../assets/rdict_qword.replay"));
         let r = super::rdict(&data);
-        assert_eq!(r, Done(&[][..],  vec![("OnlineID", super::RProp::QWord(76561198101748375))]));
+        assert_eq!(r, Done(&[][..],  vec![("OnlineID".to_string(), super::RProp::QWord(76561198101748375))]));
+    }
+
+    #[test]
+    fn rdict_one_array_element() {
+        // dd skip=$((0x576)) count=$((0x5a5 - 0x576)) if=rumble.replay of=rdict_qword.replay bs=1
+        let data = append_none(include_bytes!("../assets/rdict_array.replay"));
+        let r = super::rdict(&data);
+        let expected = vec![
+            vec![
+                ("frame".to_string(), Int(441)),
+                ("PlayerName".to_string(), Str("Cakeboss".to_string())),
+                ("PlayerTeam".to_string(), Int(1))
+            ], vec![
+                ("frame".to_string(), Int(1738)),
+                ("PlayerName".to_string(), Str("Sasha Kaun".to_string())),
+                ("PlayerTeam".to_string(), Int(0))
+            ], vec![
+                ("frame".to_string(), Int(3504)),
+                ("PlayerName".to_string(), Str("SilentWarrior".to_string())),
+                ("PlayerTeam".to_string(), Int(0))
+            ], vec![
+                ("frame".to_string(), Int(5058)),
+                ("PlayerName".to_string(), Str("jeffreyj1".to_string())),
+                ("PlayerTeam".to_string(), Int(1))
+            ], vec![
+                ("frame".to_string(), Int(5751)),
+                ("PlayerName".to_string(), Str("GOOSE LORD".to_string())),
+                ("PlayerTeam".to_string(), Int(0))
+            ], vec![
+                ("frame".to_string(), Int(6083)),
+                ("PlayerName".to_string(), Str("GOOSE LORD".to_string())),
+                ("PlayerTeam".to_string(), Int(0))
+            ], vec![
+                ("frame".to_string(), Int(7021)),
+                ("PlayerName".to_string(), Str("SilentWarrior".to_string())),
+                ("PlayerTeam".to_string(), Int(0))
+            ]
+        ];
+        assert_eq!(r, Done(&[][..],  vec![("Goals".to_string(), super::RProp::Array(expected))]));
     }
 }
