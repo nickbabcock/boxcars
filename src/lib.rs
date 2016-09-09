@@ -15,6 +15,17 @@ struct A {
   b: u8
 }
 
+enum RProp {
+    Array(Box<[RProp]>),
+    Bool(bool),
+    Byte(u8),
+    Float(f32),
+    Int(u32),
+    Name(String),
+    QWord(u64),
+    Str(String)
+}
+
 named!(length_encoded,
     chain!(
         size: le_u32 ~
@@ -36,6 +47,21 @@ named!(text_encoded<&[u8], &str>,
         take!(1),
         || {data}
     )
+);
+
+named!(str_prop<&[u8], RProp>, map!(map!(text_encoded, str::to_string), RProp::Str));
+
+named!(rprop_encoded<&[u8], RProp>,
+  switch!(text_encoded,
+    "ArrayProperty" => call!(str_prop) |
+    "BoolProperty" => call!(str_prop) |
+    "ByteProperty" => call!(str_prop)|
+    "FloatProperty" => call!(str_prop) |
+    "IntProperty" => call!(str_prop) |
+    "NameProperty" => call!(str_prop) |
+    "QWordProperty" => call!(str_prop) |
+    "StrProperty" => call!(str_prop)
+  )
 );
 
 named!(f<&[u8],A>,
