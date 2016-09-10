@@ -1,5 +1,6 @@
 extern crate boxcars;
 extern crate nom;
+extern crate serde_json;
 
 use std::env;
 use std::fs::File;
@@ -15,7 +16,8 @@ fn main() {
     let b = boxcars::parse(&buffer);
     match b {
       IResult::Done(_, val) => {
-        println!("header size: {}", val.content_size);
+        let serialized = serde_json::to_string(&val).unwrap();
+        println!("{}", serialized);
       }
       _ => {
         println!("Oh no we failed to parse");

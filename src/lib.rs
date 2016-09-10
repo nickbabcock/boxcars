@@ -1,5 +1,8 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
+#![feature(plugin, custom_derive)]
+#![plugin(serde_macros)]
+
 
 #[macro_use]
 extern crate nom;
@@ -11,7 +14,7 @@ use nom::{HexDisplay, Needed, IResult, ErrorKind, le_i32, le_u64, le_u32, le_u8,
 use nom::Err;
 use nom::IResult::*;
 
-#[derive(PartialEq,Debug)]
+#[derive(Serialize, PartialEq, Debug)]
 pub struct Replay {
   pub header_size: u32,
   pub header_crc: u32,
@@ -25,20 +28,20 @@ pub struct Replay {
   pub keyframes: Vec<KeyFrame>
 }
 
-#[derive(PartialEq,Debug)]
+#[derive(Serialize, PartialEq, Debug)]
 pub struct TickMark {
   description: String,
   frame: u32
 }
 
-#[derive(PartialEq,Debug)]
+#[derive(Serialize, PartialEq, Debug)]
 pub struct KeyFrame {
   time: f32,
   frame: u32,
   position: u32
 }
 
-#[derive(PartialEq,Debug)]
+#[derive(Serialize, PartialEq, Debug)]
 pub enum RProp {
     Array(Vec<Vec<(String, RProp)>>),
     Bool(bool),
