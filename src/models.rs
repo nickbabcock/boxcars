@@ -1,6 +1,23 @@
+//! # Models
+//!
+//! Here lies the data structures that a rocket league replay is decoded into. All of the models
+//! are contained in this one file because of serde. On Rust nightly, which is what this library
+//! needs to compile, no special actions are needed for serde to work. However, to achieve
+//! compilation on Rust stable, an extra [build step can be
+//! introduced](https://serde.rs/codegen-stable.html). Part of the intermediate step is to split
+//! all the serde specific code into a separate file, which is what I've done here. To me, it is
+//! not critical to have this library compile on stable, hence this work remains unfinished.
+//!
+//! For serde, we only care about serialization, JSON serialization. Deserialization is not
+//! implemented from our JSON output because it is lossy (JSON isn't the best with different
+//! numeric/string types). Asking "why JSON" would be next logical step, and that other rocket
+//! league replay parsers (like Octane) use JSON; however, the output of this library is not
+//! compatible with that of other rocket league replay parsers.
+
 use serde::{Serialize, Serializer};
 use std::collections::HashMap;
 
+/// The structure that a rocket league replay is parsed into.
 #[derive(Serialize, PartialEq, Debug)]
 pub struct Replay {
     pub header_size: u32,
@@ -9,6 +26,8 @@ pub struct Replay {
     pub minor_version: u32,
     pub game_type: String,
 
+    /// Could use a map to represent properties but I don't want to assume that duplicate keys
+    /// can't exist, so to be safe, use a traditional vector.
     #[serde(serialize_with = "pair_vec")]
     pub properties: Vec<(String, HeaderProp)>,
     pub content_size: u32,
@@ -24,12 +43,21 @@ pub struct Replay {
     pub net_cache: Vec<ClassNetCache>,
 }
 
+/// In Rocket league replays, there are tickmarks that typically represent a significant event in
+/// the game (eg. a goal). The tick mark is placed before the event happens so there is a ramp-up
+/// time. For instance, a tickmark could be at frame 396 for a goal 441. At 30 fps, this would be
+/// 1.5 seconds of ramp up time.
 #[derive(Serialize, PartialEq, Debug)]
 pub struct TickMark {
     pub description: String,
     pub frame: u32,
 }
 
+/// Keyframes as defined by the video compression section in the [wikipedia][] article, are the
+/// main frames that are derived from in the following frame data. Since we are not decoding the
+/// network stream, this is more a nice-to-decode than a necessity
+///
+/// [wikipedia]: https://en.wikipedia.org/wiki/Key_frame#Video_compression
 #[derive(Serialize, PartialEq, Debug)]
 pub struct KeyFrame {
     pub time: f32,
@@ -37,6 +65,12 @@ pub struct KeyFrame {
     pub position: u32,
 }
 
+/// All the interesting data are stored as properties in the header, properties such as:
+/// - When and who scored a goal
+/// - Player stats (goals, assists, score, etc).
+/// - Date and level played on
+/// A property can be a number, string, or a more complex object such as an array containing
+/// additional properties.
 #[derive(PartialEq, Debug)]
 pub enum HeaderProp {
     Array(Vec<Vec<(String, HeaderProp)>>),
@@ -49,6 +83,7 @@ pub enum HeaderProp {
     Str(String),
 }
 
+/// Debugging info stored in the replay if debugging is enabled.
 #[derive(Serialize, PartialEq, Debug)]
 pub struct DebugInfo {
     pub frame: u32,
@@ -56,18 +91,21 @@ pub struct DebugInfo {
     pub text: String,
 }
 
+/// Contains useful information when decoding the network stream, which we aren't
 #[derive(Serialize, PartialEq, Debug)]
 pub struct ClassIndex {
     pub class: String,
     pub index: u32,
 }
 
+/// Contains useful information when decoding the network stream, which we aren't
 #[derive(Serialize, PartialEq, Debug)]
 pub struct CacheProp {
     pub index: u32,
     pub id: u32,
 }
 
+/// Contains useful information when decoding the network stream, which we aren't
 #[derive(Serialize, PartialEq, Debug)]
 pub struct ClassNetCache {
     pub index: u32,
