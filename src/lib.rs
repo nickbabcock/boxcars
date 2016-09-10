@@ -25,7 +25,14 @@ pub struct Replay {
   pub content_size: u32,
   pub content_crc: u32,
   pub levels: Vec<String>,
-  pub keyframes: Vec<KeyFrame>
+  pub keyframes: Vec<KeyFrame>,
+  pub debug_info: Vec<DebugInfo>,
+  pub tick_marks: Vec<TickMark>,
+  pub packages: Vec<String>,
+  pub objects: Vec<String>,
+  pub names: Vec<String>,
+  pub class_indices: Vec<ClassIndex>,
+  pub net_cache: Vec<ClassNetCache>
 }
 
 #[derive(Serialize, PartialEq, Debug)]
@@ -51,6 +58,33 @@ pub enum RProp {
     Name(String),
     QWord(u64),
     Str(String),
+}
+
+#[derive(Serialize, PartialEq, Debug)]
+pub struct DebugInfo {
+  pub frame: u32,
+  pub user: String,
+  pub text: String
+}
+
+#[derive(Serialize, PartialEq, Debug)]
+pub struct ClassIndex {
+  pub class: String,
+  pub index: u32
+}
+
+#[derive(Serialize, PartialEq, Debug)]
+pub struct CacheProp {
+  pub index: u32,
+  pub id: u32
+}
+
+#[derive(Serialize, PartialEq, Debug)]
+pub struct ClassNetCache {
+  pub index: u32,
+  pub parent_id: u32,
+  pub id: u32,
+  pub properties: Vec<CacheProp>
 }
 
 named!(length_encoded,
@@ -182,7 +216,16 @@ named!(pub parse<&[u8],Replay>,
         content_size: le_u32 ~
         content_crc: le_u32 ~
         levels: text_list ~
-        keyframes: keyframe_list,
+        keyframes: keyframe_list ~
+        network_size: le_u32 ~
+        take!(network_size) ~
+        debug_info: debuginfo_list ~
+        tick_marks: tickmark_list ~
+        packages: text_list ~
+        objects: text_list ~
+        names: text_list ~
+        class_indices: classindex_list ~
+        net_cache: classnetcache_list,
 
         || { Replay {
           header_size: header_size,
@@ -194,17 +237,25 @@ named!(pub parse<&[u8],Replay>,
           content_size: content_size,
           content_crc: content_crc,
           levels: levels,
-          keyframes: keyframes
+          keyframes: keyframes,
+          debug_info: debug_info,
+          tick_marks: tick_marks,
+          packages: packages,
+          objects: objects,
+          names: names,
+          class_indices: class_indices,
+          net_cache: net_cache
         }}
     )
 );
 
+named!(text_string<&[u8], String>, map!(text_encoded, str::to_string));
+
 named!(text_list<&[u8], Vec<String> >,
   chain!(
     size: le_u32 ~
-    elems: count!(map!(text_encoded, str::to_string), size as usize),
+    elems: count!(text_string, size as usize),
     || {elems}));
-
 
 named!(keyframe_list<&[u8], Vec<KeyFrame> >,
   chain!(size: le_u32 ~ elems: count!(keyframe_encoded, size as usize), || {elems}));
@@ -215,6 +266,13 @@ named!(keyframe_encoded<&[u8], KeyFrame>,
          position: le_u32,
          || {KeyFrame {time: time, frame: frame, position: position}}));
 
+named!(debuginfo_encoded<&[u8], DebugInfo>,
+  chain!(frame: le_u32 ~ user: text_string ~ text: text_string,
+    || { DebugInfo { frame: frame, user: user, text: text } }));
+
+named!(debuginfo_list<&[u8], Vec<DebugInfo> >,
+  chain!(size: le_u32 ~ elems: count!(debuginfo_encoded, size as usize), || {elems}));
+
 named!(tickmark_list<&[u8], Vec<TickMark> >,
   chain!(size: le_u32 ~ elems: count!(tickmark_encoded, size as usize), || {elems}));
 
@@ -223,6 +281,32 @@ named!(tickmark_encoded<&[u8], TickMark>,
          frame: le_u32,
          || {TickMark {description: description.to_string(), frame: frame}}));
 
+named!(classindex_encoded<&[u8], ClassIndex>,
+  chain!(class: text_string ~ index: le_u32,
+    || { ClassIndex { class: class, index: index } }));
+
+named!(classindex_list<&[u8], Vec<ClassIndex> >,
+  chain!(size: le_u32 ~ elems: count!(classindex_encoded, size as usize), || {elems}));
+
+named!(cacheprop_encoded<&[u8], CacheProp>,
+  chain!(index: le_u32 ~ id: le_u32,
+    || { CacheProp { index: index, id: id } }));
+
+named!(classnetcache_encoded<&[u8], ClassNetCache>,
+  chain!(index: le_u32 ~
+         parent_id: le_u32 ~
+         id: le_u32 ~
+         prop_size: le_u32 ~
+         properties: count!(cacheprop_encoded, prop_size as usize),
+         || { ClassNetCache {
+          index: index,
+          parent_id: parent_id,
+          id: id,
+          properties: properties
+         }}));
+
+named!(classnetcache_list<&[u8], Vec<ClassNetCache> >,
+  chain!(size: le_u32 ~ elems: count!(classnetcache_encoded, size as usize), || {elems}));
 
 #[cfg(test)]
 mod tests {
