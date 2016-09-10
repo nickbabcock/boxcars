@@ -11,9 +11,14 @@ use nom::{HexDisplay, Needed, IResult, ErrorKind, le_i32, le_u64, le_u32, le_u8,
 use nom::Err;
 use nom::IResult::*;
 
-struct A {
-    a: u8,
-    b: u8,
+#[derive(PartialEq,Debug)]
+pub struct Replay {
+  pub header_size: u32,
+  pub header_crc: u32,
+  pub major_version: u32,
+  pub minor_version: u32,
+  pub game_type: String,
+  pub properties: Vec<(String, RProp)>
 }
 
 #[derive(PartialEq,Debug)]
@@ -30,7 +35,7 @@ pub struct KeyFrame {
 }
 
 #[derive(PartialEq,Debug)]
-enum RProp {
+pub enum RProp {
     Array(Vec<Vec<(String, RProp)>>),
     Bool(bool),
     Byte,
@@ -159,15 +164,23 @@ fn rdict(input: &[u8]) -> IResult<&[u8], Vec<(String, RProp)> > {
     }
 }
 
-named!(f<&[u8],A>,
+named!(pub parse<&[u8],Replay>,
     chain!(
-        header_size:  le_i32 ~
-        header_crc:   le_i32 ~
-        header:       take!(header_size) ~
-        content_size: le_i32 ~
-        content_crc:  le_i32 ~
-        content:      take!(content_size),
-        || {A {a: 0, b: 0}}
+        header_size:  le_u32 ~
+        header_crc:   le_u32 ~
+        major_version: le_u32 ~
+        minor_version: le_u32 ~
+        game_type: text_encoded ~
+        properties: rdict,
+
+        || { Replay {
+          header_size: header_size,
+          header_crc: header_crc,
+          major_version: major_version,
+          minor_version: minor_version,
+          game_type: game_type.to_string(),
+          properties: properties
+        }}
     )
 );
 
