@@ -18,7 +18,11 @@ pub struct Replay {
   pub major_version: u32,
   pub minor_version: u32,
   pub game_type: String,
-  pub properties: Vec<(String, RProp)>
+  pub properties: Vec<(String, RProp)>,
+  pub content_size: u32,
+  pub content_crc: u32,
+  pub levels: Vec<String>,
+  pub keyframes: Vec<KeyFrame>
 }
 
 #[derive(PartialEq,Debug)]
@@ -171,7 +175,11 @@ named!(pub parse<&[u8],Replay>,
         major_version: le_u32 ~
         minor_version: le_u32 ~
         game_type: text_encoded ~
-        properties: rdict,
+        properties: rdict ~
+        content_size: le_u32 ~
+        content_crc: le_u32 ~
+        levels: text_list ~
+        keyframes: keyframe_list,
 
         || { Replay {
           header_size: header_size,
@@ -179,10 +187,21 @@ named!(pub parse<&[u8],Replay>,
           major_version: major_version,
           minor_version: minor_version,
           game_type: game_type.to_string(),
-          properties: properties
+          properties: properties,
+          content_size: content_size,
+          content_crc: content_crc,
+          levels: levels,
+          keyframes: keyframes
         }}
     )
 );
+
+named!(text_list<&[u8], Vec<String> >,
+  chain!(
+    size: le_u32 ~
+    elems: count!(map!(text_encoded, str::to_string), size as usize),
+    || {elems}));
+
 
 named!(keyframe_list<&[u8], Vec<KeyFrame> >,
   chain!(size: le_u32 ~ elems: count!(keyframe_encoded, size as usize), || {elems}));

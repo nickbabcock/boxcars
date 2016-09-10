@@ -15,7 +15,7 @@ fn main() {
     let b = boxcars::parse(&buffer);
     match b {
       IResult::Done(_, val) => {
-        println!("header size: {}", val.header_size);
+        println!("header size: {}", val.content_size);
       }
       _ => {
         println!("Oh no we failed to parse");
