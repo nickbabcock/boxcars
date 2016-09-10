@@ -17,6 +17,12 @@ struct A {
 }
 
 #[derive(PartialEq,Debug)]
+pub struct TickMark {
+  description: String,
+  frame: u32
+}
+
+#[derive(PartialEq,Debug)]
 pub struct KeyFrame {
   time: f32,
   frame: u32,
@@ -173,6 +179,14 @@ named!(keyframe_encoded<&[u8], KeyFrame>,
          frame: le_u32 ~
          position: le_u32,
          || {KeyFrame {time: time, frame: frame, position: position}}));
+
+named!(tickmark_list<&[u8], Vec<TickMark> >,
+  chain!(size: le_u32 ~ elems: count!(tickmark_encoded, size as usize), || {elems}));
+
+named!(tickmark_encoded<&[u8], TickMark>,
+  chain!(description: text_encoded ~
+         frame: le_u32,
+         || {TickMark {description: description.to_string(), frame: frame}}));
 
 
 #[cfg(test)]
@@ -344,7 +358,7 @@ mod tests {
     }
 
     #[test]
-    fn single_key_frame_list() {
+    fn key_frame_list() {
         let data = include_bytes!("../assets/rumble.replay");
 
         // List is 2A long, each keyframe is 12 bytes. Then add four for list length = 508
@@ -353,6 +367,23 @@ mod tests {
           Done(i, val) => {
             // There are 42 key frames in this list
             assert_eq!(val.len(), 42);
+            assert_eq!(i, &[][..]);
+          }
+          _ => { assert!(false); }
+        }
+    }
+
+    #[test]
+    fn tickmark_list() {
+        let data = include_bytes!("../assets/rumble.replay");
+
+        // 7 tick marks at 8 bytes + size of tick list
+        let r = super::tickmark_list(&data[0xf6cce..0xf6d50]);
+        match r {
+          Done(i, val) => {
+            // There are 7 tick marks in this list
+            assert_eq!(val.len(), 7);
+            assert_eq!(val[0], TickMark { description: "Team1Goal".to_string(), frame: 396 });
             assert_eq!(i, &[][..]);
           }
           _ => { assert!(false); }
