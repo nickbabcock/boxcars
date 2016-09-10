@@ -9,6 +9,25 @@
 //! project be a good example of Rust code using nom, and serde as extensive examples are hard to
 //! come by. While lacking feature completeness and user friendly error message -- among other
 //! issues, tests and documentation strive to be thorough.
+//!
+//! ```
+//! # let filename = "assets/rumble.replay";
+//! let mut f = File::open(filename).unwrap();
+//! let mut buffer = vec![];
+//! f.read_to_end(&mut buffer).unwrap();
+//! let b = boxcars::parse(&buffer);
+//!
+//! match b {
+//!     IResult::Done(_, val) => {
+//!         let serialized = serde_json::to_string(&val).unwrap();
+//!         println!("{}", serialized);
+//!     }
+//!     _ => {
+//!         println!("Oh no we failed to parse");
+//!     }
+//! }
+//! ```
+
 #![feature(plugin, custom_derive)]
 #![plugin(serde_macros)]
 
