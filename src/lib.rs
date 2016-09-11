@@ -108,6 +108,10 @@ fn pair_vec<K, V, S>(inp: &Vec<(K, V)>, serializer: &mut S) -> Result<(), S::Err
   return serializer.serialize_map_end(state);
 }
 
+/// By default serde will generate a serialization method that writes out the enum as well as the
+/// enum value. Since header values are self describing in JSON, we do not need to serialize the
+/// enum type. This is slightly lossy as in the serialized format it will be ambiguous if a value
+/// is a `Name` or `Str`, as well as `Byte`, `Float`, `Int`, or `QWord`.
 impl Serialize for HeaderProp {
     fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error>
         where S: Serializer
@@ -116,8 +120,8 @@ impl Serialize for HeaderProp {
           HeaderProp::Array(ref x) => {
             let mut state = try!(serializer.serialize_seq(Some(x.len())));
             for inner in x {
+              // Look for a better way to do this instead of allocating the intermediate map
               let mut els = HashMap::new();
-
               for &(ref key, ref val) in inner.iter() {
                 els.insert(key.clone(), val.clone());
               }
@@ -148,8 +152,7 @@ named!(length_encoded,
 /// the text spans. The last byte in the text will be null terminated, so we trim
 /// it off. It may seem redundant to store this information, but stackoverflow contains
 /// a nice reasoning for why it may have been done this way:
-///
-/// http://stackoverflow.com/questions/6293457/why-are-c-net-strings-length-prefixed-and-null-terminated
+/// http://stackoverflow.com/q/6293457/433785
 named!(text_encoded<&[u8], &str>,
     chain!(
         size: le_u32 ~
@@ -214,10 +217,22 @@ named!(rprop_encoded<&[u8], HeaderProp>,
   )
 );
 
+/// Other the actual network data, the header property associative array is the hardest to parse.
+/// The format is to:
+/// - Read string
+/// - If string is "None", we're done
+/// - else we're dealing with a property, and the string just read is the key. Now deserialize the
+///   value.
 fn rdict(input: &[u8]) -> IResult<&[u8], Vec<(String, HeaderProp)> > {
     let mut v: Vec<(String, HeaderProp)> = Vec::new();
+
+    // Initialize to a dummy value to avoid unitialized errors
     let mut res: IResult<&[u8], Vec<(String, HeaderProp)>> = IResult::Done(input, Vec::new());
+
+    // Done only if we see an error or if we see "None"
     let mut done = false;
+
+    // Keeps track of where we currently are in the slice.
     let mut cslice = input;
 
     while !done {
