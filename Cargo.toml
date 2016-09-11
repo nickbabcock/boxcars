@@ -7,5 +7,11 @@ authors = ["nick"]
 nom = "^1.2.4"
 crc = "^1.3.0"
 serde = "0.8"
-serde_json = "0.8"
 serde_macros = "0.8"
+
+# Include serde_json for our cli. Unfortunately there are currently no ways to
+# specify dependencies just for our cli:
+# https://github.com/rust-lang/cargo/issues/1982
+# Since this is really only an example repo, I won't worry about creating a
+# separate `bin` cargo file
+serde_json = "0.8"
