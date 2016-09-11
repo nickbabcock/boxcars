@@ -6,6 +6,7 @@
 
 #[macro_use]
 extern crate nom;
+extern crate serde;
 
 extern crate crc;
 
@@ -13,6 +14,8 @@ use nom::{HexDisplay, Needed, IResult, ErrorKind, le_i32, le_u64, le_u32, le_u8,
           FileProducer};
 use nom::Err;
 use nom::IResult::*;
+use serde::{Serialize, Serializer};
+use std::collections::HashMap;
 
 #[derive(Serialize, PartialEq, Debug)]
 pub struct Replay {
@@ -21,6 +24,8 @@ pub struct Replay {
   pub major_version: u32,
   pub minor_version: u32,
   pub game_type: String,
+
+  #[serde(serialize_with = "aa")]
   pub properties: Vec<(String, RProp)>,
   pub content_size: u32,
   pub content_crc: u32,
@@ -48,7 +53,7 @@ pub struct KeyFrame {
   position: u32
 }
 
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(PartialEq, Debug)]
 pub enum RProp {
     Array(Vec<Vec<(String, RProp)>>),
     Bool(bool),
@@ -85,6 +90,45 @@ pub struct ClassNetCache {
   pub parent_id: u32,
   pub id: u32,
   pub properties: Vec<CacheProp>
+}
+
+fn aa<S>(inp: &Vec<(String, RProp)>, serializer: &mut S) -> Result<(), S::Error> where S: Serializer {
+  let mut state = try!(serializer.serialize_map(Some(inp.len())));
+  for &(ref key, ref val) in inp.iter() {
+    try!(serializer.serialize_map_key(&mut state, key));
+    try!(serializer.serialize_map_value(&mut state, val));
+  }
+  return serializer.serialize_map_end(state);
+}
+
+impl Serialize for RProp {
+    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error>
+        where S: Serializer
+    {
+        match *self {
+          RProp::Array(ref x) => {
+            let mut state = try!(serializer.serialize_seq(Some(x.len())));
+            for inner in x {
+              let mut els = HashMap::new();
+
+              for &(ref key, ref val) in inner.iter() {
+                els.insert(key.clone(), val.clone());
+//                try!(serializer.serialize_map_key(&mut istate, &key));
+ //               try!(serializer.serialize_map_value(&mut istate, val));
+              }
+              try!(serializer.serialize_seq_elt(&mut state, els));
+            }
+            return serializer.serialize_seq_end(state);
+          },
+          RProp::Bool(ref x) => serializer.serialize_bool(*x),
+          RProp::Byte => serializer.serialize_u8(0),
+          RProp::Float(ref x) => serializer.serialize_f32(*x),
+          RProp::Int(ref x) => serializer.serialize_u32(*x),
+          RProp::Name(ref x) => serializer.serialize_str(&x),
+          RProp::QWord(ref x) => serializer.serialize_u64(*x),
+          RProp::Str(ref x) => serializer.serialize_str(&x)
+        }
+    }
 }
 
 named!(length_encoded,
