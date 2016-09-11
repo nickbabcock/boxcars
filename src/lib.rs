@@ -92,6 +92,12 @@ pub struct ClassNetCache {
   pub properties: Vec<CacheProp>
 }
 
+/// Serialize a vector of key value tuples into a map. This is useful when the data we're ingesting
+/// (rocket league replay data) doesn't have a defined spec, so it may be assuming too much to
+/// store it into an associative array, so it's stored as a normal sequence. Here we serialize as a
+/// map structure because most replay parser do this, so we should be compliant and the data format
+/// doesn't dictate that the keys in a sequence of key value pairs must be distinct. It's true,
+/// JSON doesn't need the keys to be unique: http://stackoverflow.com/q/21832701/433785
 fn pair_vec<K, V, S>(inp: &Vec<(K, V)>, serializer: &mut S) -> Result<(), S::Error>
   where K: Serialize, V: Serialize, S: Serializer {
   let mut state = try!(serializer.serialize_map(Some(inp.len())));
@@ -114,8 +120,6 @@ impl Serialize for RProp {
 
               for &(ref key, ref val) in inner.iter() {
                 els.insert(key.clone(), val.clone());
-//                try!(serializer.serialize_map_key(&mut istate, &key));
- //               try!(serializer.serialize_map_value(&mut istate, val));
               }
               try!(serializer.serialize_seq_elt(&mut state, els));
             }
