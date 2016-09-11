@@ -162,6 +162,12 @@ named!(text_encoded<&[u8], &str>,
     )
 );
 
+/// Header properties are encoded in a pretty simple format, with some oddities. The first 64bits
+/// is data that can be discarded, some people think that the 64bits is the length of the data
+/// while others think that the first 32bits is the header length in bytes with the subsequent
+/// 32bits unknown. Doesn't matter to us, we throw it out anyways. The rest of the bytes are
+/// decoded property type specific.
+
 named!(str_prop<&[u8], HeaderProp>,
   chain!(le_u64 ~ x: text_encoded,
     || {HeaderProp::Str(x.to_string())}));
@@ -186,17 +192,14 @@ named!(qword_prop<&[u8], HeaderProp>,
     chain!(le_u64 ~ x: le_u64,
         || {HeaderProp::QWord(x)}));
 
-fn byte_switch(input: &[u8]) -> IResult<&[u8], HeaderProp> {
-    match text_encoded(input) {
-        IResult::Done(i, "OnlinePlatform_Steam") => IResult::Done(i, HeaderProp::Byte),
-        IResult::Done(i, _) => map!(i, text_encoded, |_| {HeaderProp::Byte}),
-        IResult::Incomplete(a) => IResult::Incomplete(a),
-        IResult::Error(a) => IResult::Error(a)
-    }
-}
+/// The byte property is the odd one out. It's two strings following each other. No rhyme or
+/// reason.
+named!(byte_prop<&[u8], HeaderProp>,
+    chain!(le_u64 ~ text_encoded ~ text_encoded, || {HeaderProp::Byte}));
 
-named!(byte_prop<&[u8], HeaderProp>, chain!(le_u64 ~ res: byte_switch, || {res}));
-
+/// The array property has the same leading 64bits that are discarded but also contains the length
+/// of the aray as the next 32bits. Each element in the array is a dictionary so we decode `size`
+/// number of dictionaries.
 named!(array_prop<&[u8], HeaderProp>,
     chain!(
         le_u64 ~
@@ -204,6 +207,7 @@ named!(array_prop<&[u8], HeaderProp>,
         elems: count!(rdict, size as usize),
         || {HeaderProp::Array(elems)}));
 
+/// The next string in the data tells us how to decode the property and what type it is.
 named!(rprop_encoded<&[u8], HeaderProp>,
   switch!(text_encoded,
     "ArrayProperty" => call!(array_prop) |
@@ -223,6 +227,8 @@ named!(rprop_encoded<&[u8], HeaderProp>,
 /// - If string is "None", we're done
 /// - else we're dealing with a property, and the string just read is the key. Now deserialize the
 ///   value.
+/// The return type of this function is a key value vector because since there is no format
+/// specification, we can't rule out duplicate keys. Possibly consider a multi-map in the future.
 fn rdict(input: &[u8]) -> IResult<&[u8], Vec<(String, HeaderProp)> > {
     let mut v: Vec<(String, HeaderProp)> = Vec::new();
 
@@ -282,6 +288,9 @@ named!(pub parse<&[u8],Replay>,
         levels: text_list ~
         keyframes: keyframe_list ~
         network_size: le_u32 ~
+
+        // This is where this example falls short is that decoding the network data is not
+        // implemented. See Octane or RocketLeagueReplayParser for more info.
         take!(network_size) ~
         debug_info: debuginfo_list ~
         tick_marks: tickmark_list ~
@@ -290,6 +299,7 @@ named!(pub parse<&[u8],Replay>,
         names: text_list ~
         class_indices: classindex_list ~
         net_cache: classnetcache_list,
+
 
         || { Replay {
           header_size: header_size,
@@ -313,16 +323,10 @@ named!(pub parse<&[u8],Replay>,
     )
 );
 
+/// Below are a series of decoding functions that take in data and returns some domain object (eg:
+/// TickMark, KeyFrame, etc.
+
 named!(text_string<&[u8], String>, map!(text_encoded, str::to_string));
-
-named!(text_list<&[u8], Vec<String> >,
-  chain!(
-    size: le_u32 ~
-    elems: count!(text_string, size as usize),
-    || {elems}));
-
-named!(keyframe_list<&[u8], Vec<KeyFrame> >,
-  chain!(size: le_u32 ~ elems: count!(keyframe_encoded, size as usize), || {elems}));
 
 named!(keyframe_encoded<&[u8], KeyFrame>,
   chain!(time: le_f32 ~
@@ -334,23 +338,14 @@ named!(debuginfo_encoded<&[u8], DebugInfo>,
   chain!(frame: le_u32 ~ user: text_string ~ text: text_string,
     || { DebugInfo { frame: frame, user: user, text: text } }));
 
-named!(debuginfo_list<&[u8], Vec<DebugInfo> >,
-  chain!(size: le_u32 ~ elems: count!(debuginfo_encoded, size as usize), || {elems}));
-
-named!(tickmark_list<&[u8], Vec<TickMark> >,
-  chain!(size: le_u32 ~ elems: count!(tickmark_encoded, size as usize), || {elems}));
-
 named!(tickmark_encoded<&[u8], TickMark>,
-  chain!(description: text_encoded ~
+  chain!(description: text_string ~
          frame: le_u32,
-         || {TickMark {description: description.to_string(), frame: frame}}));
+         || {TickMark {description: description, frame: frame}}));
 
 named!(classindex_encoded<&[u8], ClassIndex>,
   chain!(class: text_string ~ index: le_u32,
     || { ClassIndex { class: class, index: index } }));
-
-named!(classindex_list<&[u8], Vec<ClassIndex> >,
-  chain!(size: le_u32 ~ elems: count!(classindex_encoded, size as usize), || {elems}));
 
 named!(cacheprop_encoded<&[u8], CacheProp>,
   chain!(index: le_u32 ~ id: le_u32,
@@ -369,8 +364,27 @@ named!(classnetcache_encoded<&[u8], ClassNetCache>,
           properties: properties
          }}));
 
+/// All the domain objects can be observed in a list that is initially prefixed by the length.
+/// There may be a way to consolidate the implementations, but they're already currently concise.
+
+named!(text_list<&[u8], Vec<String> >,
+  chain!( size: le_u32 ~ elems: count!(text_string, size as usize), || {elems}));
+
+named!(keyframe_list<&[u8], Vec<KeyFrame> >,
+  chain!(size: le_u32 ~ elems: count!(keyframe_encoded, size as usize), || {elems}));
+
+named!(debuginfo_list<&[u8], Vec<DebugInfo> >,
+  chain!(size: le_u32 ~ elems: count!(debuginfo_encoded, size as usize), || {elems}));
+
+named!(tickmark_list<&[u8], Vec<TickMark> >,
+  chain!(size: le_u32 ~ elems: count!(tickmark_encoded, size as usize), || {elems}));
+
+named!(classindex_list<&[u8], Vec<ClassIndex> >,
+  chain!(size: le_u32 ~ elems: count!(classindex_encoded, size as usize), || {elems}));
+
 named!(classnetcache_list<&[u8], Vec<ClassNetCache> >,
   chain!(size: le_u32 ~ elems: count!(classnetcache_encoded, size as usize), || {elems}));
+
 
 #[cfg(test)]
 mod tests {
