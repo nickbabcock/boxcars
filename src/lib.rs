@@ -25,7 +25,7 @@ pub struct Replay {
   pub minor_version: u32,
   pub game_type: String,
 
-  #[serde(serialize_with = "aa")]
+  #[serde(serialize_with = "pair_vec")]
   pub properties: Vec<(String, RProp)>,
   pub content_size: u32,
   pub content_crc: u32,
@@ -92,7 +92,8 @@ pub struct ClassNetCache {
   pub properties: Vec<CacheProp>
 }
 
-fn aa<S>(inp: &Vec<(String, RProp)>, serializer: &mut S) -> Result<(), S::Error> where S: Serializer {
+fn pair_vec<K, V, S>(inp: &Vec<(K, V)>, serializer: &mut S) -> Result<(), S::Error>
+  where K: Serialize, V: Serialize, S: Serializer {
   let mut state = try!(serializer.serialize_map(Some(inp.len())));
   for &(ref key, ref val) in inp.iter() {
     try!(serializer.serialize_map_key(&mut state, key));
