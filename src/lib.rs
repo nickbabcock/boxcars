@@ -26,7 +26,7 @@ pub struct Replay {
   pub game_type: String,
 
   #[serde(serialize_with = "pair_vec")]
-  pub properties: Vec<(String, RProp)>,
+  pub properties: Vec<(String, HeaderProp)>,
   pub content_size: u32,
   pub content_crc: u32,
   pub levels: Vec<String>,
@@ -54,8 +54,8 @@ pub struct KeyFrame {
 }
 
 #[derive(PartialEq, Debug)]
-pub enum RProp {
-    Array(Vec<Vec<(String, RProp)>>),
+pub enum HeaderProp {
+    Array(Vec<Vec<(String, HeaderProp)>>),
     Bool(bool),
     Byte,
     Float(f32),
@@ -108,12 +108,12 @@ fn pair_vec<K, V, S>(inp: &Vec<(K, V)>, serializer: &mut S) -> Result<(), S::Err
   return serializer.serialize_map_end(state);
 }
 
-impl Serialize for RProp {
+impl Serialize for HeaderProp {
     fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error>
         where S: Serializer
     {
         match *self {
-          RProp::Array(ref x) => {
+          HeaderProp::Array(ref x) => {
             let mut state = try!(serializer.serialize_seq(Some(x.len())));
             for inner in x {
               let mut els = HashMap::new();
@@ -125,13 +125,13 @@ impl Serialize for RProp {
             }
             return serializer.serialize_seq_end(state);
           },
-          RProp::Bool(ref x) => serializer.serialize_bool(*x),
-          RProp::Byte => serializer.serialize_u8(0),
-          RProp::Float(ref x) => serializer.serialize_f32(*x),
-          RProp::Int(ref x) => serializer.serialize_u32(*x),
-          RProp::Name(ref x) => serializer.serialize_str(&x),
-          RProp::QWord(ref x) => serializer.serialize_u64(*x),
-          RProp::Str(ref x) => serializer.serialize_str(&x)
+          HeaderProp::Bool(ref x) => serializer.serialize_bool(*x),
+          HeaderProp::Byte => serializer.serialize_u8(0),
+          HeaderProp::Float(ref x) => serializer.serialize_f32(*x),
+          HeaderProp::Int(ref x) => serializer.serialize_u32(*x),
+          HeaderProp::Name(ref x) => serializer.serialize_str(&x),
+          HeaderProp::QWord(ref x) => serializer.serialize_u64(*x),
+          HeaderProp::Str(ref x) => serializer.serialize_str(&x)
         }
     }
 }
@@ -159,49 +159,49 @@ named!(text_encoded<&[u8], &str>,
     )
 );
 
-named!(str_prop<&[u8], RProp>,
+named!(str_prop<&[u8], HeaderProp>,
   chain!(le_u64 ~ x: text_encoded,
-    || {RProp::Str(x.to_string())}));
+    || {HeaderProp::Str(x.to_string())}));
 
-named!(name_prop<&[u8], RProp>,
+named!(name_prop<&[u8], HeaderProp>,
   chain!(le_u64 ~ x: text_encoded,
-    || {RProp::Name(x.to_string())}));
+    || {HeaderProp::Name(x.to_string())}));
 
-named!(int_prop<&[u8], RProp>,
+named!(int_prop<&[u8], HeaderProp>,
     chain!(le_u64 ~ x: le_u32,
-        || {RProp::Int(x)}));
+        || {HeaderProp::Int(x)}));
 
-named!(bool_prop<&[u8], RProp>,
+named!(bool_prop<&[u8], HeaderProp>,
     chain!(le_u64 ~ x: le_u8,
-        || {RProp::Bool(x == 1)}));
+        || {HeaderProp::Bool(x == 1)}));
 
-named!(float_prop<&[u8], RProp>,
+named!(float_prop<&[u8], HeaderProp>,
     chain!(le_u64 ~ x: le_f32,
-        || {RProp::Float(x)}));
+        || {HeaderProp::Float(x)}));
 
-named!(qword_prop<&[u8], RProp>,
+named!(qword_prop<&[u8], HeaderProp>,
     chain!(le_u64 ~ x: le_u64,
-        || {RProp::QWord(x)}));
+        || {HeaderProp::QWord(x)}));
 
-fn byte_switch(input: &[u8]) -> IResult<&[u8], RProp> {
+fn byte_switch(input: &[u8]) -> IResult<&[u8], HeaderProp> {
     match text_encoded(input) {
-        IResult::Done(i, "OnlinePlatform_Steam") => IResult::Done(i, RProp::Byte),
-        IResult::Done(i, _) => map!(i, text_encoded, |_| {RProp::Byte}),
+        IResult::Done(i, "OnlinePlatform_Steam") => IResult::Done(i, HeaderProp::Byte),
+        IResult::Done(i, _) => map!(i, text_encoded, |_| {HeaderProp::Byte}),
         IResult::Incomplete(a) => IResult::Incomplete(a),
         IResult::Error(a) => IResult::Error(a)
     }
 }
 
-named!(byte_prop<&[u8], RProp>, chain!(le_u64 ~ res: byte_switch, || {res}));
+named!(byte_prop<&[u8], HeaderProp>, chain!(le_u64 ~ res: byte_switch, || {res}));
 
-named!(array_prop<&[u8], RProp>,
+named!(array_prop<&[u8], HeaderProp>,
     chain!(
         le_u64 ~
         size: le_u32 ~
         elems: count!(rdict, size as usize),
-        || {RProp::Array(elems)}));
+        || {HeaderProp::Array(elems)}));
 
-named!(rprop_encoded<&[u8], RProp>,
+named!(rprop_encoded<&[u8], HeaderProp>,
   switch!(text_encoded,
     "ArrayProperty" => call!(array_prop) |
     "BoolProperty" => call!(bool_prop) |
@@ -214,9 +214,9 @@ named!(rprop_encoded<&[u8], RProp>,
   )
 );
 
-fn rdict(input: &[u8]) -> IResult<&[u8], Vec<(String, RProp)> > {
-    let mut v: Vec<(String, RProp)> = Vec::new();
-    let mut res: IResult<&[u8], Vec<(String, RProp)>> = IResult::Done(input, Vec::new());
+fn rdict(input: &[u8]) -> IResult<&[u8], Vec<(String, HeaderProp)> > {
+    let mut v: Vec<(String, HeaderProp)> = Vec::new();
+    let mut res: IResult<&[u8], Vec<(String, HeaderProp)>> = IResult::Done(input, Vec::new());
     let mut done = false;
     let mut cslice = input;
 
@@ -362,7 +362,7 @@ mod tests {
     use nom::IResult::{Done, Error, Incomplete};
     use nom::Needed::Size;
     use super::*;
-    use super::RProp::*;
+    use super::HeaderProp::*;
     use super::{length_encoded};
 
     #[test]
