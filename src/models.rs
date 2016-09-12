@@ -110,7 +110,7 @@ impl Serialize for HeaderProp {
                     // Look for a better way to do this instead of allocating the intermediate map
                     let mut els = HashMap::new();
                     for &(ref key, ref val) in inner.iter() {
-                        els.insert(key.clone(), val.clone());
+                        els.insert(key, val);
                     }
                     try!(serializer.serialize_seq_elt(&mut state, els));
                 }
@@ -121,7 +121,7 @@ impl Serialize for HeaderProp {
             HeaderProp::Float(ref x) => serializer.serialize_f32(*x),
             HeaderProp::Int(ref x) => serializer.serialize_u32(*x),
             HeaderProp::QWord(ref x) => serializer.serialize_u64(*x),
-            HeaderProp::Name(ref x) | HeaderProp::Str(ref x) => serializer.serialize_str(&x)
+            HeaderProp::Name(ref x) | HeaderProp::Str(ref x) => serializer.serialize_str(x)
         }
     }
 }
