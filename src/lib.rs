@@ -7,6 +7,8 @@
 extern crate nom;
 extern crate serde;
 
+#[cfg(test)] extern crate serde_json;
+
 use nom::{HexDisplay, Needed, IResult, ErrorKind, le_i32, le_u64, le_u32, le_u8, le_u16, length_value, le_f32,
           FileProducer};
 use nom::Err;

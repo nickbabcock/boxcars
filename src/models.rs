@@ -123,3 +123,51 @@ impl Serialize for HeaderProp {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde;
+    use std;
+    use serde_json;
+
+    fn to_json<T: serde::Serialize>(input: &T) -> std::string::String {
+        return serde_json::to_string(input).unwrap();
+    }
+
+    #[test]
+    fn serialize_header_array() {
+      let data = vec![
+            vec![
+                ("frame".to_string(), HeaderProp::Int(441)),
+                ("PlayerName".to_string(), HeaderProp::Str("rust is awesome".to_string()))
+            ], vec![
+                ("frame".to_string(), HeaderProp::Int(1738)),
+                ("PlayerName".to_string(), HeaderProp::Str("rusty".to_string()))
+            ]
+          ];
+        let actual = HeaderProp::Array(data);
+        assert_eq!(to_json(&actual), "[{\"PlayerName\":\"rust is awesome\",\"frame\":441},{\"PlayerName\":\"rusty\",\"frame\":1738}]");
+    }
+
+    #[test]
+    fn serialize_header_bool() {
+        assert_eq!(to_json(&HeaderProp::Bool(false)), "false");
+        assert_eq!(to_json(&HeaderProp::Bool(true)), "true");
+    }
+
+    #[test]
+    fn serialize_header_numbers() {
+        assert_eq!(to_json(&HeaderProp::Byte), "0");
+        assert_eq!(to_json(&HeaderProp::QWord(10)), "10");
+        assert_eq!(to_json(&HeaderProp::Float(10.2)), "10.2");
+        assert_eq!(to_json(&HeaderProp::Int(11)), "11");
+    }
+
+    #[test]
+    fn serialize_header_str() {
+        let val = "hello world";
+        assert_eq!(to_json(&HeaderProp::Str(val.to_string())), "\"hello world\"");
+        assert_eq!(to_json(&HeaderProp::Name(val.to_string())), "\"hello world\"");
+    }
+}
