@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-#![allow(unused_imports)]
 #![feature(plugin, custom_derive)]
 #![plugin(serde_macros)]
 
@@ -9,10 +8,7 @@ extern crate serde;
 
 #[cfg(test)] extern crate serde_json;
 
-use nom::{HexDisplay, Needed, IResult, ErrorKind, le_i32, le_u64, le_u32, le_u8, le_u16, length_value, le_f32,
-          FileProducer};
-use nom::Err;
-use nom::IResult::*;
+use nom::{IResult, le_u64, le_u32, le_u8, le_f32};
 
 pub use self::models::*;
 mod models;
@@ -265,7 +261,7 @@ named!(classnetcache_list<&[u8], Vec<ClassNetCache> >,
 
 #[cfg(test)]
 mod tests {
-    use nom::IResult::{Done, Error, Incomplete};
+    use nom::IResult::{Done, Incomplete};
     use nom::Needed::Size;
     use super::*;
     use super::HeaderProp::*;
