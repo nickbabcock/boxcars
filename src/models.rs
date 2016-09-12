@@ -82,7 +82,7 @@ pub struct ClassNetCache {
 /// map structure because most replay parser do this, so we should be compliant and the data format
 /// doesn't dictate that the keys in a sequence of key value pairs must be distinct. It's true,
 /// JSON doesn't need the keys to be unique: http://stackoverflow.com/q/21832701/433785
-fn pair_vec<K, V, S>(inp: &Vec<(K, V)>, serializer: &mut S) -> Result<(), S::Error>
+fn pair_vec<K, V, S>(inp: &[(K, V)], serializer: &mut S) -> Result<(), S::Error>
     where K: Serialize,
           V: Serialize,
           S: Serializer
