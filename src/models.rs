@@ -120,9 +120,8 @@ impl Serialize for HeaderProp {
             HeaderProp::Byte => serializer.serialize_u8(0),
             HeaderProp::Float(ref x) => serializer.serialize_f32(*x),
             HeaderProp::Int(ref x) => serializer.serialize_u32(*x),
-            HeaderProp::Name(ref x) => serializer.serialize_str(&x),
             HeaderProp::QWord(ref x) => serializer.serialize_u64(*x),
-            HeaderProp::Str(ref x) => serializer.serialize_str(&x),
+            HeaderProp::Name(ref x) | HeaderProp::Str(ref x) => serializer.serialize_str(&x)
         }
     }
 }
