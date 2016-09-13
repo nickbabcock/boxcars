@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 #![feature(plugin, custom_derive)]
 #![plugin(serde_macros)]
 
