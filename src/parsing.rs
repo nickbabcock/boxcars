@@ -447,4 +447,12 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_the_whole_shebang() {
+        let data = include_bytes!("../assets/rumble.replay");
+        match super::parse(data) {
+          Done(i, _) => assert_eq!(i, &[][..]),
+          _ => assert!(false)
+        }
+    }
 }
