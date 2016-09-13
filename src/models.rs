@@ -10,9 +10,9 @@
 //!
 //! For serde, we only care about serialization, JSON serialization. Deserialization is not
 //! implemented from our JSON output because it is lossy (JSON isn't the best with different
-//! numeric/string types). Asking "why JSON" would be next logical step, and that other rocket
-//! league replay parsers (like Octane) use JSON; however, the output of this library is not
-//! compatible with that of other rocket league replay parsers.
+//! numeric/string types). Asking "why JSON" would be next logical step, and that's due to other
+//! rocket league replay parsers (like Octane) using JSON; however, the output of this library is
+//! not compatible with that of other rocket league replay parsers.
 
 use serde::{Serialize, Serializer};
 use std::collections::HashMap;
@@ -186,8 +186,11 @@ mod tests {
                 ("PlayerName".to_string(), HeaderProp::Str("rusty".to_string()))
             ]
           ];
-        let actual = HeaderProp::Array(data);
-        assert_eq!(to_json(&actual), "[{\"PlayerName\":\"rust is awesome\",\"frame\":441},{\"PlayerName\":\"rusty\",\"frame\":1738}]");
+        let actual = to_json(&HeaderProp::Array(data));
+        assert!(actual.contains("\"PlayerName\":\"rust is awesome\""));
+        assert!(actual.contains("\"PlayerName\":\"rusty\""));
+        assert!(actual.contains("\"frame\":441"));
+        assert!(actual.contains("\"frame\":1738"));
     }
 
     #[test]
