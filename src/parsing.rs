@@ -1,14 +1,6 @@
 use nom::{IResult, le_u64, le_u32, le_u8, le_f32};
 use models::*;
 
-named!(length_encoded,
-       chain!(
-        size: le_u32 ~
-        crc: le_u32 ~
-        data: take!(size),
-        || {data}
-    ));
-
 /// Text is encoded with a leading int that denotes the number of bytes that
 /// the text spans. The last byte in the text will be null terminated, so we trim
 /// it off. It may seem redundant to store this information, but stackoverflow contains
@@ -248,45 +240,9 @@ named!(classnetcache_list<&[u8], Vec<ClassNetCache> >,
 
 #[cfg(test)]
 mod tests {
-    use nom::IResult::{Done, Incomplete};
-    use nom::Needed::Size;
+    use nom::IResult::Done;
     use models::*;
     use models::HeaderProp::*;
-    use super::length_encoded;
-
-    #[test]
-    fn missing_header_data() {
-        let data = include_bytes!("../assets/rumble.replay");
-        let r = length_encoded(&data[..8]);
-        assert_eq!(r, Incomplete(Size(4776)));
-    }
-
-    #[test]
-    fn incomplete_header_data() {
-        let data = include_bytes!("../assets/rumble.replay");
-        let r = length_encoded(&data[..9]);
-        assert_eq!(r, Incomplete(Size(4776)));
-    }
-
-    #[test]
-    fn missing_header() {
-        let r = length_encoded(&[]);
-        assert_eq!(r, Incomplete(Size(4)));
-    }
-
-    #[test]
-    fn missing_crc_data() {
-        let data = include_bytes!("../assets/rumble.replay");
-        let r = length_encoded(&data[..4]);
-        assert_eq!(r, Incomplete(Size(8)));
-    }
-
-    #[test]
-    fn parse_a_header_with_zero_data() {
-        let data = [0, 0, 0, 0, 0, 0, 0, 0];
-        let r = length_encoded(&data);
-        assert_eq!(r, Done(&[][..], &[][..]));
-    }
 
     #[test]
     fn parse_text_encoding() {
