@@ -1,3 +1,89 @@
+//! # Parsing
+//!
+//! A Rocket League game replay is a binary encoded file with an emphasis on little endian
+//! encodings. The number 100 would be represented as the four byte sequence:
+//!
+//! ```plain
+//! 0x64 0x00 0x00 0x00
+//! ```
+//!
+//! This in contrast to big-endian, which would represent the number as:
+//!
+//! ```plain
+//! 0x00 0x00 0x00 0x64
+//! ```
+//!
+//! Remember, little endian means least significant bit first!
+//!
+//! Rust and nom makes the parsing easy and fast. A combination of Rust's language level features
+//! and nom's syntatic macros make for concise implementations of parser combinators, which allow
+//! for extremely composable statements.
+//!
+//! A replay is split into three major sections, a header, body, and footer.
+//!
+//! ## Header
+//!
+//! The first four bytes of a replay is the number of bytes that comprises the header. A length
+//! prefixed integer is very common throughout a replay. This prefix may either be in reference to
+//! the number of bytes an elements takes up, as just seen, or the number of elements in a list.
+//!
+//! The next four bytes make up the [cyclic redundancy check
+//! (CRC)](https://en.wikipedia.org/wiki/Cyclic_redundancy_check) for the header. The check ensures
+//! that the data has not be tampered with or, more likely, corrupted. Unfortunately, it remains an
+//! outstanding issue to implement this check. I tried utilizing
+//! [crc-rs](https://github.com/mrhooray/crc-rs) with [community-calculated
+//! parameters](https://github.com/tfausak/octane/issues/10#issuecomment-226910062), but didn't get
+//! anywhere.
+//!
+//! The game's major and minor version follow, each 32bit integers.
+//!
+//! Subsequently, the game type is encoded as a string. Strings in Rocket League Replay files are
+//! length prefixed and null terminated.
+//!
+//! The properties is where all the good nuggets of info reside. Visualize the properties as a map
+//! of strings to various types (number, string, array) that continues until a "None" key is found.
+//!
+//! ## Body
+//!
+//! The body is the least implemented section, but it contains some familiar notions, such as
+//! length prefixed data strutures.
+//!
+//! Out of the body we get:
+//!
+//! - Levels (what level did the match take place)
+//! - KeyFrames
+//! - The body's crc. This check is actually for the rest of the content (including the footer).
+//!
+//! Since everything is length prefixed, we're able to skip the network stream data. This would be
+//! 90% of the file, and it's a shame that my enthusiasm for implementing this section waned. When
+//! the developers of the game say the section isn't easy to parse, the major rocket league
+//! libraries dedicate half of their code to parsing the section, and the with each patch
+//! everything breaks, it's an incredible feat for anyone to retain enthusiam. Way to go
+//! maintainers!
+//!
+//! Most of the interesting bits like player stats and goals are contained in the header, so it's
+//! not a tremendous loss if we can't parse the network data. If we were able to parse the network
+//! data, it would allow us to run benchmark against other implementations. Octane's readme states:
+//!
+//! > Octane parses most replays in less than 5 seconds.
+//!
+//! Which is what initially got me curious if, utilizing the right tools, I could do better.
+//! Running Octane on `assets/rumble.replay` found in the repo, it decoded the information and
+//! converted it to JSON in 2.3s. Considering the file is 1MB, I saw room for improvement. Using
+//! the implementation here to output the header and footer data in JSON took 1ms. Yes, this is not an
+//! apples to apples comparison, and one should continue using proven tools, not some example
+//! project, but if I were to extrapolate, there isn't 1000x additional work needed.
+//!
+//! ## Footer
+//!
+//! After the network stream there isn't too much of interest to us, as it relates more to the
+//! network stream, but there was a low barrier to parse it. From the footer we see:
+//!
+//! - Debug info
+//! - Tickmarks
+//! - Followed by several string info and other classes that seem totally worthless if the network
+//! data isn't parsed
+
 use nom::{IResult, le_u64, le_u32, le_u8, le_f32};
 use models::*;
 

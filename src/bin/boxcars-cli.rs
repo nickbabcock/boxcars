@@ -1,3 +1,8 @@
+//! # CLI
+//!
+//! The command line version of the library. Given a file path argument, it will ingest all the
+//! data into memory, and attempt parsing. If the parsing is successful, JSON is outputted to
+//! stdout, else a non-helpful error message is printed. Sorry!
 extern crate boxcars;
 extern crate nom;
 extern crate serde_json;
