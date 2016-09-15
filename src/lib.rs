@@ -36,8 +36,8 @@
 //! }
 //! ```
 
-#![feature(plugin, custom_derive)]
-#![plugin(serde_macros)]
+#![cfg_attr(feature = "serde_macros", feature(plugin, custom_derive))]
+#![cfg_attr(feature = "serde_macros", plugin(serde_macros))]
 
 #[macro_use]
 extern crate nom;
@@ -45,8 +45,15 @@ extern crate serde;
 
 #[cfg(test)] extern crate serde_json;
 
+mod models {
+#[cfg(feature = "serde_macros")]
+include!("models.in.rs");
+
+#[cfg(feature = "serde_codegen")]
+include!(concat!(env!("OUT_DIR"), "/models.rs"));
+}
+
 pub use self::models::*;
 pub use self::parsing::*;
-mod models;
 mod parsing;
 
