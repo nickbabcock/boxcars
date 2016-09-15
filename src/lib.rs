@@ -12,6 +12,13 @@
 //! thorough.
 //!
 //! ```
+//! extern crate boxcars;
+//! extern crate nom;
+//! extern crate serde_json;
+//!
+//! use std::fs::File;
+//! use std::io::Read;
+//!
 //! # let filename = "assets/rumble.replay";
 //! let mut f = File::open(filename).unwrap();
 //! let mut buffer = vec![];
@@ -19,7 +26,7 @@
 //! let b = boxcars::parse(&buffer);
 //!
 //! match b {
-//!     IResult::Done(_, val) => {
+//!     nom::IResult::Done(_, val) => {
 //!         let serialized = serde_json::to_string(&val).unwrap();
 //!         println!("{}", serialized);
 //!     }
