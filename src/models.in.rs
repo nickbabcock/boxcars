@@ -1,9 +1,8 @@
 /// # Models
 ///
 /// Here lies the data structures that a rocket league replay is decoded into. All of the models
-/// are contained in this one file because of serde. On Rust nightly, which is what this library
-/// needs to compile, no special actions are needed for serde to work. However, to achieve
-/// compilation on Rust stable, an extra [build step can be
+/// are contained in this one file because of serde. On Rust nightly, no special actions are needed
+/// for serde to work. However, to achieve compilation on Rust stable, an extra [build step can be
 /// introduced](https://serde.rs/codegen-stable.html). Part of the intermediate step is to split
 /// all the serde specific code into a separate file, which is what I've done here. To me, it is
 /// not critical to have this library compile on stable, hence this work remains unfinished.

@@ -18,7 +18,6 @@ user friendly error message -- [among other
 issues](https://github.com/nickbabcock/boxcars/issues), tests and documentation
 strive to be thorough.
 
-Library currently only compiles on Rust nightly. The code is well documented,
-give it a read!
+The code is well documented, give it a read!
 
 Parses and outputs JSON data from replay in 1-2ms, but your mileage may vary.
