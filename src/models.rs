@@ -45,8 +45,8 @@ pub struct Replay {
 
 /// In Rocket league replays, there are tickmarks that typically represent a significant event in
 /// the game (eg. a goal). The tick mark is placed before the event happens so there is a ramp-up
-/// time. For instance, a tickmark could be at frame 396 for a goal 441. At 30 fps, this would be
-/// 1.5 seconds of ramp up time.
+/// time. For instance, a tickmark could be at frame 396 for a goal at frame 441. At 30 fps, this
+/// would be 1.5 seconds of ramp up time.
 #[derive(Serialize, PartialEq, Debug)]
 pub struct TickMark {
     pub description: String,
