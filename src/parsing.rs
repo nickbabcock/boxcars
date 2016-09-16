@@ -105,11 +105,11 @@ named!(text_encoded<&[u8], &str>,
 
 named!(str_prop<&[u8], HeaderProp>,
   chain!(le_u64 ~ x: text_string,
-    || {HeaderProp::Str(x.to_string())}));
+    || {HeaderProp::Str(x)}));
 
 named!(name_prop<&[u8], HeaderProp>,
   chain!(le_u64 ~ x: text_string,
-    || {HeaderProp::Name(x.to_string())}));
+    || {HeaderProp::Name(x)}));
 
 named!(int_prop<&[u8], HeaderProp>,
     chain!(le_u64 ~ x: le_u32,
