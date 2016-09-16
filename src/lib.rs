@@ -44,17 +44,17 @@ extern crate nom;
 extern crate serde;
 extern crate encoding;
 
-#[cfg(test)] extern crate serde_json;
+#[cfg(test)]
+extern crate serde_json;
 
 mod models {
-#[cfg(feature = "serde_macros")]
-include!("models.in.rs");
+    #[cfg(feature = "serde_macros")]
+    include!("models.in.rs");
 
-#[cfg(feature = "serde_codegen")]
-include!(concat!(env!("OUT_DIR"), "/models.rs"));
+    #[cfg(feature = "serde_codegen")]
+    include!(concat!(env!("OUT_DIR"), "/models.rs"));
 }
 
 pub use self::models::*;
 pub use self::parsing::*;
 mod parsing;
-

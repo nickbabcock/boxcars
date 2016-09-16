@@ -164,7 +164,7 @@ named!(rprop_encoded<&[u8], HeaderProp>,
 ///   value.
 /// The return type of this function is a key value vector because since there is no format
 /// specification, we can't rule out duplicate keys. Possibly consider a multi-map in the future.
-fn rdict(input: &[u8]) -> IResult<&[u8], Vec<(String, HeaderProp)> > {
+fn rdict(input: &[u8]) -> IResult<&[u8], Vec<(String, HeaderProp)>> {
     let mut v: Vec<(String, HeaderProp)> = Vec::new();
 
     // Initialize to a dummy value to avoid unitialized errors
@@ -177,36 +177,45 @@ fn rdict(input: &[u8]) -> IResult<&[u8], Vec<(String, HeaderProp)> > {
     let mut cslice = input;
 
     while !done {
-      match text_encoded(cslice) {
-        IResult::Done(i, txt) => {
-          cslice = i;
-          match txt {
-            "None" => { done = true }
-            _ => {
-              match rprop_encoded(cslice) {
-                IResult::Done(inp, val) => { cslice = inp; v.push((txt.to_string(), val)); },
-                IResult::Incomplete(a) => { res = IResult::Incomplete(a); done = true },
-                IResult::Error(a) => { res = IResult::Error(a); done = true }
-              }
+        match text_encoded(cslice) {
+            IResult::Done(i, txt) => {
+                cslice = i;
+                match txt {
+                    "None" => done = true,
+                    _ => {
+                        match rprop_encoded(cslice) {
+                            IResult::Done(inp, val) => {
+                                cslice = inp;
+                                v.push((txt.to_string(), val));
+                            }
+                            IResult::Incomplete(a) => {
+                                res = IResult::Incomplete(a);
+                                done = true
+                            }
+                            IResult::Error(a) => {
+                                res = IResult::Error(a);
+                                done = true
+                            }
+                        }
+                    }
+                }
             }
-          }
-        },
 
-        IResult::Incomplete(a) => {
-          done = true;
-          res = IResult::Incomplete(a);
-        },
+            IResult::Incomplete(a) => {
+                done = true;
+                res = IResult::Incomplete(a);
+            }
 
-        IResult::Error(a) => {
-          done = true;
-          res = IResult::Error(a);
+            IResult::Error(a) => {
+                done = true;
+                res = IResult::Error(a);
+            }
         }
-      }
     }
 
     match res {
-      IResult::Done(_, _) => IResult::Done(cslice, v),
-      _ => res
+        IResult::Done(_, _) => IResult::Done(cslice, v),
+        _ => res,
     }
 }
 
@@ -270,14 +279,14 @@ fn decode_utf16(input: &[u8]) -> String {
 }
 
 fn inner_text(input: &[u8], size: i32) -> IResult<&[u8], String> {
-  if size < 0 {
-    chain!(input,
+    if size < 0 {
+        chain!(input,
           data: map!(take!(size * -2 - 2), decode_utf16) ~
           take!(2),
           || {data})
-  } else {
-    map!(input, apply!(decode_str, size), str::to_string)
-  }
+    } else {
+        map!(input, apply!(decode_str, size), str::to_string)
+    }
 }
 
 named!(text_string<&[u8], String>,
@@ -490,12 +499,14 @@ mod tests {
         // List is 2A long, each keyframe is 12 bytes. Then add four for list length = 508
         let r = super::keyframe_list(&data[0x12ca..0x12ca + 508]);
         match r {
-          Done(i, val) => {
-            // There are 42 key frames in this list
-            assert_eq!(val.len(), 42);
-            assert_eq!(i, &[][..]);
-          }
-          _ => { assert!(false); }
+            Done(i, val) => {
+                // There are 42 key frames in this list
+                assert_eq!(val.len(), 42);
+                assert_eq!(i, &[][..]);
+            }
+            _ => {
+                assert!(false);
+            }
         }
     }
 
@@ -506,13 +517,15 @@ mod tests {
         // 7 tick marks at 8 bytes + size of tick list
         let r = super::tickmark_list(&data[0xf6cce..0xf6d50]);
         match r {
-          Done(i, val) => {
-            // There are 7 tick marks in this list
-            assert_eq!(val.len(), 7);
-            assert_eq!(val[0], TickMark { description: "Team1Goal".to_string(), frame: 396 });
-            assert_eq!(i, &[][..]);
-          }
-          _ => { assert!(false); }
+            Done(i, val) => {
+                // There are 7 tick marks in this list
+                assert_eq!(val.len(), 7);
+                assert_eq!(val[0], TickMark { description: "Team1Goal".to_string(), frame: 396 });
+                assert_eq!(i, &[][..]);
+            }
+            _ => {
+                assert!(false);
+            }
         }
     }
 
@@ -520,8 +533,8 @@ mod tests {
     fn test_the_whole_shebang() {
         let data = include_bytes!("../assets/rumble.replay");
         match super::parse(data) {
-          Done(i, _) => assert_eq!(i, &[][..]),
-          _ => assert!(false)
+            Done(i, _) => assert_eq!(i, &[][..]),
+            _ => assert!(false),
         }
     }
 }
