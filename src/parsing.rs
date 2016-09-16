@@ -276,10 +276,7 @@ fn inner_text(input: &[u8], size: i32) -> IResult<&[u8], String> {
           take!(2),
           || {data})
   } else {
-    chain!(input,
-           data: map!(take_str!(size - 1), str::to_string) ~
-           take!(1),
-           || {data})
+    map!(input, apply!(decode_str, size), str::to_string)
   }
 }
 
