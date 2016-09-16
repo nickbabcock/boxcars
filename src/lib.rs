@@ -42,6 +42,7 @@
 #[macro_use]
 extern crate nom;
 extern crate serde;
+extern crate encoding;
 
 #[cfg(test)] extern crate serde_json;
 

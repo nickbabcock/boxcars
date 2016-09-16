@@ -84,7 +84,9 @@
 //! - Followed by several string info and other classes that seem totally worthless if the network
 //! data isn't parsed
 
-use nom::{IResult, le_u64, le_u32, le_u8, le_f32};
+use nom::{IResult, le_u64, le_u32, le_u8, le_i32, le_f32};
+use encoding::{Encoding, DecoderTrap};
+use encoding::all::UTF_16LE;
 use models::*;
 
 /// Text is encoded with a leading int that denotes the number of bytes that
@@ -93,13 +95,7 @@ use models::*;
 /// a nice reasoning for why it may have been done this way:
 /// http://stackoverflow.com/q/6293457/433785
 named!(text_encoded<&[u8], &str>,
-    chain!(
-        size: le_u32 ~
-        data: take_str!(size - 1) ~
-        take!(1),
-        || {data}
-    )
-);
+    chain!(size: le_i32 ~ data: apply!(decode_str, size), || {data}));
 
 /// Header properties are encoded in a pretty simple format, with some oddities. The first 64bits
 /// is data that can be discarded, some people think that the 64bits is the length of the data
@@ -108,11 +104,11 @@ named!(text_encoded<&[u8], &str>,
 /// decoded property type specific.
 
 named!(str_prop<&[u8], HeaderProp>,
-  chain!(le_u64 ~ x: text_encoded,
+  chain!(le_u64 ~ x: text_string,
     || {HeaderProp::Str(x.to_string())}));
 
 named!(name_prop<&[u8], HeaderProp>,
-  chain!(le_u64 ~ x: text_encoded,
+  chain!(le_u64 ~ x: text_string,
     || {HeaderProp::Name(x.to_string())}));
 
 named!(int_prop<&[u8], HeaderProp>,
@@ -265,7 +261,33 @@ named!(pub parse<&[u8],Replay>,
 /// Below are a series of decoding functions that take in data and returns some domain object (eg:
 /// TickMark, KeyFrame, etc.
 
-named!(text_string<&[u8], String>, map!(text_encoded, str::to_string));
+fn decode_str(input: &[u8], size: i32) -> IResult<&[u8], &str> {
+    chain!(input, data: take_str!(size - 1) ~ take!(1), || {data})
+}
+
+fn decode_utf16(input: &[u8]) -> String {
+    UTF_16LE.decode(input, DecoderTrap::Strict).unwrap()
+}
+
+fn inner_text(input: &[u8], size: i32) -> IResult<&[u8], String> {
+  if size < 0 {
+    chain!(input,
+          data: map!(take!(size * -2 - 2), decode_utf16) ~
+          take!(2),
+          || {data})
+  } else {
+    chain!(input,
+           data: map!(take_str!(size - 1), str::to_string) ~
+           take!(1),
+           || {data})
+  }
+}
+
+named!(text_string<&[u8], String>,
+    chain!(
+        size: le_i32 ~
+        data: apply!(inner_text, size),
+        || {data}));
 
 named!(keyframe_encoded<&[u8], KeyFrame>,
   chain!(time: le_f32 ~
@@ -336,6 +358,14 @@ mod tests {
         let data = include_bytes!("../assets/text.replay");
         let r = super::text_encoded(data);
         assert_eq!(r, Done(&[][..], "TAGame.Replay_Soccar_TA"));
+    }
+
+    #[test]
+    fn parse_utf16_string() {
+        // dd skip=((0x120)) count=28 if=utf-16.replay of=utf-16-text.replay bs=1
+        let data = include_bytes!("../assets/utf-16-text.replay");
+        let r = super::text_string(data);
+        assert_eq!(r, Done(&[][..], "\u{2623}D[e]!v1zz\u{2623}".to_string()));
     }
 
     #[test]
