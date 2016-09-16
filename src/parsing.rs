@@ -51,7 +51,7 @@
 //! Out of the body we get:
 //!
 //! - Levels (what level did the match take place)
-//! - KeyFrames
+//! - `KeyFrames`
 //! - The body's crc. This check is actually for the rest of the content (including the footer).
 //!
 //! Since everything is length prefixed, we're able to skip the network stream data. This would be
@@ -259,7 +259,7 @@ named!(pub parse<&[u8],Replay>,
 );
 
 /// Below are a series of decoding functions that take in data and returns some domain object (eg:
-/// TickMark, KeyFrame, etc.
+/// `TickMark`, `KeyFrame`, etc.
 
 fn decode_str(input: &[u8], size: i32) -> IResult<&[u8], &str> {
     chain!(input, data: take_str!(size - 1) ~ take!(1), || {data})

@@ -5,7 +5,7 @@
 //! [serde](https://github.com/serde-rs/serde) for serialization. Emphasis on example, as this
 //! library in no way competes with the other feature complete parsers such as
 //! [Octane](https://github.com/tfausak/octane) and
-//! [RocketLeagueReplayParser](https://github.com/jjbott/RocketLeagueReplayParser). Rather, let
+//! [`RocketLeagueReplayParser`](https://github.com/jjbott/RocketLeagueReplayParser). Rather, let
 //! boxcars be a good example of Rust code using nom, and serde as extensive examples are hard to
 //! come by. While lacking feature completeness and user friendly error message -- [among other
 //! issues](https://github.com/nickbabcock/boxcars/issues), tests and documentation strive to be
