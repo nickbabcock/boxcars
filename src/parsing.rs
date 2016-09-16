@@ -90,12 +90,49 @@ use encoding::all::UTF_16LE;
 use models::*;
 
 /// Text is encoded with a leading int that denotes the number of bytes that
-/// the text spans. The last byte in the text will be null terminated, so we trim
-/// it off. It may seem redundant to store this information, but stackoverflow contains
-/// a nice reasoning for why it may have been done this way:
-/// http://stackoverflow.com/q/6293457/433785
+/// the text spans.
 named!(text_encoded<&[u8], &str>,
     chain!(size: le_i32 ~ data: apply!(decode_str, size), || {data}));
+
+/// Reads a string of a given size from the data. The size includes a null
+/// character as the last character, so we drop it in the returned string
+/// slice. It may seem redundant to store this information, but stackoverflow
+/// contains a nice reasoning for why it may have been done this way:
+/// http://stackoverflow.com/q/6293457/433785
+fn decode_str(input: &[u8], size: i32) -> IResult<&[u8], &str> {
+    chain!(input, data: take_str!(size - 1) ~ take!(1), || {data})
+}
+
+/// Decode a byte slice as UTF-16 into Rust's UTF-8 string. If unknown or
+/// invalid UTF-16 sequences are encountered, ignore them.
+fn decode_utf16(input: &[u8]) -> String {
+    UTF_16LE.decode(input, DecoderTrap::Ignore).unwrap()
+}
+
+/// Given a slice of the data and the number of characters contained, decode
+/// into a `String`. If the size is negative, that means we're dealing with a
+/// UTF-16 string, else it's a regular string.
+fn inner_text(input: &[u8], size: i32) -> IResult<&[u8], String> {
+    if size < 0 {
+        // We're dealing with UTF-16 and each character is two bytes, we
+        // multiply the size by 2. The last two bytes included in the count are
+        // null terminators, we trim those off.
+        chain!(input,
+          data: map!(take!(size * -2 - 2), decode_utf16) ~
+          take!(2),
+          || {data})
+    } else {
+        map!(input, apply!(decode_str, size), str::to_string)
+    }
+}
+
+/// The first four bytes are the number of characters in the string and rest is
+/// the contents of the string.
+named!(text_string<&[u8], String>,
+    chain!(
+        size: le_i32 ~
+        data: apply!(inner_text, size),
+        || {data}));
 
 /// Header properties are encoded in a pretty simple format, with some oddities. The first 64bits
 /// is data that can be discarded, some people think that the 64bits is the length of the data
@@ -270,31 +307,6 @@ named!(pub parse<&[u8],Replay>,
 /// Below are a series of decoding functions that take in data and returns some domain object (eg:
 /// `TickMark`, `KeyFrame`, etc.
 
-fn decode_str(input: &[u8], size: i32) -> IResult<&[u8], &str> {
-    chain!(input, data: take_str!(size - 1) ~ take!(1), || {data})
-}
-
-fn decode_utf16(input: &[u8]) -> String {
-    UTF_16LE.decode(input, DecoderTrap::Strict).unwrap()
-}
-
-fn inner_text(input: &[u8], size: i32) -> IResult<&[u8], String> {
-    if size < 0 {
-        chain!(input,
-          data: map!(take!(size * -2 - 2), decode_utf16) ~
-          take!(2),
-          || {data})
-    } else {
-        map!(input, apply!(decode_str, size), str::to_string)
-    }
-}
-
-named!(text_string<&[u8], String>,
-    chain!(
-        size: le_i32 ~
-        data: apply!(inner_text, size),
-        || {data}));
-
 named!(keyframe_encoded<&[u8], KeyFrame>,
   chain!(time: le_f32 ~
          frame: le_u32 ~
@@ -372,6 +384,14 @@ mod tests {
         let data = include_bytes!("../assets/utf-16-text.replay");
         let r = super::text_string(data);
         assert_eq!(r, Done(&[][..], "\u{2623}D[e]!v1zz\u{2623}".to_string()));
+    }
+
+    /// Define behavior on invalid UTF-16 sequences.
+    #[test]
+    fn parse_invalid_utf16_string() {
+        let data = [0xfd, 0xff, 0xff, 0xff, 0xd8, 0xd8, 0x00, 0x00, 0x00, 0x00];
+        let r = super::text_string(&data);
+        assert_eq!(r, Done(&[][..], "\u{0}".to_string()));
     }
 
     #[test]
