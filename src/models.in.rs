@@ -129,7 +129,7 @@ fn pair_vec<K, V, S>(inp: &[(K, V)], serializer: &mut S) -> Result<(), S::Error>
         try!(serializer.serialize_map_key(&mut state, key));
         try!(serializer.serialize_map_value(&mut state, val));
     }
-    return serializer.serialize_map_end(state);
+    serializer.serialize_map_end(state)
 }
 
 /// By default serde will generate a serialization method that writes out the enum as well as the
@@ -171,7 +171,7 @@ mod tests {
     use serde_json;
 
     fn to_json<T: serde::Serialize>(input: &T) -> std::string::String {
-        return serde_json::to_string(input).unwrap();
+        serde_json::to_string(input).unwrap()
     }
 
     #[test]
