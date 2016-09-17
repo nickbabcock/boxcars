@@ -88,6 +88,7 @@ use nom::{IResult, le_u64, le_u32, le_u8, le_i32, le_f32};
 use encoding::{Encoding, DecoderTrap};
 use encoding::all::UTF_16LE;
 use models::*;
+use crc::calc_crc;
 
 /// Text is encoded with a leading int that denotes the number of bytes that
 /// the text spans.
@@ -256,7 +257,15 @@ fn rdict(input: &[u8]) -> IResult<&[u8], Vec<(String, HeaderProp)>> {
     }
 }
 
-named!(pub parse<&[u8],Replay>,
+pub fn parse(input: &[u8]) -> IResult<&[u8], Replay> {
+    match full_crc_check(input) {
+        IResult::Done(_, data) => data_parse(data),
+        IResult::Incomplete(a) => IResult::Incomplete(a),
+        IResult::Error(a) => IResult::Error(a)
+    }
+}
+
+named!(data_parse<&[u8],Replay>,
     chain!(
         header_size:  le_u32 ~
         header_crc:   le_u32 ~
@@ -270,8 +279,8 @@ named!(pub parse<&[u8],Replay>,
         keyframes: keyframe_list ~
         network_size: le_u32 ~
 
-        // This is where this example falls short is that decoding the network data is not
-        // implemented. See Octane or RocketLeagueReplayParser for more info.
+// This is where this example falls short is that decoding the network data is not
+// implemented. See Octane or RocketLeagueReplayParser for more info.
         take!(network_size) ~
         debug_info: debuginfo_list ~
         tick_marks: tickmark_list ~
@@ -363,6 +372,29 @@ named!(classindex_list<&[u8], Vec<ClassIndex> >,
 
 named!(classnetcache_list<&[u8], Vec<ClassNetCache> >,
   chain!(size: le_u32 ~ elems: count!(classnetcache_encoded, size as usize), || {elems}));
+
+fn confirm_crc(pair: (u32, &[u8])) -> Result<(), String> {
+    let (crc, data) = pair;
+    let res = calc_crc(data);
+    if res == crc {
+        Ok(())
+    } else {
+        Err(format!("crc check failure -- expected: {} actual: {}", crc, res))
+    }
+}
+
+named!(crc_gather<&[u8], (u32, &[u8])>,
+    chain!(
+        size: le_u32 ~
+        crc: le_u32 ~
+        data: take!(size),
+        || {(crc, data)}));
+
+named!(crc_check<&[u8], ()>, map_res!(crc_gather, confirm_crc));
+
+named!(full_crc_check,
+    recognize!(chain!(crc_check ~ crc_check, || {()})));
+
 
 #[cfg(test)]
 mod tests {
@@ -552,9 +584,32 @@ mod tests {
     #[test]
     fn test_the_whole_shebang() {
         let data = include_bytes!("../assets/rumble.replay");
+        match super::data_parse(data) {
+            Done(i, _) => assert_eq!(i, &[][..]),
+            _ => assert!(false),
+        }
+    }
+
+    #[test]
+    fn test_the_whole_shebang_with_crc() {
+        let data = include_bytes!("../assets/rumble.replay");
         match super::parse(data) {
             Done(i, _) => assert_eq!(i, &[][..]),
             _ => assert!(false),
         }
+    }
+
+    #[test]
+    fn test_crc_check_header() {
+        let data = include_bytes!("../assets/rumble.replay");
+        let r = super::crc_check(&data[..4776]);
+        assert_eq!(r, Done(&[][..], ()));
+    }
+
+    #[test]
+    fn test_crc_check_full() {
+        let data = include_bytes!("../assets/rumble.replay");
+        let r = super::full_crc_check(&data[..]);
+        assert_eq!(r, Done(&[][..], &data[..]));
     }
 }

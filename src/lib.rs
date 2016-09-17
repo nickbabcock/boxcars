@@ -58,3 +58,4 @@ mod models {
 pub use self::models::*;
 pub use self::parsing::*;
 mod parsing;
+mod crc;
