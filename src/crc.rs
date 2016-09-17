@@ -1,3 +1,6 @@
+/// Calculates the 32bit crc from a given set of data. It does not appear to
+/// be the typical crc calculation and may be specific to Rocket League and/or
+/// Unreal Engine. Implementation is close, but not the same as the crc create
 pub fn calc_crc(data: &[u8]) -> u32 {
     let mut crc: u32 = !(0xefcbf201);
 
@@ -7,6 +10,9 @@ pub fn calc_crc(data: &[u8]) -> u32 {
     !crc
 }
 
+/// Precomputed crc table. It is extremely close to IEEE housed in the
+/// crc crate, but they are not interchangeable. Still need to determine
+/// the differences. Copied from the Octane project.
 static TABLE: [u32; 256] =     [ 0x00000000
     , 0x04c11db7
     , 0x09823b6e

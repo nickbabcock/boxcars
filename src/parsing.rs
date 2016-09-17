@@ -373,6 +373,8 @@ named!(classindex_list<&[u8], Vec<ClassIndex> >,
 named!(classnetcache_list<&[u8], Vec<ClassNetCache> >,
   chain!(size: le_u32 ~ elems: count!(classnetcache_encoded, size as usize), || {elems}));
 
+/// Given a pair of expected crc value and data, perform crc on the data and return `Ok`
+/// if the expected matched the actual, else an `Err`
 fn confirm_crc(pair: (u32, &[u8])) -> Result<(), String> {
     let (crc, data) = pair;
     let res = calc_crc(data);
@@ -383,6 +385,7 @@ fn confirm_crc(pair: (u32, &[u8])) -> Result<(), String> {
     }
 }
 
+/// Gather the expected crc and data to perform the crc on in a tuple
 named!(crc_gather<&[u8], (u32, &[u8])>,
     chain!(
         size: le_u32 ~
@@ -390,8 +393,11 @@ named!(crc_gather<&[u8], (u32, &[u8])>,
         data: take!(size),
         || {(crc, data)}));
 
+/// Extracts crc data and ensures that it is correct
 named!(crc_check<&[u8], ()>, map_res!(crc_gather, confirm_crc));
 
+/// A Rocket League replay is split into two parts with respect to crc calculation. The header and
+/// body. Each section is prefixed by the length of the section and the expected crc.
 named!(full_crc_check,
     recognize!(chain!(crc_check ~ crc_check, || {()})));
 
