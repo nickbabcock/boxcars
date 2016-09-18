@@ -618,4 +618,31 @@ mod tests {
         let r = super::full_crc_check(&data[..]);
         assert_eq!(r, Done(&[][..], &data[..]));
     }
+
+    #[cfg(feature = "nightly")]
+    #[bench]
+    fn bench_rdict(b: &mut Bencher) {
+        let data = append_none(include_bytes!("../assets/rdict_array.replay"));
+        b.iter(|| {
+            super::rdict(&data)
+        });
+    }
+
+    #[cfg(feature = "nightly")]
+    #[bench]
+    fn bench_the_whole_shebang(b: &mut Bencher) {
+        let data = include_bytes!("../assets/rumble.replay");
+        b.iter(|| {
+            super::data_parse(data)
+        });
+    }
+
+    #[cfg(feature = "nightly")]
+    #[bench]
+    fn bench_the_whole_shebang_with_crc(b: &mut Bencher) {
+        let data = include_bytes!("../assets/rumble.replay");
+        b.iter(|| {
+            super::parse(data)
+        });
+    }
 }

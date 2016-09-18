@@ -44,6 +44,9 @@ extern crate nom;
 extern crate serde;
 extern crate encoding;
 
+#[cfg(feature = "nightly")]
+extern crate test;
+
 #[cfg(test)]
 extern crate serde_json;
 
