@@ -261,7 +261,7 @@ pub fn parse(input: &[u8]) -> IResult<&[u8], Replay> {
     match full_crc_check(input) {
         IResult::Done(_, data) => data_parse(data),
         IResult::Incomplete(a) => IResult::Incomplete(a),
-        IResult::Error(a) => IResult::Error(a)
+        IResult::Error(a) => IResult::Error(a),
     }
 }
 
@@ -626,26 +626,20 @@ mod tests {
     #[bench]
     fn bench_rdict(b: &mut Bencher) {
         let data = append_none(include_bytes!("../assets/rdict_array.replay"));
-        b.iter(|| {
-            super::rdict(&data)
-        });
+        b.iter(|| super::rdict(&data));
     }
 
     #[cfg(feature = "nightly")]
     #[bench]
     fn bench_the_whole_shebang(b: &mut Bencher) {
         let data = include_bytes!("../assets/rumble.replay");
-        b.iter(|| {
-            super::data_parse(data)
-        });
+        b.iter(|| super::data_parse(data));
     }
 
     #[cfg(feature = "nightly")]
     #[bench]
     fn bench_the_whole_shebang_with_crc(b: &mut Bencher) {
         let data = include_bytes!("../assets/rumble.replay");
-        b.iter(|| {
-            super::parse(data)
-        });
+        b.iter(|| super::parse(data));
     }
 }
