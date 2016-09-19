@@ -408,6 +408,9 @@ mod tests {
     use models::*;
     use models::HeaderProp::*;
 
+    #[cfg(feature = "nightly")]
+    use test::Bencher;
+
     #[test]
     fn parse_text_encoding() {
         // dd skip=16 count=28 if=rumble.replay of=text.replay bs=1
