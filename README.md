@@ -21,3 +21,14 @@ strive to be thorough.
 The code is well documented, give it a read!
 
 Parses and outputs JSON data from replay in 1-2ms, but your mileage may vary.
+
+# Benchmarks
+
+The first benchmark is measuring how long it takes to decode the data. Only 41
+microseconds! The second one includes the crc check, which significantly
+lengthens the time to decode.
+
+```
+bench_the_whole_shebang          ... bench:      41,440 ns/iter (+/- 71,019)
+bench_the_whole_shebang_with_crc ... bench:   2,083,829 ns/iter (+/- 284,435)
+```
