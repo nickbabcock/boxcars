@@ -547,6 +547,14 @@ mod tests {
     }
 
     #[test]
+    fn test_broken_rdict() {
+        let data = include_bytes!("../assets/broken.replay");
+        let actual = super::rdict(&data[0x2c..0x1326]);
+        println!("{:?}", actual);
+        assert!(false);
+    }
+
+    #[test]
     fn key_frame_decode() {
         let data = include_bytes!("../assets/rumble.replay");
         let r = super::keyframe_encoded(&data[0x12da..0x12da + 12]);
