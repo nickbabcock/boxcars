@@ -63,3 +63,26 @@ pub use self::models::*;
 pub use self::parsing::*;
 mod parsing;
 mod crc;
+
+#[cfg(test)]
+mod tests {
+    #[cfg(feature = "nightly")]
+    use test::Bencher;
+    use super::*;
+    use nom;
+    use serde_json;
+
+    #[cfg(feature = "nightly")]
+    #[bench]
+    fn bench_parse_and_json(b: &mut Bencher) {
+        let data = include_bytes!("../assets/rumble.replay");
+        b.iter(|| {
+            match parse(data) {
+                nom::IResult::Done(_, val) => {
+                    serde_json::to_string(&val).unwrap();
+                }
+                _ => assert!(false)
+            }
+        });
+    }
+}
