@@ -86,7 +86,7 @@
 
 use nom::{IResult, le_u64, le_u32, le_u8, le_i32, le_f32};
 use encoding::{Encoding, DecoderTrap};
-use encoding::all::UTF_16LE;
+use encoding::all::{UTF_16LE, WINDOWS_1252};
 use models::*;
 use crc::calc_crc;
 
@@ -110,6 +110,12 @@ fn decode_utf16(input: &[u8]) -> String {
     UTF_16LE.decode(input, DecoderTrap::Ignore).unwrap()
 }
 
+/// Decode a byte slice as Windows 1252 into Rust's UTF-8 string. If unknown or
+/// invalid Windows 1252 sequences are encountered, ignore them.
+fn decode_windows1252(input: &[u8]) -> String {
+    WINDOWS_1252.decode(input, DecoderTrap::Ignore).unwrap()
+}
+
 /// Given a slice of the data and the number of characters contained, decode
 /// into a `String`. If the size is negative, that means we're dealing with a
 /// UTF-16 string, else it's a regular string.
@@ -123,7 +129,10 @@ fn inner_text(input: &[u8], size: i32) -> IResult<&[u8], String> {
           take!(2),
           || {data})
     } else {
-        map!(input, apply!(decode_str, size), str::to_string)
+        chain!(input,
+          data: map!(take!(size - 1), decode_windows1252) ~
+          take!(1),
+          || {data})
     }
 }
 
@@ -427,6 +436,13 @@ mod tests {
         assert_eq!(r, Done(&[][..], "\u{2623}D[e]!v1zz\u{2623}".to_string()));
     }
 
+    #[test]
+    fn test_windows1252_string() {
+        let data = include_bytes!("../assets/windows_1252.replay");
+        let actual = super::text_string(&data[0x1ad..0x1c4]);
+        assert_eq!(actual, Done(&[][..], "caudillman6000\u{b3}(2)".to_string()));
+    }
+
     /// Define behavior on invalid UTF-16 sequences.
     #[test]
     fn parse_invalid_utf16_string() {
@@ -546,13 +562,6 @@ mod tests {
         assert_eq!(r, Done(&[][..],  vec![("Platform".to_string(), Byte)]));
     }
 
-    #[test]
-    fn test_broken_rdict() {
-        let data = include_bytes!("../assets/broken.replay");
-        let actual = super::rdict(&data[0x2c..0x1326]);
-        println!("{:?}", actual);
-        assert!(false);
-    }
 
     #[test]
     fn key_frame_decode() {
