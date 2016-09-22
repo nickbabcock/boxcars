@@ -18,7 +18,7 @@ fn main() {
     let mut f = File::open(filename).unwrap();
     let mut buffer = vec![];
     f.read_to_end(&mut buffer).unwrap();
-    let b = boxcars::parse(&buffer);
+    let b = boxcars::parse(&buffer, true);
     match b {
         IResult::Done(_, val) => {
             let serialized = serde_json::to_string(&val).unwrap();

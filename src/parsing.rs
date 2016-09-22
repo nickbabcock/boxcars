@@ -266,11 +266,15 @@ fn rdict(input: &[u8]) -> IResult<&[u8], Vec<(String, HeaderProp)>> {
     }
 }
 
-pub fn parse(input: &[u8]) -> IResult<&[u8], Replay> {
-    match full_crc_check(input) {
-        IResult::Done(_, data) => data_parse(data),
-        IResult::Incomplete(a) => IResult::Incomplete(a),
-        IResult::Error(a) => IResult::Error(a),
+pub fn parse(input: &[u8], crc_check: bool) -> IResult<&[u8], Replay> {
+    if crc_check {
+        match full_crc_check(input) {
+            IResult::Done(_, data) => data_parse(data),
+            IResult::Incomplete(a) => IResult::Incomplete(a),
+            IResult::Error(a) => IResult::Error(a),
+        }
+    } else {
+        data_parse(input)
     }
 }
 
@@ -619,7 +623,7 @@ mod tests {
     #[test]
     fn test_the_whole_shebang_with_crc() {
         let data = include_bytes!("../assets/rumble.replay");
-        match super::parse(data) {
+        match super::parse(data, true) {
             Done(i, _) => assert_eq!(i, &[][..]),
             _ => assert!(false),
         }
@@ -657,6 +661,6 @@ mod tests {
     #[bench]
     fn bench_the_whole_shebang_with_crc(b: &mut Bencher) {
         let data = include_bytes!("../assets/rumble.replay");
-        b.iter(|| super::parse(data));
+        b.iter(|| super::parse(data, true));
     }
 }
