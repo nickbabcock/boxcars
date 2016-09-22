@@ -652,14 +652,14 @@ mod tests {
 
     #[cfg(feature = "nightly")]
     #[bench]
-    fn bench_the_whole_shebang(b: &mut Bencher) {
+    fn bench_parsing_data(b: &mut Bencher) {
         let data = include_bytes!("../assets/rumble.replay");
         b.iter(|| super::data_parse(data));
     }
 
     #[cfg(feature = "nightly")]
     #[bench]
-    fn bench_the_whole_shebang_with_crc(b: &mut Bencher) {
+    fn bench_parsing_data_crc_check(b: &mut Bencher) {
         let data = include_bytes!("../assets/rumble.replay");
         b.iter(|| super::parse(data, true));
     }
