@@ -20,15 +20,23 @@ strive to be thorough.
 
 The code is well documented, give it a read!
 
-Parses and outputs JSON data from replay in 1-2ms, but your mileage may vary.
-
 # Benchmarks
 
-The first benchmark is measuring how long it takes to decode the data. Only 41
-microseconds! The second one includes the crc check, which significantly
-lengthens the time to decode.
+The benchmarks several things:
+
+- How long to just parse the raw data
+- How long to parse the raw data and ensure that the replay is not corrupt using a crc check
+- How long to parse the data and output json data of the replay
+- How long to parse the data with crc check and output json of the replay
+
+The benchmark data is below. The most astounding number is that boxcars can
+parse nearly 15,000 replays per second per core. An eight core machine would
+process 120,000 replays a second. This is, without a doubt, an optimistic
+number, but still mightily impressive.
 
 ```
-bench_the_whole_shebang          ... bench:      41,440 ns/iter (+/- 71,019)
-bench_the_whole_shebang_with_crc ... bench:   2,083,829 ns/iter (+/- 284,435)
+bench_parsing_data                    ... bench:      72,353 ns/iter (+/- 2,329)
+bench_parsing_data_crc_check          ... bench:   2,209,007 ns/iter (+/- 113,528)
+bench_parse_and_json                  ... bench:     138,937 ns/iter (+/- 16,224)
+bench_parse_and_json_crc_check        ... bench:   2,273,926 ns/iter (+/- 62,011)
 ```
