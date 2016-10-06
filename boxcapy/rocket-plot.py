@@ -2,34 +2,36 @@ import json
 import matplotlib.pyplot as plt
 import numpy as np
 import click
+from collections import namedtuple
 
-wins = 0
-losses = 0
-saves = 0
-goals = 0
-assists = 0
-shots = 0
-lose_score = []
-win_score = []
-goal_diff = []
-time_diff = np.array([])
-name = ""
+Calc = namedtuple('Calc', [
+    'wins',
+    'losses',
+    'saves',
+    'goals',
+    'assists',
+    'shots',
+    'lose_score',
+    'win_score',
+    'goal_diff',
+    'time_diff',
+    'name'
+])
 
 @click.command()
 @click.argument('files', nargs=-1, type=click.File('rb'))
 def run_analysis(files):
     data = [json.load(f) for f in files]
-    global wins
-    global losses 
-    global saves
-    global goals
-    global assists
-    global shots
-    global lose_score
-    global win_score
-    global goal_diff
-    global time_diff
-    global name
+    wins = 0
+    losses = 0
+    saves = 0
+    goals = 0
+    assists = 0
+    shots = 0
+    lose_score = []
+    win_score = []
+    goal_diff = []
+    time_diff = np.array([])
 
     for game in data:
         props = game['properties']
@@ -55,7 +57,8 @@ def run_analysis(files):
         goals = goals + player.get('Goals', 0)
         assists = assists + player.get('Assists', 0)
         shots = shots + player.get('Shots', 0)
-    graph()
+    c = Calc(wins, losses, saves, goals, assists, shots, lose_score, win_score, goal_diff, time_diff, name)
+    graph(c)
     input()
 
 
@@ -73,14 +76,14 @@ def autolabel(rects, ax):
         ax.text(rect.get_x()+rect.get_width()/2., 1.05*h + .1, '%d'%int(h),
                 ha='center', va='bottom', size='xx-large')
 
-def graph():
+def graph(calc):
     fig = plt.figure()
     with plt.xkcd():
         ind = np.arange(2)  # the x locations for the groups
         width = 0.50       # the width of the bars
         ax = fig.add_subplot(111)
-        barlist = ax.bar(ind, [wins, losses], width, align = 'center')
-        ax.set_ylim([0, max(wins, losses) * 1.2])
+        barlist = ax.bar(ind, [calc.wins, calc.losses], width, align = 'center')
+        ax.set_ylim([0, max(calc.wins, calc.losses) * 1.2])
         ax.set_xticks(ind)
         ax.set_xticklabels(('Wins', 'Losses'), fontdict={ 'fontsize': 'xx-large' })
         barlist[0].set_facecolor('#7B9F35')
@@ -95,8 +98,8 @@ def graph():
         ind = np.arange(4)  # the x locations for the groups
         width = 0.50       # the width of the bars
         ax = fig.add_subplot(111)
-        barlist = ax.bar(ind, [saves, goals, shots, assists], width, align = 'center', color="#226666")
-        ax.set_ylim([0, max(saves, goals, shots, assists) * 1.2])
+        barlist = ax.bar(ind, [calc.saves, calc.goals, calc.shots, calc.assists], width, align = 'center', color="#226666")
+        ax.set_ylim([0, max(calc.saves, calc.goals, calc.shots, calc.assists) * 1.2])
         ax.set_xticks(ind)
         ax.set_xticklabels(('Saves', 'Goals', 'Shots', 'Assists'), fontdict={ 'fontsize': 'large' })
         plt.title("Stats Breakdown", fontdict={ 'fontsize': 'xx-large' }, y=1.05)
@@ -108,11 +111,11 @@ def graph():
     with plt.xkcd():
         ax = fig.add_subplot(111)
         plt.title('Player\'s Score Distribution: \nWins vs. Losses', fontdict={ 'fontsize': 'xx-large' }, y=1.05)
-        bplot = ax.boxplot([win_score, lose_score], vert=True, patch_artist=True)
+        bplot = ax.boxplot([calc.win_score, calc.lose_score], vert=True, patch_artist=True)
         bplot['boxes'][0].set_facecolor('#7B9F35')
         bplot['boxes'][1].set_facecolor('#AA3939')
         plt.ylabel("Score", fontdict={ 'fontsize': 'xx-large' })
-        ax.set_ylim([0, max(max(*win_score), max(*lose_score)) * 1.2])
+        ax.set_ylim([0, max(max(*calc.win_score), max(*calc.lose_score)) * 1.2])
         ax.set_xticklabels(('Wins', 'Losses'), fontdict={ 'fontsize': 'xx-large' })
         fig.subplots_adjust(top=0.8)
         fig.show()
@@ -123,7 +126,7 @@ def graph():
         plt.title('Goal Difference', fontdict={ 'fontsize': 'xx-large' }, y=1.05)
         plt.ylabel('Frequency')
         plt.xlabel('Goals')
-        bplot = ax.hist(goal_diff, color="#226666")
+        bplot = ax.hist(calc.goal_diff, color="#226666")
         fig.show()
 
     fig = plt.figure()
@@ -132,7 +135,7 @@ def graph():
         plt.title('Time Between Goals', fontdict={ 'fontsize': 'xx-large' }, y=1.05)
         plt.ylabel('Frequency')
         plt.xlabel('Seconds')
-        bplot = ax.hist(time_diff, color="#226666")
+        bplot = ax.hist(calc.time_diff, color="#226666")
         fig.show()
 
 if __name__ == '__main__':
