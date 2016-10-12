@@ -6,16 +6,16 @@ build = "build.rs"
 
 [features]
 default = ["serde_codegen"]
-nightly = ["serde_macros"]
+nightly = ["serde_derive"]
 
 [build-dependencies]
-serde_codegen = { version = "0.8", optional = true }
+serde_codegen = { version = "^0.8.12", optional = true }
 
 [dependencies]
 nom = "^1.2.4"
 encoding = "0.2.33"
-serde = "0.8"
-serde_macros = { version = "0.8", optional = true }
+serde = "^0.8.12"
+serde_derive = { version = "^0.8.12", optional = true }
 
 # Include serde_json for our cli. Unfortunately there are currently no ways to
 # specify dependencies just for our cli:
