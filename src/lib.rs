@@ -68,14 +68,13 @@ mod parsing;
 mod crc;
 
 #[cfg(test)]
+#[cfg(feature = "nightly")]
 mod tests {
-    #[cfg(feature = "nightly")]
     use test::Bencher;
     use super::*;
     use nom;
     use serde_json;
 
-    #[cfg(feature = "nightly")]
     #[bench]
     fn bench_parse_and_json_crc_check(b: &mut Bencher) {
         let data = include_bytes!("../assets/rumble.replay");
@@ -89,7 +88,6 @@ mod tests {
         });
     }
 
-    #[cfg(feature = "nightly")]
     #[bench]
     fn bench_parse_and_json(b: &mut Bencher) {
         let data = include_bytes!("../assets/rumble.replay");
