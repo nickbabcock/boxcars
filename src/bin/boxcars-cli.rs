@@ -5,7 +5,7 @@
 //! stdout, else a non-helpful error message is printed. Sorry!
 #![cfg_attr(feature = "afl-feat", feature(plugin))]
 #![cfg_attr(feature = "afl-feat", plugin(afl_plugin))]
-#![cfg(feature = "afl-feat")]
+#[cfg(feature = "afl-feat")]
 extern crate afl;
 extern crate boxcars;
 extern crate nom;
