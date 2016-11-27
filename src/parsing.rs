@@ -93,7 +93,7 @@ use crc::calc_crc;
 /// Text is encoded with a leading int that denotes the number of bytes that
 /// the text spans.
 named!(text_encoded<&[u8], &str>,
-    chain!(size: le_i32 ~ data: apply!(decode_str, size), || {data}));
+    do_parse!(size: le_i32 >> data: apply!(decode_str, size) >> (data)));
 
 /// Reads a string of a given size from the data. The size includes a null
 /// character as the last character, so we drop it in the returned string
@@ -101,7 +101,7 @@ named!(text_encoded<&[u8], &str>,
 /// contains a nice reasoning for why it may have been done this way:
 /// http://stackoverflow.com/q/6293457/433785
 fn decode_str(input: &[u8], size: i32) -> IResult<&[u8], &str> {
-    chain!(input, data: take_str!(size - 1) ~ take!(1), || {data})
+    do_parse!(input, data: take_str!(size - 1) >> take!(1) >> (data))
 }
 
 /// Decode a byte slice as UTF-16 into Rust's UTF-8 string. If unknown or
@@ -124,25 +124,25 @@ fn inner_text(input: &[u8], size: i32) -> IResult<&[u8], String> {
         // We're dealing with UTF-16 and each character is two bytes, we
         // multiply the size by 2. The last two bytes included in the count are
         // null terminators, we trim those off.
-        chain!(input,
-          data: map!(take!(size * -2 - 2), decode_utf16) ~
-          take!(2),
-          || {data})
+        do_parse!(input,
+          data: map!(take!(size * -2 - 2), decode_utf16) >>
+          take!(2) >>
+          (data))
     } else {
-        chain!(input,
-          data: map!(take!(size - 1), decode_windows1252) ~
-          take!(1),
-          || {data})
+        do_parse!(input,
+          data: map!(take!(size - 1), decode_windows1252) >>
+          take!(1) >>
+          (data))
     }
 }
 
 /// The first four bytes are the number of characters in the string and rest is
 /// the contents of the string.
 named!(text_string<&[u8], String>,
-    chain!(
-        size: le_i32 ~
-        data: apply!(inner_text, size),
-        || {data}));
+    do_parse!(
+        size: le_i32 >>
+        data: apply!(inner_text, size) >>
+        (data)));
 
 /// Header properties are encoded in a pretty simple format, with some oddities. The first 64bits
 /// is data that can be discarded, some people think that the 64bits is the length of the data
@@ -151,43 +151,37 @@ named!(text_string<&[u8], String>,
 /// decoded property type specific.
 
 named!(str_prop<&[u8], HeaderProp>,
-  chain!(le_u64 ~ x: text_string,
-    || {HeaderProp::Str(x)}));
+  do_parse!(le_u64 >> x: text_string >> (HeaderProp::Str(x))));
 
 named!(name_prop<&[u8], HeaderProp>,
-  chain!(le_u64 ~ x: text_string,
-    || {HeaderProp::Name(x)}));
+  do_parse!(le_u64 >> x: text_string >> (HeaderProp::Name(x))));
 
 named!(int_prop<&[u8], HeaderProp>,
-    chain!(le_u64 ~ x: le_u32,
-        || {HeaderProp::Int(x)}));
+  do_parse!(le_u64 >> x: le_u32 >> (HeaderProp::Int(x))));
 
 named!(bool_prop<&[u8], HeaderProp>,
-    chain!(le_u64 ~ x: le_u8,
-        || {HeaderProp::Bool(x == 1)}));
+  do_parse!(le_u64 >> x: le_u8 >> (HeaderProp::Bool(x == 1))));
 
 named!(float_prop<&[u8], HeaderProp>,
-    chain!(le_u64 ~ x: le_f32,
-        || {HeaderProp::Float(x)}));
+  do_parse!(le_u64 >> x: le_f32 >> (HeaderProp::Float(x))));
 
 named!(qword_prop<&[u8], HeaderProp>,
-    chain!(le_u64 ~ x: le_u64,
-        || {HeaderProp::QWord(x)}));
+  do_parse!(le_u64 >> x: le_u64 >> (HeaderProp::QWord(x))));
 
 /// The byte property is the odd one out. It's two strings following each other. No rhyme or
 /// reason.
 named!(byte_prop<&[u8], HeaderProp>,
-    chain!(le_u64 ~ text_encoded ~ text_encoded, || {HeaderProp::Byte}));
+  do_parse!(le_u64 >> text_encoded >> text_encoded >> (HeaderProp::Byte)));
 
 /// The array property has the same leading 64bits that are discarded but also contains the length
 /// of the aray as the next 32bits. Each element in the array is a dictionary so we decode `size`
 /// number of dictionaries.
 named!(array_prop<&[u8], HeaderProp>,
-    chain!(
-        le_u64 ~
-        size: le_u32 ~
-        elems: count!(rdict, size as usize),
-        || {HeaderProp::Array(elems)}));
+    do_parse!(
+        le_u64 >>
+        size: le_u32 >>
+        elems: count!(rdict, size as usize) >>
+        (HeaderProp::Array(elems))));
 
 /// The next string in the data tells us how to decode the property and what type it is.
 named!(rprop_encoded<&[u8], HeaderProp>,
@@ -279,32 +273,31 @@ pub fn parse(input: &[u8], crc_check: bool) -> IResult<&[u8], Replay> {
 }
 
 named!(data_parse<&[u8],Replay>,
-    chain!(
-        header_size:  le_u32 ~
-        header_crc:   le_u32 ~
-        major_version: le_u32 ~
-        minor_version: le_u32 ~
-        game_type: text_encoded ~
-        properties: rdict ~
-        content_size: le_u32 ~
-        content_crc: le_u32 ~
-        levels: text_list ~
-        keyframes: keyframe_list ~
-        network_size: le_u32 ~
+    do_parse!(
+        header_size:  le_u32 >>
+        header_crc:   le_u32 >>
+        major_version: le_u32 >>
+        minor_version: le_u32 >>
+        game_type: text_encoded >>
+        properties: rdict >>
+        content_size: le_u32 >>
+        content_crc: le_u32 >>
+        levels: text_list >>
+        keyframes: keyframe_list >>
+        network_size: le_u32 >>
 
 // This is where this example falls short is that decoding the network data is not
 // implemented. See Octane or RocketLeagueReplayParser for more info.
-        take!(network_size) ~
-        debug_info: debuginfo_list ~
-        tick_marks: tickmark_list ~
-        packages: text_list ~
-        objects: text_list ~
-        names: text_list ~
-        class_indices: classindex_list ~
-        net_cache: classnetcache_list,
+        take!(network_size) >>
+        debug_info: debuginfo_list >>
+        tick_marks: tickmark_list >>
+        packages: text_list >>
+        objects: text_list >>
+        names: text_list >>
+        class_indices: classindex_list >>
+        net_cache: classnetcache_list >>
 
-
-        || { Replay {
+        (Replay {
           header_size: header_size,
           header_crc: header_crc,
           major_version: major_version,
@@ -322,7 +315,7 @@ named!(data_parse<&[u8],Replay>,
           names: names,
           class_indices: class_indices,
           net_cache: net_cache
-        }}
+        })
     )
 );
 
@@ -330,61 +323,61 @@ named!(data_parse<&[u8],Replay>,
 /// `TickMark`, `KeyFrame`, etc.
 
 named!(keyframe_encoded<&[u8], KeyFrame>,
-  chain!(time: le_f32 ~
-         frame: le_u32 ~
-         position: le_u32,
-         || {KeyFrame {time: time, frame: frame, position: position}}));
+  do_parse!(time: le_f32 >>
+           frame: le_u32 >>
+           position: le_u32 >>
+           (KeyFrame {time: time, frame: frame, position: position})));
 
 named!(debuginfo_encoded<&[u8], DebugInfo>,
-  chain!(frame: le_u32 ~ user: text_string ~ text: text_string,
-    || { DebugInfo { frame: frame, user: user, text: text } }));
+  do_parse!(frame: le_u32 >> user: text_string >> text: text_string >>
+    (DebugInfo { frame: frame, user: user, text: text })));
 
 named!(tickmark_encoded<&[u8], TickMark>,
-  chain!(description: text_string ~
-         frame: le_u32,
-         || {TickMark {description: description, frame: frame}}));
+  do_parse!(description: text_string >>
+           frame: le_u32 >>
+           (TickMark {description: description, frame: frame})));
 
 named!(classindex_encoded<&[u8], ClassIndex>,
-  chain!(class: text_string ~ index: le_u32,
-    || { ClassIndex { class: class, index: index } }));
+  do_parse!(class: text_string >> index: le_u32 >>
+    (ClassIndex { class: class, index: index })));
 
 named!(cacheprop_encoded<&[u8], CacheProp>,
-  chain!(index: le_u32 ~ id: le_u32,
-    || { CacheProp { index: index, id: id } }));
+  do_parse!(index: le_u32 >> id: le_u32 >>
+    (CacheProp { index: index, id: id })));
 
 named!(classnetcache_encoded<&[u8], ClassNetCache>,
-  chain!(index: le_u32 ~
-         parent_id: le_u32 ~
-         id: le_u32 ~
-         prop_size: le_u32 ~
-         properties: count!(cacheprop_encoded, prop_size as usize),
-         || { ClassNetCache {
-          index: index,
-          parent_id: parent_id,
-          id: id,
-          properties: properties
-         }}));
+  do_parse!(index: le_u32 >>
+            parent_id: le_u32 >>
+            id: le_u32 >>
+            prop_size: le_u32 >>
+            properties: count!(cacheprop_encoded, prop_size as usize) >>
+            (ClassNetCache {
+             index: index,
+             parent_id: parent_id,
+             id: id,
+             properties: properties
+            })));
 
 /// All the domain objects can be observed in a list that is initially prefixed by the length.
 /// There may be a way to consolidate the implementations, but they're already currently concise.
 
 named!(text_list<&[u8], Vec<String> >,
-  chain!( size: le_u32 ~ elems: count!(text_string, size as usize), || {elems}));
+  do_parse!(size: le_u32 >> elems: count!(text_string, size as usize) >> (elems)));
 
 named!(keyframe_list<&[u8], Vec<KeyFrame> >,
-  chain!(size: le_u32 ~ elems: count!(keyframe_encoded, size as usize), || {elems}));
+  do_parse!(size: le_u32 >> elems: count!(keyframe_encoded, size as usize) >> (elems)));
 
 named!(debuginfo_list<&[u8], Vec<DebugInfo> >,
-  chain!(size: le_u32 ~ elems: count!(debuginfo_encoded, size as usize), || {elems}));
+  do_parse!(size: le_u32 >> elems: count!(debuginfo_encoded, size as usize) >> (elems)));
 
 named!(tickmark_list<&[u8], Vec<TickMark> >,
-  chain!(size: le_u32 ~ elems: count!(tickmark_encoded, size as usize), || {elems}));
+  do_parse!(size: le_u32 >> elems: count!(tickmark_encoded, size as usize) >> (elems)));
 
 named!(classindex_list<&[u8], Vec<ClassIndex> >,
-  chain!(size: le_u32 ~ elems: count!(classindex_encoded, size as usize), || {elems}));
+  do_parse!(size: le_u32 >> elems: count!(classindex_encoded, size as usize) >> (elems)));
 
 named!(classnetcache_list<&[u8], Vec<ClassNetCache> >,
-  chain!(size: le_u32 ~ elems: count!(classnetcache_encoded, size as usize), || {elems}));
+  do_parse!(size: le_u32 >> elems: count!(classnetcache_encoded, size as usize) >> (elems)));
 
 /// Given a pair of expected crc value and data, perform crc on the data and return `Ok`
 /// if the expected matched the actual, else an `Err`
@@ -400,11 +393,11 @@ fn confirm_crc(pair: (u32, &[u8])) -> Result<(), String> {
 
 /// Gather the expected crc and data to perform the crc on in a tuple
 named!(crc_gather<&[u8], (u32, &[u8])>,
-    chain!(
-        size: le_u32 ~
-        crc: le_u32 ~
-        data: take!(size),
-        || {(crc, data)}));
+    do_parse!(
+        size: le_u32 >>
+        crc: le_u32 >>
+        data: take!(size) >>
+        ((crc, data))));
 
 /// Extracts crc data and ensures that it is correct
 named!(crc_check<&[u8], ()>, map_res!(crc_gather, confirm_crc));
@@ -412,7 +405,7 @@ named!(crc_check<&[u8], ()>, map_res!(crc_gather, confirm_crc));
 /// A Rocket League replay is split into two parts with respect to crc calculation. The header and
 /// body. Each section is prefixed by the length of the section and the expected crc.
 named!(full_crc_check,
-    recognize!(chain!(crc_check ~ crc_check, || {()})));
+    recognize!(do_parse!(crc_check >> crc_check >> (()))));
 
 
 #[cfg(test)]
