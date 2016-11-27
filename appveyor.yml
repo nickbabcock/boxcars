@@ -50,7 +50,6 @@ build: false
 # TODO modify this phase as you see fit
 test_script:
   - cargo build --verbose
-  - cargo run
   - cargo test
 
 #before_deploy:
