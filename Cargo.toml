@@ -7,6 +7,7 @@ build = "build.rs"
 [features]
 default = ["serde_codegen"]
 nightly = ["serde_derive"]
+afl-feat = ["afl-plugin", "afl"]
 
 [build-dependencies]
 serde_codegen = { version = "^0.8.12", optional = true }
@@ -23,3 +24,6 @@ serde_derive = { version = "^0.8.12", optional = true }
 # Since this is really only an example repo, I won't worry about creating a
 # separate `bin` cargo file
 serde_json = "0.8"
+
+afl = { version = "0.1", optional = true }
+afl-plugin = { version = "0.1", optional = true }
