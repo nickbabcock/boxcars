@@ -84,16 +84,24 @@
 //! - Followed by several string info and other classes that seem totally worthless if the network
 //! data isn't parsed
 
-use nom::{IResult, le_u64, le_u32, le_u8, le_i32, le_f32};
+use nom::{IResult, le_u64, le_u32, le_u8, le_i32, le_f32, ErrorKind};
 use encoding::{Encoding, DecoderTrap};
 use encoding::all::{UTF_16LE, WINDOWS_1252};
 use models::*;
 use crc::calc_crc;
 
+#[derive(PartialEq, Debug)]
+pub enum BoxcarError {
+    TextIncomplete = 1
+}
+
+use BoxcarError::*;
+
 /// Text is encoded with a leading int that denotes the number of bytes that
 /// the text spans.
 named!(text_encoded<&[u8], &str>,
-    do_parse!(size: le_i32 >> data: apply!(decode_str, size) >> (data)));
+    add_error!(ErrorKind::Custom(TextIncomplete as u32),
+    complete!(do_parse!(size: le_i32 >> data: apply!(decode_str, size) >> (data)))));
 
 /// Reads a string of a given size from the data. The size includes a null
 /// character as the last character, so we drop it in the returned string
@@ -411,8 +419,11 @@ named!(full_crc_check,
 #[cfg(test)]
 mod tests {
     use nom::IResult::Done;
+    use nom::ErrorKind;
+    use nom::error_to_list;
     use models::*;
     use models::HeaderProp::*;
+    use super::BoxcarError::*;
 
     #[cfg(feature = "nightly")]
     use test::Bencher;
@@ -423,6 +434,16 @@ mod tests {
         let data = include_bytes!("../assets/text.replay");
         let r = super::text_encoded(data);
         assert_eq!(r, Done(&[][..], "TAGame.Replay_Soccar_TA"));
+    }
+
+    #[test]
+    fn parse_text_encoding_bad() {
+        // dd skip=16 count=28 if=rumble.replay of=text.replay bs=1
+        let data = include_bytes!("../assets/text.replay");
+        let r = super::text_encoded(&data[..data.len() - 1]);
+        let errors = r.unwrap_err();
+        let v = error_to_list(&errors);
+        assert_eq!(v[0], ErrorKind::Custom(TextIncomplete as u32));
     }
 
     #[test]
