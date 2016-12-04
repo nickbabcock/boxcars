@@ -695,6 +695,16 @@ mod tests {
     }
 
     #[test]
+    fn test_crc_check_header_bad() {
+        let mut data = include_bytes!("../assets/rumble.replay").to_vec();
+        data[4775] = 100;
+        let r = super::crc_check(&data[..4776]);
+        let errors = r.unwrap_err();
+        let v = error_to_list(&errors);
+        assert_eq!(v[0], ErrorKind::Custom(UnexpectedCrc { expected: 337843175, actual: 2877465516 }));
+    }
+
+    #[test]
     fn test_crc_check_full() {
         let data = include_bytes!("../assets/rumble.replay");
         let r = super::full_crc_check(&data[..]);
