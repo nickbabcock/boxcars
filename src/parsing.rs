@@ -84,24 +84,28 @@
 //! - Followed by several string info and other classes that seem totally worthless if the network
 //! data isn't parsed
 
+use nom;
 use nom::{IResult, le_u64, le_u32, le_u8, le_i32, le_f32, ErrorKind};
 use encoding::{Encoding, DecoderTrap};
 use encoding::all::{UTF_16LE, WINDOWS_1252};
 use models::*;
 use crc::calc_crc;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub enum BoxcarError {
-    TextIncomplete = 1
+    Code(u32),
+    TextIncomplete,
+    UnexpectedCrc { expected: u32, actual: u32 }
 }
 
 use BoxcarError::*;
 
 /// Text is encoded with a leading int that denotes the number of bytes that
 /// the text spans.
-named!(text_encoded<&[u8], &str>,
-    add_error!(ErrorKind::Custom(TextIncomplete as u32),
-    complete!(do_parse!(size: le_i32 >> data: apply!(decode_str, size) >> (data)))));
+named!(text_encoded<&[u8], &str, BoxcarError>,
+    return_error!(ErrorKind::Custom(TextIncomplete),
+    fix_error!(BoxcarError,
+    complete!(do_parse!(size: le_i32 >> data: apply!(decode_str, size) >> (data))))));
 
 /// Reads a string of a given size from the data. The size includes a null
 /// character as the last character, so we drop it in the returned string
@@ -158,41 +162,56 @@ named!(text_string<&[u8], String>,
 /// 32bits unknown. Doesn't matter to us, we throw it out anyways. The rest of the bytes are
 /// decoded property type specific.
 
-named!(str_prop<&[u8], HeaderProp>,
-  do_parse!(le_u64 >> x: text_string >> (HeaderProp::Str(x))));
+named!(str_prop<&[u8], HeaderProp, BoxcarError>,
+  fix_error!(BoxcarError,
+  complete!(
+  do_parse!(le_u64 >> x: text_string >> (HeaderProp::Str(x))))));
 
-named!(name_prop<&[u8], HeaderProp>,
-  do_parse!(le_u64 >> x: text_string >> (HeaderProp::Name(x))));
+named!(name_prop<&[u8], HeaderProp, BoxcarError>,
+  fix_error!(BoxcarError,
+  complete!(
+  do_parse!(le_u64 >> x: text_string >> (HeaderProp::Name(x))))));
 
-named!(int_prop<&[u8], HeaderProp>,
-  do_parse!(le_u64 >> x: le_u32 >> (HeaderProp::Int(x))));
+named!(int_prop<&[u8], HeaderProp, BoxcarError>,
+  fix_error!(BoxcarError,
+  complete!(
+  do_parse!(le_u64 >> x: le_u32 >> (HeaderProp::Int(x))))));
 
-named!(bool_prop<&[u8], HeaderProp>,
-  do_parse!(le_u64 >> x: le_u8 >> (HeaderProp::Bool(x == 1))));
+named!(bool_prop<&[u8], HeaderProp, BoxcarError>,
+  fix_error!(BoxcarError,
+  complete!(
+  do_parse!(le_u64 >> x: le_u8 >> (HeaderProp::Bool(x == 1))))));
 
-named!(float_prop<&[u8], HeaderProp>,
-  do_parse!(le_u64 >> x: le_f32 >> (HeaderProp::Float(x))));
+named!(float_prop<&[u8], HeaderProp, BoxcarError>,
+  fix_error!(BoxcarError,
+  complete!(
+  do_parse!(le_u64 >> x: le_f32 >> (HeaderProp::Float(x))))));
 
-named!(qword_prop<&[u8], HeaderProp>,
-  do_parse!(le_u64 >> x: le_u64 >> (HeaderProp::QWord(x))));
+named!(qword_prop<&[u8], HeaderProp, BoxcarError>,
+  fix_error!(BoxcarError,
+  complete!(
+  do_parse!(le_u64 >> x: le_u64 >> (HeaderProp::QWord(x))))));
 
 /// The byte property is the odd one out. It's two strings following each other. No rhyme or
 /// reason.
-named!(byte_prop<&[u8], HeaderProp>,
-  do_parse!(le_u64 >> text_encoded >> text_encoded >> (HeaderProp::Byte)));
+named!(byte_prop<&[u8], HeaderProp, BoxcarError>,
+  do_parse!(fix_error!(BoxcarError, le_u64) >>
+    text_encoded >> text_encoded >> (HeaderProp::Byte)));
 
 /// The array property has the same leading 64bits that are discarded but also contains the length
 /// of the aray as the next 32bits. Each element in the array is a dictionary so we decode `size`
 /// number of dictionaries.
-named!(array_prop<&[u8], HeaderProp>,
+named!(array_prop<&[u8], HeaderProp, BoxcarError>,
+    fix_error!(BoxcarError,
+    complete!(
     do_parse!(
         le_u64 >>
         size: le_u32 >>
         elems: count!(rdict, size as usize) >>
-        (HeaderProp::Array(elems))));
+        (HeaderProp::Array(elems))))));
 
 /// The next string in the data tells us how to decode the property and what type it is.
-named!(rprop_encoded<&[u8], HeaderProp>,
+named!(rprop_encoded<&[u8], HeaderProp, BoxcarError>,
   switch!(text_encoded,
     "ArrayProperty" => call!(array_prop) |
     "BoolProperty" => call!(bool_prop) |
@@ -213,11 +232,11 @@ named!(rprop_encoded<&[u8], HeaderProp>,
 ///   value.
 /// The return type of this function is a key value vector because since there is no format
 /// specification, we can't rule out duplicate keys. Possibly consider a multi-map in the future.
-fn rdict(input: &[u8]) -> IResult<&[u8], Vec<(String, HeaderProp)>> {
+fn rdict(input: &[u8]) -> IResult<&[u8], Vec<(String, HeaderProp)>, BoxcarError> {
     let mut v: Vec<(String, HeaderProp)> = Vec::new();
 
     // Initialize to a dummy value to avoid unitialized errors
-    let mut res: IResult<&[u8], Vec<(String, HeaderProp)>> = IResult::Done(input, Vec::new());
+    let mut res: IResult<&[u8], Vec<(String, HeaderProp)>, BoxcarError> = IResult::Done(input, Vec::new());
 
     // Done only if we see an error or if we see "None"
     let mut done = false;
@@ -268,7 +287,7 @@ fn rdict(input: &[u8]) -> IResult<&[u8], Vec<(String, HeaderProp)>> {
     }
 }
 
-pub fn parse(input: &[u8], crc_check: bool) -> IResult<&[u8], Replay> {
+pub fn parse(input: &[u8], crc_check: bool) -> IResult<&[u8], Replay, BoxcarError> {
     if crc_check {
         match full_crc_check(input) {
             IResult::Done(_, data) => data_parse(data),
@@ -280,23 +299,23 @@ pub fn parse(input: &[u8], crc_check: bool) -> IResult<&[u8], Replay> {
     }
 }
 
-named!(data_parse<&[u8],Replay>,
+named!(data_parse<&[u8], Replay, BoxcarError>,
     do_parse!(
-        header_size:  le_u32 >>
-        header_crc:   le_u32 >>
-        major_version: le_u32 >>
-        minor_version: le_u32 >>
+        header_size:  fix_error!(BoxcarError, le_u32) >>
+        header_crc:   fix_error!(BoxcarError, le_u32) >>
+        major_version: fix_error!(BoxcarError, le_u32) >>
+        minor_version: fix_error!(BoxcarError, le_u32) >>
         game_type: text_encoded >>
         properties: rdict >>
-        content_size: le_u32 >>
-        content_crc: le_u32 >>
+        content_size: fix_error!(BoxcarError, le_u32) >>
+        content_crc: fix_error!(BoxcarError, le_u32) >>
         levels: text_list >>
         keyframes: keyframe_list >>
-        network_size: le_u32 >>
+        network_size: fix_error!(BoxcarError, le_u32) >>
 
 // This is where this example falls short is that decoding the network data is not
 // implemented. See Octane or RocketLeagueReplayParser for more info.
-        take!(network_size) >>
+        fix_error!(BoxcarError, take!(network_size)) >>
         debug_info: debuginfo_list >>
         tick_marks: tickmark_list >>
         packages: text_list >>
@@ -330,30 +349,36 @@ named!(data_parse<&[u8],Replay>,
 /// Below are a series of decoding functions that take in data and returns some domain object (eg:
 /// `TickMark`, `KeyFrame`, etc.
 
-named!(keyframe_encoded<&[u8], KeyFrame>,
+named!(keyframe_encoded<&[u8], KeyFrame, BoxcarError>,
+  fix_error!(BoxcarError,
   do_parse!(time: le_f32 >>
            frame: le_u32 >>
            position: le_u32 >>
-           (KeyFrame {time: time, frame: frame, position: position})));
+           (KeyFrame {time: time, frame: frame, position: position}))));
 
-named!(debuginfo_encoded<&[u8], DebugInfo>,
+named!(debuginfo_encoded<&[u8], DebugInfo, BoxcarError>,
+  fix_error!(BoxcarError,
   do_parse!(frame: le_u32 >> user: text_string >> text: text_string >>
-    (DebugInfo { frame: frame, user: user, text: text })));
+    (DebugInfo { frame: frame, user: user, text: text }))));
 
-named!(tickmark_encoded<&[u8], TickMark>,
+named!(tickmark_encoded<&[u8], TickMark, BoxcarError>,
+  fix_error!(BoxcarError,
   do_parse!(description: text_string >>
            frame: le_u32 >>
-           (TickMark {description: description, frame: frame})));
+           (TickMark {description: description, frame: frame}))));
 
-named!(classindex_encoded<&[u8], ClassIndex>,
+named!(classindex_encoded<&[u8], ClassIndex, BoxcarError>,
+  fix_error!(BoxcarError,
   do_parse!(class: text_string >> index: le_u32 >>
-    (ClassIndex { class: class, index: index })));
+    (ClassIndex { class: class, index: index }))));
 
-named!(cacheprop_encoded<&[u8], CacheProp>,
+named!(cacheprop_encoded<&[u8], CacheProp, BoxcarError>,
+  fix_error!(BoxcarError,
   do_parse!(index: le_u32 >> id: le_u32 >>
-    (CacheProp { index: index, id: id })));
+    (CacheProp { index: index, id: id }))));
 
-named!(classnetcache_encoded<&[u8], ClassNetCache>,
+named!(classnetcache_encoded<&[u8], ClassNetCache, BoxcarError>,
+  fix_error!(BoxcarError,
   do_parse!(index: le_u32 >>
             parent_id: le_u32 >>
             id: le_u32 >>
@@ -364,38 +389,44 @@ named!(classnetcache_encoded<&[u8], ClassNetCache>,
              parent_id: parent_id,
              id: id,
              properties: properties
-            })));
+            }))));
 
 /// All the domain objects can be observed in a list that is initially prefixed by the length.
 /// There may be a way to consolidate the implementations, but they're already currently concise.
 
-named!(text_list<&[u8], Vec<String> >,
-  do_parse!(size: le_u32 >> elems: count!(text_string, size as usize) >> (elems)));
+named!(text_list<&[u8], Vec<String>, BoxcarError>,
+  fix_error!(BoxcarError,
+  do_parse!(size: le_u32 >> elems: count!(text_string, size as usize) >> (elems))));
 
-named!(keyframe_list<&[u8], Vec<KeyFrame> >,
-  do_parse!(size: le_u32 >> elems: count!(keyframe_encoded, size as usize) >> (elems)));
+named!(keyframe_list<&[u8], Vec<KeyFrame>, BoxcarError>,
+  fix_error!(BoxcarError,
+  do_parse!(size: le_u32 >> elems: count!(keyframe_encoded, size as usize) >> (elems))));
 
-named!(debuginfo_list<&[u8], Vec<DebugInfo> >,
-  do_parse!(size: le_u32 >> elems: count!(debuginfo_encoded, size as usize) >> (elems)));
+named!(debuginfo_list<&[u8], Vec<DebugInfo>, BoxcarError>,
+  fix_error!(BoxcarError,
+  do_parse!(size: le_u32 >> elems: count!(debuginfo_encoded, size as usize) >> (elems))));
 
-named!(tickmark_list<&[u8], Vec<TickMark> >,
-  do_parse!(size: le_u32 >> elems: count!(tickmark_encoded, size as usize) >> (elems)));
+named!(tickmark_list<&[u8], Vec<TickMark>, BoxcarError>,
+  fix_error!(BoxcarError,
+  do_parse!(size: le_u32 >> elems: count!(tickmark_encoded, size as usize) >> (elems))));
 
-named!(classindex_list<&[u8], Vec<ClassIndex> >,
-  do_parse!(size: le_u32 >> elems: count!(classindex_encoded, size as usize) >> (elems)));
+named!(classindex_list<&[u8], Vec<ClassIndex>, BoxcarError>,
+  fix_error!(BoxcarError,
+  do_parse!(size: le_u32 >> elems: count!(classindex_encoded, size as usize) >> (elems))));
 
-named!(classnetcache_list<&[u8], Vec<ClassNetCache> >,
-  do_parse!(size: le_u32 >> elems: count!(classnetcache_encoded, size as usize) >> (elems)));
+named!(classnetcache_list<&[u8], Vec<ClassNetCache>, BoxcarError>,
+  fix_error!(BoxcarError,
+  do_parse!(size: le_u32 >> elems: count!(classnetcache_encoded, size as usize) >> (elems))));
 
 /// Given a pair of expected crc value and data, perform crc on the data and return `Ok`
 /// if the expected matched the actual, else an `Err`
-fn confirm_crc(pair: (u32, &[u8])) -> Result<(), String> {
+fn confirm_crc(pair: (u32, &[u8])) -> IResult<&[u8], (), BoxcarError> {
     let (crc, data) = pair;
     let res = calc_crc(data);
     if res == crc {
-        Ok(())
+        IResult::Done(data, ())
     } else {
-        Err(format!("crc check failure -- expected: {} actual: {}", crc, res))
+        IResult::Error(nom::Err::Code(ErrorKind::Custom(UnexpectedCrc { expected: crc, actual: res })))
     }
 }
 
@@ -408,12 +439,14 @@ named!(crc_gather<&[u8], (u32, &[u8])>,
         ((crc, data))));
 
 /// Extracts crc data and ensures that it is correct
-named!(crc_check<&[u8], ()>, map_res!(crc_gather, confirm_crc));
+named!(crc_check<&[u8], (), BoxcarError>,
+  flat_map!(fix_error!(BoxcarError, crc_gather), confirm_crc));
 
 /// A Rocket League replay is split into two parts with respect to crc calculation. The header and
 /// body. Each section is prefixed by the length of the section and the expected crc.
-named!(full_crc_check,
-    recognize!(do_parse!(crc_check >> crc_check >> (()))));
+named!(full_crc_check<&[u8], &[u8], BoxcarError>,
+    fix_error!(BoxcarError,
+    recognize!(do_parse!(crc_check >> crc_check >> (())))));
 
 
 #[cfg(test)]
@@ -443,7 +476,18 @@ mod tests {
         let r = super::text_encoded(&data[..data.len() - 1]);
         let errors = r.unwrap_err();
         let v = error_to_list(&errors);
-        assert_eq!(v[0], ErrorKind::Custom(TextIncomplete as u32));
+        assert_eq!(v[0], ErrorKind::Custom(TextIncomplete));
+    }
+
+    #[test]
+    fn parse_text_encoding_bad_2() {
+        // Test for when there is not enough data to decode text length
+        // dd skip=16 count=28 if=rumble.replay of=text.replay bs=1
+        let data = include_bytes!("../assets/text.replay");
+        let r = super::text_encoded(&data[..2]);
+        let errors = r.unwrap_err();
+        let v = error_to_list(&errors);
+        assert_eq!(v[0], ErrorKind::Custom(TextIncomplete));
     }
 
     #[test]
