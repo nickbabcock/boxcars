@@ -95,7 +95,18 @@ use crc::calc_crc;
 pub enum BoxcarError {
     Code(u32),
     TextIncomplete,
-    UnexpectedCrc { expected: u32, actual: u32 }
+    CrcIncomplete,
+    UnexpectedCrc { expected: u32, actual: u32 },
+    Utf16,
+    Windows1252,
+    ArrayProp,
+    BoolProp,
+    ByteProp,
+    FloatProp,
+    IntProp,
+    NameProp,
+    QWordProp,
+    StrProp
 }
 
 use BoxcarError::*;
@@ -163,9 +174,10 @@ named!(text_string<&[u8], String>,
 /// decoded property type specific.
 
 named!(str_prop<&[u8], HeaderProp, BoxcarError>,
+  return_error!(ErrorKind::Custom(StrProp),
   fix_error!(BoxcarError,
   complete!(
-  do_parse!(le_u64 >> x: text_string >> (HeaderProp::Str(x))))));
+  do_parse!(le_u64 >> x: text_string >> (HeaderProp::Str(x)))))));
 
 named!(name_prop<&[u8], HeaderProp, BoxcarError>,
   fix_error!(BoxcarError,
@@ -432,11 +444,12 @@ fn confirm_crc(pair: (u32, &[u8])) -> IResult<&[u8], (), BoxcarError> {
 
 /// Gather the expected crc and data to perform the crc on in a tuple
 named!(crc_gather<&[u8], (u32, &[u8])>,
+    complete!(
     do_parse!(
         size: le_u32 >>
         crc: le_u32 >>
         data: take!(size) >>
-        ((crc, data))));
+        ((crc, data)))));
 
 /// Extracts crc data and ensures that it is correct
 named!(crc_check<&[u8], (), BoxcarError>,
@@ -527,6 +540,18 @@ mod tests {
         let r = super::rdict(data);
         assert_eq!(r, Done(&[][..],  vec![("PlayerName".to_string(), Str("comagoosie".to_string()))]));
     }
+
+//    #[test]
+//    fn rdict_one_element_bad_str() {
+//        let mut data = Vec::new();
+//        data.extend([0x00; 8].iter().clone());
+//        data.extend([0x06, 0x00, 0x00, 0x00].iter().clone());
+//        data.extend(b"bobby");
+//        let r = super::str_prop(&data[..]);
+//        let errors = r.unwrap_err();
+//        let v = error_to_list(&errors);
+//        assert_eq!(v, vec![]);
+//    }
 
     #[test]
     fn rdict_one_int_element() {
