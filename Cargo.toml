@@ -13,7 +13,7 @@ afl-feat = ["afl-plugin", "afl"]
 serde_codegen = { version = "^0.8.12", optional = true }
 
 [dependencies]
-nom = { version = "^2.0.0", features = ["verbose-errors"] }
+nom = { version = "^2.0.1", features = ["verbose-errors"] }
 encoding = "0.2.33"
 serde = "^0.8.12"
 serde_derive = { version = "^0.8.12", optional = true }
