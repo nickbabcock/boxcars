@@ -95,6 +95,7 @@ use crc::calc_crc;
 pub enum BoxcarError {
     Code(u32),
     TextIncomplete,
+    TextString,
     CrcIncomplete,
     UnexpectedCrc { expected: u32, actual: u32 },
     Utf16,
@@ -161,11 +162,11 @@ fn inner_text(input: &[u8], size: i32) -> IResult<&[u8], String> {
 
 /// The first four bytes are the number of characters in the string and rest is
 /// the contents of the string.
-named!(text_string<&[u8], String>,
-    do_parse!(
-        size: le_i32 >>
-        data: apply!(inner_text, size) >>
-        (data)));
+named!(text_string<&[u8], String, BoxcarError>,
+    return_error!(ErrorKind::Custom(TextString),
+    fix_error!(BoxcarError,
+    complete!(
+    do_parse!(size: le_i32 >> data: apply!(inner_text, size) >> (data))))));
 
 /// Header properties are encoded in a pretty simple format, with some oddities. The first 64bits
 /// is data that can be discarded, some people think that the 64bits is the length of the data
@@ -175,14 +176,14 @@ named!(text_string<&[u8], String>,
 
 named!(str_prop<&[u8], HeaderProp, BoxcarError>,
   return_error!(ErrorKind::Custom(StrProp),
-  fix_error!(BoxcarError,
   complete!(
-  do_parse!(le_u64 >> x: text_string >> (HeaderProp::Str(x)))))));
+  do_parse!(fix_error!(BoxcarError, le_u64) >>
+            x: text_string >> (HeaderProp::Str(x))))));
 
 named!(name_prop<&[u8], HeaderProp, BoxcarError>,
-  fix_error!(BoxcarError,
   complete!(
-  do_parse!(le_u64 >> x: text_string >> (HeaderProp::Name(x))))));
+  do_parse!(fix_error!(BoxcarError, le_u64) >>
+            x: text_string >> (HeaderProp::Name(x)))));
 
 named!(int_prop<&[u8], HeaderProp, BoxcarError>,
   fix_error!(BoxcarError,
@@ -369,20 +370,17 @@ named!(keyframe_encoded<&[u8], KeyFrame, BoxcarError>,
            (KeyFrame {time: time, frame: frame, position: position}))));
 
 named!(debuginfo_encoded<&[u8], DebugInfo, BoxcarError>,
-  fix_error!(BoxcarError,
-  do_parse!(frame: le_u32 >> user: text_string >> text: text_string >>
-    (DebugInfo { frame: frame, user: user, text: text }))));
+  do_parse!(frame: fix_error!(BoxcarError, le_u32) >> user: text_string >> text: text_string >>
+    (DebugInfo { frame: frame, user: user, text: text })));
 
 named!(tickmark_encoded<&[u8], TickMark, BoxcarError>,
-  fix_error!(BoxcarError,
   do_parse!(description: text_string >>
-           frame: le_u32 >>
-           (TickMark {description: description, frame: frame}))));
+           frame: fix_error!(BoxcarError, le_u32) >>
+           (TickMark {description: description, frame: frame})));
 
 named!(classindex_encoded<&[u8], ClassIndex, BoxcarError>,
-  fix_error!(BoxcarError,
-  do_parse!(class: text_string >> index: le_u32 >>
-    (ClassIndex { class: class, index: index }))));
+  do_parse!(class: text_string >> index: fix_error!(BoxcarError, le_u32) >>
+    (ClassIndex { class: class, index: index })));
 
 named!(cacheprop_encoded<&[u8], CacheProp, BoxcarError>,
   fix_error!(BoxcarError,
@@ -541,17 +539,18 @@ mod tests {
         assert_eq!(r, Done(&[][..],  vec![("PlayerName".to_string(), Str("comagoosie".to_string()))]));
     }
 
-//    #[test]
-//    fn rdict_one_element_bad_str() {
-//        let mut data = Vec::new();
-//        data.extend([0x00; 8].iter().clone());
-//        data.extend([0x06, 0x00, 0x00, 0x00].iter().clone());
-//        data.extend(b"bobby");
-//        let r = super::str_prop(&data[..]);
-//        let errors = r.unwrap_err();
-//        let v = error_to_list(&errors);
-//        assert_eq!(v, vec![]);
-//    }
+    #[test]
+    fn rdict_one_element_bad_str() {
+        let mut data = Vec::new();
+        data.extend([0x00; 8].iter().clone());
+        data.extend([0x06, 0x00, 0x00, 0x00].iter().clone());
+        data.extend(b"bobby");
+        let r = super::str_prop(&data[..]);
+        let errors = r.unwrap_err();
+        let v = error_to_list(&errors);
+        assert_eq!(v[0], ErrorKind::Custom(StrProp));
+        assert_eq!(v[1], ErrorKind::Custom(TextString));
+    }
 
     #[test]
     fn rdict_one_int_element() {
