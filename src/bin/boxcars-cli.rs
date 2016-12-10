@@ -13,7 +13,7 @@ extern crate serde_json;
 
 use std::env;
 use std::fs::File;
-use std::io::Read;
+use std::io::{self, Read};
 
 #[cfg(not(feature = "afl-feat"))]
 fn main() {
@@ -25,8 +25,7 @@ fn main() {
     let b = boxcars::parse(&buffer, true);
     match b {
         Ok(val) => {
-            let serialized = serde_json::to_string(&val).unwrap();
-            println!("{}", serialized);
+            serde_json::to_writer(&mut io::stdout(), &val).unwrap();
         }
         _ => {
             println!("Oh no we failed to parse");
