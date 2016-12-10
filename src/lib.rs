@@ -26,7 +26,7 @@
 //! let b = boxcars::parse(&buffer, true);
 //!
 //! match b {
-//!     nom::IResult::Done(_, val) => {
+//!     Ok(val) => {
 //!         let serialized = serde_json::to_string(&val).unwrap();
 //!         println!("{}", serialized);
 //!     }

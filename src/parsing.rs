@@ -300,15 +300,12 @@ fn rdict(input: &[u8]) -> IResult<&[u8], Vec<(String, HeaderProp)>, BoxcarError>
     }
 }
 
-pub fn parse(input: &[u8], crc_check: bool) -> IResult<&[u8], Replay, BoxcarError> {
+pub fn parse(input: &[u8], crc_check: bool) -> Result<Replay, nom::Err<&[u8], BoxcarError>> {
     if crc_check {
-        match full_crc_check(input) {
-            IResult::Done(_, data) => data_parse(data),
-            IResult::Incomplete(a) => IResult::Incomplete(a),
-            IResult::Error(a) => IResult::Error(a),
-        }
+        full_crc_check(input).to_result()
+            .and_then(|_| data_parse(input).to_result())
     } else {
-        data_parse(input)
+        data_parse(input).to_result()
     }
 }
 
@@ -706,7 +703,7 @@ mod tests {
     fn test_the_whole_shebang_with_crc() {
         let data = include_bytes!("../assets/rumble.replay");
         match super::parse(data, true) {
-            Done(i, _) => assert_eq!(i, &[][..]),
+            Ok(_) => assert!(true),
             _ => assert!(false),
         }
     }
