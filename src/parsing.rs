@@ -84,8 +84,7 @@
 //! - Followed by several string info and other classes that seem totally worthless if the network
 //! data isn't parsed
 
-use nom;
-use nom::{IResult, le_u64, le_u32, le_u8, le_i32, le_f32, ErrorKind, error_to_list};
+use nom::{self, IResult, le_u64, le_u32, le_u8, le_i32, le_f32, ErrorKind, error_to_list};
 use encoding::{Encoding, DecoderTrap};
 use encoding::all::{UTF_16LE, WINDOWS_1252};
 use models::*;
