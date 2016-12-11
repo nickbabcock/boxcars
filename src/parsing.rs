@@ -85,7 +85,7 @@
 //! data isn't parsed
 
 use nom;
-use nom::{IResult, le_u64, le_u32, le_u8, le_i32, le_f32, ErrorKind};
+use nom::{IResult, le_u64, le_u32, le_u8, le_i32, le_f32, ErrorKind, error_to_list};
 use encoding::{Encoding, DecoderTrap};
 use encoding::all::{UTF_16LE, WINDOWS_1252};
 use models::*;
@@ -300,12 +300,14 @@ fn rdict(input: &[u8]) -> IResult<&[u8], Vec<(String, HeaderProp)>, BoxcarError>
     }
 }
 
-pub fn parse(input: &[u8], crc_check: bool) -> Result<Replay, nom::Err<&[u8], BoxcarError>> {
+pub fn parse(input: &[u8], crc_check: bool) -> Result<Replay, Vec<ErrorKind<BoxcarError>>> {
     if crc_check {
         full_crc_check(input).to_result()
             .and_then(|_| data_parse(input).to_result())
+            .map_err(|e| error_to_list(&e))
     } else {
         data_parse(input).to_result()
+            .map_err(|e| error_to_list(&e))
     }
 }
 
