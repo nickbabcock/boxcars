@@ -2,28 +2,22 @@
 name = "boxcars"
 version = "0.1.0"
 authors = ["nick"]
-build = "build.rs"
 
 [features]
-default = ["serde_codegen"]
-nightly = ["serde_derive"]
 afl-feat = ["afl-plugin", "afl"]
-
-[build-dependencies]
-serde_codegen = { version = "^0.8.12", optional = true }
 
 [dependencies]
 nom = { version = "^2.0.1", features = ["verbose-errors"] }
 encoding = "0.2.33"
-serde = "^0.8.12"
-serde_derive = { version = "^0.8.12", optional = true }
+serde = "^0.9.0"
+serde_derive = "^0.9.0"
 
 # Include serde_json for our cli. Unfortunately there are currently no ways to
 # specify dependencies just for our cli:
 # https://github.com/rust-lang/cargo/issues/1982
 # Since this is really only an example repo, I won't worry about creating a
 # separate `bin` cargo file
-serde_json = "0.8"
+serde_json = "^0.9"
 
 afl = { version = "0.1", optional = true }
 afl-plugin = { version = "0.1", optional = true }

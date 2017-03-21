@@ -37,7 +37,6 @@
 //! ```
 
 #![cfg_attr(feature = "nightly", feature(test))]
-#![cfg_attr(feature = "serde_derive", feature(proc_macro))]
 
 #[macro_use]
 extern crate nom;
@@ -50,21 +49,13 @@ extern crate test;
 #[cfg(test)]
 extern crate serde_json;
 
-#[cfg(feature = "serde_derive")]
 #[macro_use]
 extern crate serde_derive;
-
-mod models {
-    #[cfg(feature = "serde_derive")]
-    include!("models.in.rs");
-
-    #[cfg(feature = "serde_codegen")]
-    include!(concat!(env!("OUT_DIR"), "/models.rs"));
-}
 
 pub use self::models::*;
 pub use self::parsing::*;
 mod parsing;
+mod models;
 mod crc;
 
 #[cfg(test)]

@@ -662,9 +662,11 @@ mod tests {
         let r = super::keyframe_list(&data[0x12ca..0x12ca + 508]);
         match r {
             Done(i, val) => {
+                let left: &[u8] = &[][..];
+
                 // There are 42 key frames in this list
                 assert_eq!(val.len(), 42);
-                assert_eq!(i, &[][..]);
+                assert_eq!(i, left);
             }
             _ => {
                 assert!(false);
@@ -680,10 +682,12 @@ mod tests {
         let r = super::tickmark_list(&data[0xf6cce..0xf6d50]);
         match r {
             Done(i, val) => {
+                let left: &[u8] = &[][..];
+
                 // There are 7 tick marks in this list
                 assert_eq!(val.len(), 7);
                 assert_eq!(val[0], TickMark { description: "Team1Goal".to_string(), frame: 396 });
-                assert_eq!(i, &[][..]);
+                assert_eq!(i, left);
             }
             _ => {
                 assert!(false);
@@ -694,8 +698,9 @@ mod tests {
     #[test]
     fn test_the_whole_shebang() {
         let data = include_bytes!("../assets/rumble.replay");
+        let left: &[u8] = &[][..];
         match super::data_parse(data) {
-            Done(i, _) => assert_eq!(i, &[][..]),
+            Done(i, _) => assert_eq!(i, left),
             _ => assert!(false),
         }
     }

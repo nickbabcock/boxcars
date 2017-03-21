@@ -14,6 +14,7 @@
 /// not compatible with that of other rocket league replay parsers.
 
 use serde::{Serialize, Serializer};
+use serde::ser::{SerializeMap, SerializeSeq};
 use std::collections::HashMap;
 
 /// The structure that a rocket league replay is parsed into.
@@ -119,17 +120,17 @@ pub struct ClassNetCache {
 /// map structure because most replay parser do this, so we should be compliant and the data format
 /// doesn't dictate that the keys in a sequence of key value pairs must be distinct. It's true,
 /// JSON doesn't need the keys to be unique: http://stackoverflow.com/q/21832701/433785
-fn pair_vec<K, V, S>(inp: &[(K, V)], serializer: &mut S) -> Result<(), S::Error>
+fn pair_vec<K, V, S>(inp: &[(K, V)], serializer: S) -> Result<S::Ok, S::Error>
     where K: Serialize,
           V: Serialize,
           S: Serializer
 {
     let mut state = try!(serializer.serialize_map(Some(inp.len())));
     for &(ref key, ref val) in inp.iter() {
-        try!(serializer.serialize_map_key(&mut state, key));
-        try!(serializer.serialize_map_value(&mut state, val));
+        try!(state.serialize_key(key));
+        try!(state.serialize_value(val));
     }
-    serializer.serialize_map_end(state)
+    state.end()
 }
 
 /// By default serde will generate a serialization method that writes out the enum as well as the
@@ -137,21 +138,21 @@ fn pair_vec<K, V, S>(inp: &[(K, V)], serializer: &mut S) -> Result<(), S::Error>
 /// enum type. This is slightly lossy as in the serialized format it will be ambiguous if a value
 /// is a `Name` or `Str`, as well as `Byte`, `Float`, `Int`, or `QWord`.
 impl Serialize for HeaderProp {
-    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error>
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where S: Serializer
     {
         match *self {
             HeaderProp::Array(ref x) => {
-                let mut state = try!(serializer.serialize_seq(Some(x.len())));
+                let mut state = try!(serializer.serialize_seq_fixed_size(x.len()));
                 for inner in x {
                     // Look for a better way to do this instead of allocating the intermediate map
                     let mut els = HashMap::new();
                     for &(ref key, ref val) in inner.iter() {
                         els.insert(key, val);
                     }
-                    try!(serializer.serialize_seq_elt(&mut state, els));
+                    try!(state.serialize_element(&els));
                 }
-                return serializer.serialize_seq_end(state);
+                state.end()
             }
             HeaderProp::Bool(ref x) => serializer.serialize_bool(*x),
             HeaderProp::Byte => serializer.serialize_u8(0),
