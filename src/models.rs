@@ -139,7 +139,7 @@ impl Serialize for HeaderProp {
     {
         match *self {
             HeaderProp::Array(ref x) => {
-                let mut state = try!(serializer.serialize_seq_fixed_size(x.len()));
+                let mut state = try!(serializer.serialize_seq(Some(x.len())));
                 for inner in x {
                     // Look for a better way to do this instead of allocating the intermediate map
                     let mut els = HashMap::new();
