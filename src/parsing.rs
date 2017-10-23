@@ -143,7 +143,8 @@ fn decode_windows1252(input: &[u8]) -> String {
 /// into a `String`. If the size is negative, that means we're dealing with a
 /// UTF-16 string, else it's a regular string.
 fn inner_text(input: &[u8], size: i32) -> IResult<&[u8], String> {
-    if size.abs() > 10000 {
+    // size.abs() will panic at min_value, so we eschew it for manual checking
+    if size > 10000 || size < -10000 || size == 0 {
         // TODO: This magic number represents that the string is too long
         IResult::Error(nom::Err::Code(ErrorKind::Custom(3434)))
     } else if size < 0 {
@@ -719,6 +720,12 @@ mod tests {
     #[test]
     fn test_the_parsing_text_too_long() {
         let data = include_bytes!("../assets/fuzz-string-too-long.replay");
+        assert!(super::parse(&data[..], false).is_err());
+    }
+
+    #[test]
+    fn test_the_fuzz_corpus_abs_panic() {
+        let data = include_bytes!("../assets/fuzz-corpus.replay");
         assert!(super::parse(&data[..], false).is_err());
     }
 
