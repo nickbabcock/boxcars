@@ -1,0 +1,13 @@
+[package]
+authors = ["Nick Babcock <nbabcock19@hotmail.com>"]
+name = "rrrocket"
+version = "0.1.0"
+license = "MIT"
+repository = "https://github.com/nickbabcock/boxcars"
+
+[[bin]]
+name = "rrrocket"
+
+[dependencies]
+serde_json = "1.0.4"
+boxcars = { path = "..", version = "0.1" }
