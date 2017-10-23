@@ -9,5 +9,7 @@ repository = "https://github.com/nickbabcock/boxcars"
 name = "rrrocket"
 
 [dependencies]
+structopt = "0.1.0"
+structopt-derive = "0.1.0"
 serde_json = "1.0.4"
 boxcars = { path = "..", version = "0.1" }
