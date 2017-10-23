@@ -22,19 +22,19 @@
             "version": "==1.5.3"
         },
         "numpy": {
-            "version": "==1.13.1"
+            "version": "==1.13.3"
         },
         "pyparsing": {
             "version": "==2.2.0"
         },
         "python-dateutil": {
-            "version": "==2.6.0"
+            "version": "==2.6.1"
         },
         "pytz": {
             "version": "==2017.2"
         },
         "six": {
-            "version": "==1.10.0"
+            "version": "==1.11.0"
         }
     },
     "develop": {}
