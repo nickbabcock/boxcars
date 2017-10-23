@@ -311,7 +311,7 @@ pub fn parse(input: &[u8], crc_check: bool) -> Result<Replay, Vec<ErrorKind<Boxc
 }
 
 named!(data_parse<&[u8], Replay, BoxcarError>,
-    do_parse!(
+    complete!(do_parse!(
         header_size:  fix_error!(BoxcarError, le_u32) >>
         header_crc:   fix_error!(BoxcarError, le_u32) >>
         major_version: fix_error!(BoxcarError, le_u32) >>
@@ -354,7 +354,7 @@ named!(data_parse<&[u8], Replay, BoxcarError>,
           class_indices: class_indices,
           net_cache: net_cache
         })
-    )
+    ))
 );
 
 /// Below are a series of decoding functions that take in data and returns some domain object (eg:
@@ -702,6 +702,14 @@ mod tests {
         match super::data_parse(data) {
             Done(i, _) => assert_eq!(i, left),
             _ => assert!(false),
+        }
+    }
+
+    #[test]
+    fn test_the_parsing_empty() {
+        match super::parse(&[][..], false) {
+            Ok(_) => assert!(false),
+            _ => assert!(true),
         }
     }
 
