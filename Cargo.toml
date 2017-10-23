@@ -3,9 +3,6 @@ name = "boxcars"
 version = "0.1.0"
 authors = ["nick"]
 
-[features]
-afl-feat = ["afl-plugin", "afl"]
-
 [dependencies]
 nom = { version = "2.2.0", features = ["verbose-errors"] }
 encoding = "0.2.33"
