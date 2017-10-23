@@ -1,17 +1,14 @@
 [package]
+authors = ["nick"]
 name = "boxcars"
 version = "0.1.0"
-authors = ["nick"]
 
 [dependencies]
-nom = { version = "3.2.0", features = ["verbose-errors"] }
 encoding = "0.2.33"
-serde = "1.0.0"
-serde_derive = "1.0.0"
+serde = "1.0.16"
+serde_derive = "1.0.16"
+serde_json = "1.0.4"
 
-# Include serde_json for our cli. Unfortunately there are currently no ways to
-# specify dependencies just for our cli:
-# https://github.com/rust-lang/cargo/issues/1982
-# Since this is really only an example repo, I won't worry about creating a
-# separate `bin` cargo file
-serde_json = "1.0.0"
+[dependencies.nom]
+features = ["verbose-errors"]
+version = "3.2.0"
