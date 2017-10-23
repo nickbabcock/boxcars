@@ -116,15 +116,20 @@ use BoxcarError::*;
 named!(text_encoded<&[u8], &str, BoxcarError>,
     return_error!(ErrorKind::Custom(TextIncomplete),
     fix_error!(BoxcarError,
-    complete!(do_parse!(size: le_i32 >> data: apply!(decode_str, size) >> (data))))));
+    complete!(do_parse!(size: le_u32 >> data: apply!(decode_str, size) >> (data))))));
 
 /// Reads a string of a given size from the data. The size includes a null
 /// character as the last character, so we drop it in the returned string
 /// slice. It may seem redundant to store this information, but stackoverflow
 /// contains a nice reasoning for why it may have been done this way:
 /// http://stackoverflow.com/q/6293457/433785
-fn decode_str(input: &[u8], size: i32) -> IResult<&[u8], &str> {
-    do_parse!(input, data: take_str!(size - 1) >> take!(1) >> (data))
+fn decode_str(input: &[u8], size: u32) -> IResult<&[u8], &str> {
+    if size == 0 {
+        // TODO: This magic number represents that the string is too short
+        IResult::Error(nom::Err::Code(ErrorKind::Custom(3435)))
+    } else {
+        do_parse!(input, data: take_str!(size - 1) >> take!(1) >> (data))
+    }
 }
 
 /// Decode a byte slice as UTF-16 into Rust's UTF-8 string. If unknown or
@@ -490,6 +495,13 @@ mod tests {
         let errors = r.unwrap_err();
         let v = error_to_list(&errors);
         assert_eq!(v[0], ErrorKind::Custom(TextIncomplete));
+    }
+
+    #[test]
+    fn parse_text_zero_size() {
+        let data = [0, 0, 0, 0, 0];
+        let r = super::text_encoded(&data[..]);
+        assert!(r.is_err())
     }
 
     #[test]
