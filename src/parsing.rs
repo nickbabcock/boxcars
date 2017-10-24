@@ -84,11 +84,12 @@
 //! - Followed by several string info and other classes that seem totally worthless if the network
 //! data isn't parsed
 
-use nom::{self, IResult, le_u64, le_u32, le_u8, le_i32, le_f32, ErrorKind, error_to_list};
+use nom::{self, IResult, le_u64, le_u32, le_u8, le_i32, le_f32};
 use encoding::{Encoding, DecoderTrap};
 use encoding::all::{UTF_16LE, WINDOWS_1252};
 use models::*;
 use crc::calc_crc;
+use errors::*;
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum BoxcarError {
@@ -114,7 +115,7 @@ use BoxcarError::*;
 /// Text is encoded with a leading int that denotes the number of bytes that
 /// the text spans.
 named!(text_encoded<&[u8], &str, BoxcarError>,
-    return_error!(ErrorKind::Custom(TextIncomplete),
+    return_error!(nom::ErrorKind::Custom(TextIncomplete),
     fix_error!(BoxcarError,
     complete!(do_parse!(size: le_u32 >> data: apply!(decode_str, size) >> (data))))));
 
@@ -126,7 +127,7 @@ named!(text_encoded<&[u8], &str, BoxcarError>,
 fn decode_str(input: &[u8], size: u32) -> IResult<&[u8], &str> {
     if size == 0 {
         // TODO: This magic number represents that the string is too short
-        IResult::Error(nom::Err::Code(ErrorKind::Custom(3435)))
+        IResult::Error(nom::Err::Code(nom::ErrorKind::Custom(3435)))
     } else {
         do_parse!(input, data: take_str!(size - 1) >> take!(1) >> (data))
     }
@@ -151,7 +152,7 @@ fn inner_text(input: &[u8], size: i32) -> IResult<&[u8], String> {
     // size.abs() will panic at min_value, so we eschew it for manual checking
     if size > 10000 || size < -10000 || size == 0 {
         // TODO: This magic number represents that the string is too long
-        IResult::Error(nom::Err::Code(ErrorKind::Custom(3434)))
+        IResult::Error(nom::Err::Code(nom::ErrorKind::Custom(3434)))
     } else if size < 0 {
         // We're dealing with UTF-16 and each character is two bytes, we
         // multiply the size by 2. The last two bytes included in the count are
@@ -171,7 +172,7 @@ fn inner_text(input: &[u8], size: i32) -> IResult<&[u8], String> {
 /// The first four bytes are the number of characters in the string and rest is
 /// the contents of the string.
 named!(text_string<&[u8], String, BoxcarError>,
-    return_error!(ErrorKind::Custom(TextString),
+    return_error!(nom::ErrorKind::Custom(TextString),
     fix_error!(BoxcarError,
     complete!(
     do_parse!(size: le_i32 >> data: apply!(inner_text, size) >> (data))))));
@@ -183,7 +184,7 @@ named!(text_string<&[u8], String, BoxcarError>,
 /// decoded property type specific.
 
 named!(str_prop<&[u8], HeaderProp, BoxcarError>,
-  return_error!(ErrorKind::Custom(StrProp),
+  return_error!(nom::ErrorKind::Custom(StrProp),
   complete!(
   do_parse!(fix_error!(BoxcarError, le_u64) >>
             x: text_string >> (HeaderProp::Str(x))))));
@@ -308,14 +309,14 @@ fn rdict(input: &[u8]) -> IResult<&[u8], Vec<(String, HeaderProp)>, BoxcarError>
     }
 }
 
-pub fn parse(input: &[u8], crc_check: bool) -> Result<Replay, Vec<ErrorKind<BoxcarError>>> {
+pub fn parse(input: &[u8], crc_check: bool) -> Result<Replay> {
     if crc_check {
         full_crc_check(input).to_result()
             .and_then(|_| data_parse(input).to_result())
-            .map_err(|e| error_to_list(&e))
+            .map_err(|e| Error::from(ErrorKind::Parsing(format!("error list: {}", &e))))
     } else {
         data_parse(input).to_result()
-            .map_err(|e| error_to_list(&e))
+            .map_err(|e| Error::from(ErrorKind::Parsing(format!("error list: {}", &e))))
     }
 }
 
@@ -443,7 +444,7 @@ fn confirm_crc(pair: (u32, &[u8])) -> IResult<&[u8], (), BoxcarError> {
     if res == crc {
         IResult::Done(data, ())
     } else {
-        IResult::Error(nom::Err::Code(ErrorKind::Custom(UnexpectedCrc { expected: crc, actual: res })))
+        IResult::Error(nom::Err::Code(nom::ErrorKind::Custom(UnexpectedCrc { expected: crc, actual: res })))
     }
 }
 

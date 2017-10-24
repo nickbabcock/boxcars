@@ -9,9 +9,29 @@ extern crate structopt;
 extern crate boxcars;
 extern crate serde_json;
 
+#[macro_use]
+extern crate error_chain;
+
+mod errors {
+    use boxcars;
+    use serde_json;
+    error_chain! {
+        foreign_links {
+            Io(::std::io::Error);
+            Serde(serde_json::Error);
+        }
+
+        links {
+            Boxcar(boxcars::Error, boxcars::ErrorKind);
+        }
+    }
+}
+
+use errors::*;
 use structopt::StructOpt;
 use std::fs::File;
-use std::io::{self, Read};
+use std::io::{self, Read, Write};
+use error_chain::ChainedError;
 
 #[derive(StructOpt, Debug, Clone, PartialEq)]
 #[structopt(name = "rrrocket", about = "Parses a Rocket League replay file and outputs JSON")]
@@ -23,15 +43,24 @@ struct Opt {
     input: String,
 }
 
-fn parse_file(input: &String, crc: bool) -> boxcars::Replay {
-    let mut f = File::open(input).unwrap();
+fn parse_file(input: &String, crc: bool) -> Result<boxcars::Replay> {
+    let mut f = File::open(input)?;
     let mut buffer = vec![];
-    f.read_to_end(&mut buffer).unwrap();
-	boxcars::parse(&buffer, crc).unwrap()
+    f.read_to_end(&mut buffer)?;
+	Ok(boxcars::parse(&buffer, crc)?)
+}
+
+fn run() -> Result<()> {
+    let opt = Opt::from_args();
+    let data = parse_file(&opt.input, opt.crc)?;
+	serde_json::to_writer(&mut io::stdout(), &data)?;
+    Ok(())
 }
 
 fn main() {
-    let opt = Opt::from_args();
-    let data = parse_file(&opt.input, opt.crc);
-	serde_json::to_writer(&mut io::stdout(), &data).unwrap();
+    if let Err(ref e) = run() {
+        writeln!(::std::io::stderr(), "{}", e.display_chain())
+			.expect("Error writing to stderr");
+        ::std::process::exit(1);
+    }
 }

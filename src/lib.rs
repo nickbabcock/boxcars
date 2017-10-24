@@ -43,6 +43,9 @@ extern crate nom;
 extern crate serde;
 extern crate encoding;
 
+#[macro_use]
+extern crate error_chain;
+
 #[cfg(feature = "nightly")]
 extern crate test;
 
@@ -54,9 +57,11 @@ extern crate serde_derive;
 
 pub use self::models::*;
 pub use self::parsing::*;
+pub use self::errors::*;
 mod parsing;
 mod models;
 mod crc;
+mod errors;
 
 #[cfg(test)]
 #[cfg(feature = "nightly")]
