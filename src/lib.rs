@@ -62,38 +62,3 @@ mod parsing;
 mod models;
 mod crc;
 mod errors;
-
-#[cfg(test)]
-#[cfg(feature = "nightly")]
-mod tests {
-    use test::Bencher;
-    use super::*;
-    use nom;
-    use serde_json;
-
-    #[bench]
-    fn bench_parse_and_json_crc_check(b: &mut Bencher) {
-        let data = include_bytes!("../assets/rumble.replay");
-        b.iter(|| {
-            match parse(data, true) {
-                nom::IResult::Done(_, val) => {
-                    serde_json::to_string(&val).unwrap();
-                }
-                _ => assert!(false)
-            }
-        });
-    }
-
-    #[bench]
-    fn bench_parse_and_json(b: &mut Bencher) {
-        let data = include_bytes!("../assets/rumble.replay");
-        b.iter(|| {
-            match parse(data, false) {
-                nom::IResult::Done(_, val) => {
-                    serde_json::to_string(&val).unwrap();
-                }
-                _ => assert!(false)
-            }
-        });
-    }
-}

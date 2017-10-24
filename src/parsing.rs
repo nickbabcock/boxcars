@@ -477,9 +477,6 @@ mod tests {
     use models::HeaderProp::*;
     use super::BoxcarError::*;
 
-    #[cfg(feature = "nightly")]
-    use test::Bencher;
-
     #[test]
     fn parse_text_encoding() {
         // dd skip=16 count=28 if=rumble.replay of=text.replay bs=1
@@ -773,26 +770,5 @@ mod tests {
         let data = include_bytes!("../assets/rumble.replay");
         let r = super::full_crc_check(&data[..]);
         assert_eq!(r, Done(&[][..], &data[..]));
-    }
-
-    #[cfg(feature = "nightly")]
-    #[bench]
-    fn bench_rdict(b: &mut Bencher) {
-        let data = append_none(include_bytes!("../assets/rdict_array.replay"));
-        b.iter(|| super::rdict(&data));
-    }
-
-    #[cfg(feature = "nightly")]
-    #[bench]
-    fn bench_parsing_data(b: &mut Bencher) {
-        let data = include_bytes!("../assets/rumble.replay");
-        b.iter(|| super::data_parse(data));
-    }
-
-    #[cfg(feature = "nightly")]
-    #[bench]
-    fn bench_parsing_data_crc_check(b: &mut Bencher) {
-        let data = include_bytes!("../assets/rumble.replay");
-        b.iter(|| super::parse(data, true));
     }
 }
