@@ -1,48 +1,84 @@
-# Modified appveyor script from rust-everywhere
+# Based on the "trust" template v0.1.1
+# https://github.com/japaric/trust/tree/v0.1.1
+
 environment:
+  global:
+    RUST_VERSION: stable
+    CRATE_NAME: rrrocket
+
+  # TODO These are all the build jobs. Adjust as necessary. Comment out what you
+  # don't need
   matrix:
-    # Stable channel
-    - TARGET: i686-pc-windows-gnu
-      CHANNEL: stable
-    - TARGET: i686-pc-windows-msvc
-      CHANNEL: stable
     - TARGET: x86_64-pc-windows-gnu
-      CHANNEL: stable
     - TARGET: x86_64-pc-windows-msvc
-      CHANNEL: stable
-    # Beta channel
-    - TARGET: i686-pc-windows-gnu
-      CHANNEL: beta
-    - TARGET: i686-pc-windows-msvc
-      CHANNEL: beta
     - TARGET: x86_64-pc-windows-gnu
-      CHANNEL: beta
+      RUST_VERSION: beta
     - TARGET: x86_64-pc-windows-msvc
-      CHANNEL: beta
-    # Nightly channel
-    - TARGET: i686-pc-windows-gnu
-      CHANNEL: nightly
-    - TARGET: i686-pc-windows-msvc
-      CHANNEL: nightly
+      RUST_VERSION: beta
     - TARGET: x86_64-pc-windows-gnu
-      CHANNEL: nightly
+      RUST_VERSION: nightly
     - TARGET: x86_64-pc-windows-msvc
-      CHANNEL: nightly
+      RUST_VERSION: nightly
 
-# Install Rust and Cargo
-# (Based on from https://github.com/rust-lang/libc/blob/master/appveyor.yml)
 install:
-  - appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
-  - rustup-init -yv --default-toolchain %channel% --default-host %target%
-  - set PATH=%PATH%;%USERPROFILE%\.cargo\bin
-  - rustc -vV
-  - cargo -vV
-
-# 'cargo test' takes care of building for us, so disable Appveyor's build stage. This prevents
-# the "directory does not contain a project or solution file" error.
-# source: https://github.com/starkat99/appveyor-rust/blob/master/appveyor.yml#L113
-build: false
+  - ps: >-
+      If ($Env:TARGET -eq 'x86_64-pc-windows-gnu') {
+        $Env:PATH += ';C:\msys64\mingw64\bin'
+      } ElseIf ($Env:TARGET -eq 'i686-pc-windows-gnu') {
+        $Env:PATH += ';C:\msys64\mingw32\bin'
+      }
+  - curl -sSf -o rustup-init.exe https://win.rustup.rs/
+  - rustup-init.exe -y --default-host %TARGET% --default-toolchain %RUST_VERSION%
+  - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
+  - rustc -Vv
+  - cargo -V
 
 test_script:
-  - cargo build --verbose
-  - cargo test
+  - if [%APPVEYOR_REPO_TAG%]==[false] (
+      cargo build --all --target %TARGET% &&
+      cargo build --all --target %TARGET% --release &&
+      cargo test --all --target %TARGET% &&
+      cargo test --all --target %TARGET% --release &&
+      cargo run -p rrrocket --target %TARGET% -- --help &&
+      cargo run -p rrrocket --target %TARGET% --release -- --help
+    )
+
+#before_deploy:
+#  # TODO Update this to build the artifacts that matter to you
+#  - cargo rustc --target %TARGET% --release --bin hello -- -C lto
+#  - ps: ci\before_deploy.ps1
+#
+#deploy:
+#  artifact: /.*\.zip/
+#  # TODO update `auth_token.secure`
+#  # - Create a `public_repo` GitHub token. Go to: https://github.com/settings/tokens/new
+#  # - Encrypt it. Go to https://ci.appveyor.com/tools/encrypt
+#  # - Paste the output down here
+#  auth_token:
+#    secure: t3puM/2hOig26EHhAodcZBc61NywF7/PFEpimR6SwGaCiqS07KR5i7iAhSABmBp7
+#  description: ''
+#  on:
+#    # TODO Here you can pick which targets will generate binary releases
+#    # In this example, there are some targets that are tested using the stable
+#    # and nightly channels. This condition makes sure there is only one release
+#    # for such targets and that's generated using the stable channel
+#    RUST_VERSION: stable
+#    appveyor_repo_tag: true
+#  provider: GitHub
+
+cache:
+  - C:\Users\appveyor\.cargo\registry
+  - target
+
+branches:
+  only:
+    # Release tags
+    - /^v\d+\.\d+\.\d+.*$/
+    - master
+
+notifications:
+  - provider: Email
+    on_build_success: false
+
+# Building is done in the test phase, so we disable Appveyor's build phase.
+build: false
