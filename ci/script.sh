@@ -14,8 +14,8 @@ main() {
     cross test --target $TARGET
     cross test --target $TARGET --release
 
-    (cd rrrocket && exec cross run --target $TARGET -- --help)
-    (cd rrrocket && exec cross run --target $TARGET --release -- --help)
+    (cd rrrocket && cross run --target $TARGET -- --help)
+    (cd rrrocket && cross run --target $TARGET --release -- --help)
 }
 
 # we don't run the "test phase" when doing deploys
