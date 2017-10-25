@@ -117,9 +117,10 @@ pub struct ClassNetCache {
 /// doesn't dictate that the keys in a sequence of key value pairs must be distinct. It's true,
 /// JSON doesn't need the keys to be unique: http://stackoverflow.com/q/21832701/433785
 fn pair_vec<K, V, S>(inp: &[(K, V)], serializer: S) -> Result<S::Ok, S::Error>
-    where K: Serialize,
-          V: Serialize,
-          S: Serializer
+where
+    K: Serialize,
+    V: Serialize,
+    S: Serializer,
 {
     let mut state = try!(serializer.serialize_map(Some(inp.len())));
     for &(ref key, ref val) in inp.iter() {
@@ -135,7 +136,8 @@ fn pair_vec<K, V, S>(inp: &[(K, V)], serializer: S) -> Result<S::Ok, S::Error>
 /// is a `Name` or `Str`, as well as `Byte`, `Float`, `Int`, or `QWord`.
 impl Serialize for HeaderProp {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where S: Serializer
+    where
+        S: Serializer,
     {
         match *self {
             HeaderProp::Array(ref x) => {
@@ -155,7 +157,7 @@ impl Serialize for HeaderProp {
             HeaderProp::Float(ref x) => serializer.serialize_f32(*x),
             HeaderProp::Int(ref x) => serializer.serialize_u32(*x),
             HeaderProp::QWord(ref x) => serializer.serialize_u64(*x),
-            HeaderProp::Name(ref x) | HeaderProp::Str(ref x) => serializer.serialize_str(x)
+            HeaderProp::Name(ref x) | HeaderProp::Str(ref x) => serializer.serialize_str(x),
         }
     }
 }

@@ -1,8 +1,8 @@
 #![feature(test)]
 
-extern crate test;
 extern crate boxcars;
 extern crate serde_json;
+extern crate test;
 
 use test::Bencher;
 use boxcars::*;

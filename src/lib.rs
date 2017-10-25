@@ -38,10 +38,10 @@
 
 #![cfg_attr(feature = "nightly", feature(test))]
 
+extern crate encoding;
 #[macro_use]
 extern crate nom;
 extern crate serde;
-extern crate encoding;
 
 #[macro_use]
 extern crate error_chain;

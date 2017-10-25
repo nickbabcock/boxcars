@@ -84,8 +84,8 @@
 //! - Followed by several string info and other classes that seem totally worthless if the network
 //! data isn't parsed
 
-use nom::{self, IResult, le_u64, le_u32, le_u8, le_i32, le_f32};
-use encoding::{Encoding, DecoderTrap};
+use nom::{self, IResult, le_f32, le_i32, le_u32, le_u64, le_u8};
+use encoding::{DecoderTrap, Encoding};
 use encoding::all::{UTF_16LE, WINDOWS_1252};
 use models::*;
 use crc::calc_crc;
@@ -107,7 +107,7 @@ pub enum BoxcarError {
     IntProp,
     NameProp,
     QWordProp,
-    StrProp
+    StrProp,
 }
 
 use BoxcarError::*;
@@ -272,22 +272,20 @@ fn rdict(input: &[u8]) -> IResult<&[u8], Vec<(String, HeaderProp)>, BoxcarError>
                 cslice = i;
                 match txt {
                     "None" => done = true,
-                    _ => {
-                        match rprop_encoded(cslice) {
-                            IResult::Done(inp, val) => {
-                                cslice = inp;
-                                v.push((txt.to_string(), val));
-                            }
-                            IResult::Incomplete(a) => {
-                                res = IResult::Incomplete(a);
-                                done = true
-                            }
-                            IResult::Error(a) => {
-                                res = IResult::Error(a);
-                                done = true
-                            }
+                    _ => match rprop_encoded(cslice) {
+                        IResult::Done(inp, val) => {
+                            cslice = inp;
+                            v.push((txt.to_string(), val));
                         }
-                    }
+                        IResult::Incomplete(a) => {
+                            res = IResult::Incomplete(a);
+                            done = true
+                        }
+                        IResult::Error(a) => {
+                            res = IResult::Error(a);
+                            done = true
+                        }
+                    },
                 }
             }
 
@@ -540,7 +538,7 @@ mod tests {
     fn rdict_no_elements() {
         let data = [0x05, 0x00, 0x00, 0x00, b'N', b'o', b'n', b'e', 0x00];
         let r = super::rdict(&data);
-        assert_eq!(r, Done(&[][..],  Vec::new()));
+        assert_eq!(r, Done(&[][..], Vec::new()));
     }
 
     #[test]
@@ -569,7 +567,7 @@ mod tests {
         // dd skip=$((0x250)) count=$((0x284 - 0x250)) if=rumble.replay of=rdict_int.replay bs=1
         let data = include_bytes!("../assets/rdict_int.replay");
         let r = super::rdict(data);
-        assert_eq!(r, Done(&[][..],  vec![("PlayerTeam".to_string(), Int(0))]));
+        assert_eq!(r, Done(&[][..], vec![("PlayerTeam".to_string(), Int(0))]));
     }
 
     #[test]
@@ -577,7 +575,7 @@ mod tests {
         // dd skip=$((0xa0f)) count=$((0xa3b - 0xa0f)) if=rumble.replay of=rdict_bool.replay bs=1
         let data = include_bytes!("../assets/rdict_bool.replay");
         let r = super::rdict(data);
-        assert_eq!(r, Done(&[][..],  vec![("bBot".to_string(), Bool(false))]));
+        assert_eq!(r, Done(&[][..], vec![("bBot".to_string(), Bool(false))]));
     }
 
     fn append_none(input: &[u8]) -> Vec<u8> {
@@ -657,7 +655,7 @@ mod tests {
         // dd skip=$((0xdf0)) count=$((0xe41 - 0xdf0)) if=rumble.replay of=rdict_byte.replay bs=1
         let data = append_none(include_bytes!("../assets/rdict_byte.replay"));
         let r = super::rdict(&data);
-        assert_eq!(r, Done(&[][..],  vec![("Platform".to_string(), Byte)]));
+        assert_eq!(r, Done(&[][..], vec![("Platform".to_string(), Byte)]));
     }
 
 
