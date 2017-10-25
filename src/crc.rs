@@ -2,10 +2,10 @@
 /// be the typical crc calculation and may be specific to Rocket League and/or
 /// Unreal Engine. Implementation is close, but not the same as the crc create
 pub fn calc_crc(data: &[u8]) -> u32 {
-    let mut crc: u32 = !(0xefcbf201);
+    let mut crc: u32 = !(0xefcb_f201);
 
     for &i in data.iter() {
-        crc = ((crc << 8)) ^ (TABLE[((i as u32) ^ (crc >> 24)) as usize]);
+        crc = (crc << 8) ^ (TABLE[((u32::from(i)) ^ (crc >> 24)) as usize]);
     }
     !crc
 }

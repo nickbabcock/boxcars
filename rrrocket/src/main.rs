@@ -43,7 +43,7 @@ struct Opt {
     input: String,
 }
 
-fn parse_file(input: &String, crc: bool) -> Result<boxcars::Replay> {
+fn parse_file(input: &str, crc: bool) -> Result<boxcars::Replay> {
     let mut f = File::open(input)?;
     let mut buffer = vec![];
     f.read_to_end(&mut buffer)?;
