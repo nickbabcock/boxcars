@@ -20,6 +20,44 @@ strive to be thorough.
 
 The code is well documented, give it a read!
 
+# rrrocket
+
+Rrrocket is what a cli program might look like utilizing the boxcars library.
+Rrrocket parses a Rocket League replay file and outputs JSON. The executable
+has been built for many platforms, so head on over to the [latest
+release](https://github.com/nickbabcock/boxcars/releases/latest) and download
+the appropriate bundle. If you're not sure which bundle to download, here are
+the most likely options:
+
+- For Windows, you'll want the one labeled `windows-msvc`
+- For Linux, you'll want the one labeled `linux-musl`
+- For macOS, you'll want the only one labeled `apple`
+
+A sample output of the JSON from rrrocket:
+
+```json
+{
+  "header_size": 4768,
+  "header_crc": 337843175,
+  "major_version": 868,
+  "minor_version": 12,
+  "game_type": "TAGame.Replay_Soccar_TA",
+  "properties": {
+    "TeamSize": 3,
+    "Team0Score": 5,
+    "Team1Score": 2,
+    "Goals": [
+      {
+        "PlayerName": "Cakeboss",
+        "PlayerTeam": 1,
+        "frame": 441
+      },
+      // all the goals
+    ]
+    // and many more properties
+  }
+```
+
 # Benchmarks
 
 The benchmarks several things:
