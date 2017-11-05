@@ -1,23 +1,23 @@
 [package]
 authors = ["Nick Babcock <nbabcock19@hotmail.com>"]
-name = "boxcars"
-version = "0.1.0"
 license = "MIT"
-repository = "https://github.com/nickbabcock/boxcars"
+name = "boxcars"
 readme = "README.md"
+repository = "https://github.com/nickbabcock/boxcars"
+version = "0.1.0"
 
 [dependencies]
 encoding = "0.2.33"
-serde = "1.0.16"
-serde_derive = "1.0.16"
 error-chain = "0.11.0"
+serde = "1.0.18"
+serde_derive = "1.0.18"
 
 [dependencies.nom]
 features = ["verbose-errors"]
-version = "3.2.0"
+version = "3.2.1"
 
 [dev-dependencies]
-serde_json = "1.0.4"
+serde_json = "1.0.5"
 
 [workspace]
 members = ["rrrocket"]
