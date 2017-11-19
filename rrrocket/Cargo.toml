@@ -1,13 +1,16 @@
 [package]
 authors = ["Nick Babcock <nbabcock19@hotmail.com>"]
-name = "rrrocket"
-version = "0.1.0"
 license = "MIT"
+name = "rrrocket"
 repository = "https://github.com/nickbabcock/boxcars"
+version = "0.1.0"
 
 [dependencies]
-structopt = "0.1.0"
-structopt-derive = "0.1.0"
-serde_json = "1.0.4"
 error-chain = "0.11.0"
-boxcars = { path = "..", version = "0.1" }
+serde_json = "1.0.6"
+structopt = "0.1.5"
+structopt-derive = "0.1.5"
+
+[dependencies.boxcars]
+path = ".."
+version = "0.1"
