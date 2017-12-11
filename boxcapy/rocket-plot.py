@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import json
-import matplotlib.pyplot as plt
+import matplotlib
 import numpy as np
 import click
 from collections import namedtuple
@@ -21,8 +21,9 @@ Calc = namedtuple('Calc', [
 ])
 
 @click.command()
+@click.option('--headless/--interactive', default=False, help='Save plots as files instead of displaying them interactively')
 @click.argument('files', nargs=-1, type=click.File('rb'))
-def run_analysis(files):
+def run_analysis(headless, files):
     data = [json.load(f) for f in files]
     wins = 0
     losses = 0
@@ -60,8 +61,14 @@ def run_analysis(files):
         assists = assists + player.get('Assists', 0)
         shots = shots + player.get('Shots', 0)
     c = Calc(wins, losses, saves, goals, assists, shots, lose_score, win_score, goal_diff, time_diff, name)
-    graph(c)
-    input()
+
+    if headless:
+        matplotlib.use('agg')
+
+    graph(headless, c)
+
+    if not headless:
+        input()
 
 
 def find_player_team(player_stats, name):
@@ -78,7 +85,9 @@ def autolabel(rects, ax):
         ax.text(rect.get_x()+rect.get_width()/2., 1.05*h + .1, '%d'%int(h),
                 ha='center', va='bottom', size='xx-large')
 
-def graph(calc):
+def graph(headless, calc):
+    import matplotlib.pyplot as plt
+
     fig = plt.figure()
     with plt.xkcd():
         ind = np.arange(2)  # the x locations for the groups
@@ -93,7 +102,11 @@ def graph(calc):
         plt.title("Wins vs. losses", fontdict={ 'fontsize': 'xx-large' }, y = 1.05)
         plt.ylabel("Games", fontdict={ 'fontsize': 'xx-large' })
         autolabel(barlist, ax)
-        fig.show()
+        if headless:
+            click.echo('Saving wins-vs-losses.png')
+            plt.savefig('wins-vs-losses.png')
+        else:
+            fig.show()
 
     fig = plt.figure()
     with plt.xkcd():
@@ -107,7 +120,11 @@ def graph(calc):
         plt.title("Stats Breakdown", fontdict={ 'fontsize': 'xx-large' }, y=1.05)
         plt.ylabel("Count", fontdict={ 'fontsize': 'xx-large' })
         autolabel(barlist, ax)
-        fig.show()
+        if headless:
+            click.echo('Saving stats.png')
+            plt.savefig('stats.png')
+        else:
+            fig.show()
 
     fig = plt.figure()
     with plt.xkcd():
@@ -120,7 +137,11 @@ def graph(calc):
         ax.set_ylim([0, max(max(*calc.win_score), max(*calc.lose_score)) * 1.2])
         ax.set_xticklabels(('Wins', 'Losses'), fontdict={ 'fontsize': 'xx-large' })
         fig.subplots_adjust(top=0.8)
-        fig.show()
+        if headless:
+            click.echo('Saving score-distribution.png')
+            plt.savefig('score-distribution.png')
+        else:
+            fig.show()
 
     fig = plt.figure()
     with plt.xkcd():
@@ -129,7 +150,11 @@ def graph(calc):
         plt.ylabel('Frequency')
         plt.xlabel('Goals')
         bplot = ax.hist(calc.goal_diff, color="#226666")
-        fig.show()
+        if headless:
+            click.echo('Saving goal-difference.png')
+            plt.savefig('goal-difference.png')
+        else:
+            fig.show()
 
     fig = plt.figure()
     with plt.xkcd():
@@ -138,7 +163,11 @@ def graph(calc):
         plt.ylabel('Frequency')
         plt.xlabel('Seconds')
         bplot = ax.hist(calc.time_diff, color="#226666")
-        fig.show()
+        if headless:
+            click.echo('Saving time-between-goals.png')
+            plt.savefig('time-between-goals.png')
+        else:
+            fig.show()
 
 if __name__ == '__main__':
     run_analysis()
