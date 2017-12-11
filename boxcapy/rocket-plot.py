@@ -22,7 +22,7 @@ Calc = namedtuple('Calc', [
 
 @click.command()
 @click.option('--headless/--interactive', default=False, help='Save plots as files instead of displaying them interactively')
-@click.argument('files', nargs=-1, type=click.File('rb'))
+@click.argument('files', nargs=-1, type=click.File('r'))
 def run_analysis(headless, files):
     data = [json.load(f) for f in files]
     wins = 0
