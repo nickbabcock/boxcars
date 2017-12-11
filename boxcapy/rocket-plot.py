@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import json
 import matplotlib.pyplot as plt
 import numpy as np
