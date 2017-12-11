@@ -38,9 +38,6 @@
         },
         "six": {
             "version": "==1.11.0"
-        },
-        "subprocess32": {
-            "version": "==3.2.7"
         }
     },
     "develop": {}
