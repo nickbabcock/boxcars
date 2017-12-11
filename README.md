@@ -58,6 +58,29 @@ A sample output of the JSON from rrrocket:
   }
 ```
 
+# boxcapy
+
+boxcapy is a python script that ingests given JSON files that have been created
+by `rrrocket`. The command below is the one I use to generate the JSON files:
+
+```bash
+find . -type f -iname "*.replay" | xargs -n1 -I{} bash -c '~/rrrocket {} > {}.json'
+```
+
+To have your graphs saved into your directory follow the below instructions:
+
+## Python 2
+
+- Install [pipenv](https://docs.pipenv.org/install.html#installing-pipenv)
+- Install dependencies `pipenv --two && pipenv install`
+- Run on generated JSON files: `pipenv run boxcapy/rocket-plot.py ~/Demos/*.json --headless`
+
+## Python 3
+
+- Install [pipenv](https://docs.pipenv.org/install.html#installing-pipenv)
+- Install dependencies `pipenv --three && pipenv install --skip-lock`
+- Run on generated JSON files: `pipenv run boxcapy/rocket-plot.py ~/Demos/*.json --headless`
+
 # Benchmarks
 
 The benchmarks several things:
