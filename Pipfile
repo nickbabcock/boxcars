@@ -3,6 +3,6 @@ url = "https://pypi.python.org/simple"
 verify_ssl = true
 
 [packages]
-matplotlib = "==1.5.3"
+matplotlib = "*"
 numpy = "*"
 click = "*"

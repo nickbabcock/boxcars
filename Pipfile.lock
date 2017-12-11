@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "255be5ab1aeec4ca3310edef67910903892e048fc96a149655cd92a8a9945fbe"
+            "sha256": "754b3fe87af1b0a6945050d28828e6c20f50cdda391e13ab71aa6799f5d28fc9"
         },
         "requires": {},
         "sources": [
@@ -12,6 +12,9 @@
         ]
     },
     "default": {
+        "backports.functools-lru-cache": {
+            "version": "==1.4"
+        },
         "click": {
             "version": "==6.7"
         },
@@ -19,7 +22,7 @@
             "version": "==0.10.0"
         },
         "matplotlib": {
-            "version": "==1.5.3"
+            "version": "==2.1.0"
         },
         "numpy": {
             "version": "==1.13.3"
@@ -31,10 +34,13 @@
             "version": "==2.6.1"
         },
         "pytz": {
-            "version": "==2017.2"
+            "version": "==2017.3"
         },
         "six": {
             "version": "==1.11.0"
+        },
+        "subprocess32": {
+            "version": "==3.2.7"
         }
     },
     "develop": {}
