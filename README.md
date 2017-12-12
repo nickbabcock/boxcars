@@ -69,6 +69,8 @@ find . -type f -iname "*.replay" | xargs -n1 -I{} bash -c '~/rrrocket {} > {}.js
 
 To have your graphs saved into your directory follow the below instructions:
 
+- Since the graphs are in the style of XKCD, one has to install the Humor Sans font before continuing (eg. `apt install fonts-humor-sans`)
+
 ## Python 2
 
 - Install [pipenv](https://docs.pipenv.org/install.html#installing-pipenv)
