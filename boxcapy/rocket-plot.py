@@ -7,21 +7,16 @@ import click
 from collections import namedtuple
 
 Calc = namedtuple('Calc', [
-    'wins',
-    'losses',
-    'saves',
-    'goals',
-    'assists',
-    'shots',
-    'lose_score',
-    'win_score',
-    'goal_diff',
-    'time_diff',
-    'name'
+    'wins', 'losses', 'saves', 'goals', 'assists', 'shots', 'lose_score',
+    'win_score', 'goal_diff', 'time_diff', 'name'
 ])
 
+
 @click.command()
-@click.option('--headless/--interactive', default=False, help='Save plots as files instead of displaying them interactively')
+@click.option(
+    '--headless/--interactive',
+    default=False,
+    help='Save plots as files instead of displaying them interactively')
 @click.argument('files', nargs=-1, type=click.File('r'))
 def run_analysis(headless, files):
     data = [json.load(f) for f in files]
@@ -48,19 +43,21 @@ def run_analysis(headless, files):
         time_diff = np.append(time_diff, np.diff([0] + frames))
         if team == 0 and team0_score > team1_score:
             wins = wins + 1
-            win_score.append(player.get('Score',0))
+            win_score.append(player.get('Score', 0))
         elif team == 1 and team1_score > team0_score:
             wins = wins + 1
-            win_score.append(player.get('Score',0))
+            win_score.append(player.get('Score', 0))
         else:
             losses = losses + 1
-            lose_score.append(player.get('Score',0))
-        goal_diff.append(team0_score - team1_score if team == 0 else team1_score - team0_score)
+            lose_score.append(player.get('Score', 0))
+        goal_diff.append(team0_score - team1_score
+                         if team == 0 else team1_score - team0_score)
         saves = saves + player.get('Saves', 0)
         goals = goals + player.get('Goals', 0)
         assists = assists + player.get('Assists', 0)
         shots = shots + player.get('Shots', 0)
-    c = Calc(wins, losses, saves, goals, assists, shots, lose_score, win_score, goal_diff, time_diff, name)
+    c = Calc(wins, losses, saves, goals, assists, shots, lose_score, win_score,
+             goal_diff, time_diff, name)
 
     if headless:
         matplotlib.use('agg')
@@ -78,12 +75,17 @@ def find_player_team(player_stats, name):
     raise Exception("Did not see player name")
 
 
-
 def autolabel(rects, ax):
     for rect in rects:
         h = rect.get_height()
-        ax.text(rect.get_x()+rect.get_width()/2., 1.05*h + .1, '%d'%int(h),
-                ha='center', va='bottom', size='xx-large')
+        ax.text(
+            rect.get_x() + rect.get_width() / 2.,
+            1.05 * h + .1,
+            '%d' % int(h),
+            ha='center',
+            va='bottom',
+            size='xx-large')
+
 
 def graph(headless, calc):
     import matplotlib.pyplot as plt
@@ -91,16 +93,19 @@ def graph(headless, calc):
     fig = plt.figure()
     with plt.xkcd():
         ind = np.arange(2)  # the x locations for the groups
-        width = 0.50       # the width of the bars
+        width = 0.50  # the width of the bars
         ax = fig.add_subplot(111)
-        barlist = ax.bar(ind, [calc.wins, calc.losses], width, align = 'center')
+        barlist = ax.bar(ind, [calc.wins, calc.losses], width, align='center')
         ax.set_ylim([0, max(calc.wins, calc.losses) * 1.2])
         ax.set_xticks(ind)
-        ax.set_xticklabels(('Wins', 'Losses'), fontdict={ 'fontsize': 'xx-large' })
+        ax.set_xticklabels(
+            ('Wins', 'Losses'), fontdict={
+                'fontsize': 'xx-large'
+            })
         barlist[0].set_facecolor('#7B9F35')
         barlist[1].set_facecolor('#AA3939')
-        plt.title("Wins vs. losses", fontdict={ 'fontsize': 'xx-large' }, y = 1.05)
-        plt.ylabel("Games", fontdict={ 'fontsize': 'xx-large' })
+        plt.title("Wins vs. losses", fontdict={'fontsize': 'xx-large'}, y=1.05)
+        plt.ylabel("Games", fontdict={'fontsize': 'xx-large'})
         autolabel(barlist, ax)
         if headless:
             click.echo('Saving wins-vs-losses.png')
@@ -111,14 +116,23 @@ def graph(headless, calc):
     fig = plt.figure()
     with plt.xkcd():
         ind = np.arange(4)  # the x locations for the groups
-        width = 0.50       # the width of the bars
+        width = 0.50  # the width of the bars
         ax = fig.add_subplot(111)
-        barlist = ax.bar(ind, [calc.saves, calc.goals, calc.shots, calc.assists], width, align = 'center', color="#226666")
-        ax.set_ylim([0, max(calc.saves, calc.goals, calc.shots, calc.assists) * 1.2])
+        barlist = ax.bar(
+            ind, [calc.saves, calc.goals, calc.shots, calc.assists],
+            width,
+            align='center',
+            color="#226666")
+        ax.set_ylim(
+            [0, max(calc.saves, calc.goals, calc.shots, calc.assists) * 1.2])
         ax.set_xticks(ind)
-        ax.set_xticklabels(('Saves', 'Goals', 'Shots', 'Assists'), fontdict={ 'fontsize': 'large' })
-        plt.title("Stats Breakdown", fontdict={ 'fontsize': 'xx-large' }, y=1.05)
-        plt.ylabel("Count", fontdict={ 'fontsize': 'xx-large' })
+        ax.set_xticklabels(
+            ('Saves', 'Goals', 'Shots', 'Assists'),
+            fontdict={
+                'fontsize': 'large'
+            })
+        plt.title("Stats Breakdown", fontdict={'fontsize': 'xx-large'}, y=1.05)
+        plt.ylabel("Count", fontdict={'fontsize': 'xx-large'})
         autolabel(barlist, ax)
         if headless:
             click.echo('Saving stats.png')
@@ -129,13 +143,21 @@ def graph(headless, calc):
     fig = plt.figure()
     with plt.xkcd():
         ax = fig.add_subplot(111)
-        plt.title('Player\'s Score Distribution: \nWins vs. Losses', fontdict={ 'fontsize': 'xx-large' }, y=1.05)
-        bplot = ax.boxplot([calc.win_score, calc.lose_score], vert=True, patch_artist=True)
+        plt.title(
+            'Player\'s Score Distribution: \nWins vs. Losses',
+            fontdict={'fontsize': 'xx-large'},
+            y=1.05)
+        bplot = ax.boxplot(
+            [calc.win_score, calc.lose_score], vert=True, patch_artist=True)
         bplot['boxes'][0].set_facecolor('#7B9F35')
         bplot['boxes'][1].set_facecolor('#AA3939')
-        plt.ylabel("Score", fontdict={ 'fontsize': 'xx-large' })
-        ax.set_ylim([0, max(max(*calc.win_score), max(*calc.lose_score)) * 1.2])
-        ax.set_xticklabels(('Wins', 'Losses'), fontdict={ 'fontsize': 'xx-large' })
+        plt.ylabel("Score", fontdict={'fontsize': 'xx-large'})
+        ax.set_ylim(
+            [0, max(max(*calc.win_score), max(*calc.lose_score)) * 1.2])
+        ax.set_xticklabels(
+            ('Wins', 'Losses'), fontdict={
+                'fontsize': 'xx-large'
+            })
         fig.subplots_adjust(top=0.8)
         if headless:
             click.echo('Saving score-distribution.png')
@@ -146,7 +168,7 @@ def graph(headless, calc):
     fig = plt.figure()
     with plt.xkcd():
         ax = fig.add_subplot(111)
-        plt.title('Goal Difference', fontdict={ 'fontsize': 'xx-large' }, y=1.05)
+        plt.title('Goal Difference', fontdict={'fontsize': 'xx-large'}, y=1.05)
         plt.ylabel('Frequency')
         plt.xlabel('Goals')
         bplot = ax.hist(calc.goal_diff, color="#226666")
@@ -159,7 +181,8 @@ def graph(headless, calc):
     fig = plt.figure()
     with plt.xkcd():
         ax = fig.add_subplot(111)
-        plt.title('Time Between Goals', fontdict={ 'fontsize': 'xx-large' }, y=1.05)
+        plt.title(
+            'Time Between Goals', fontdict={'fontsize': 'xx-large'}, y=1.05)
         plt.ylabel('Frequency')
         plt.xlabel('Seconds')
         bplot = ax.hist(calc.time_diff, color="#226666")
@@ -169,6 +192,6 @@ def graph(headless, calc):
         else:
             fig.show()
 
+
 if __name__ == '__main__':
     run_analysis()
-
