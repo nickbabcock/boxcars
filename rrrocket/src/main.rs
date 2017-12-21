@@ -58,9 +58,8 @@ fn run() -> Result<()> {
     println!("{}", compute_crc);
     let res: Result<Vec<()>> = opt.input.par_iter()
         .map(|file| {
-            let infile: &str = &file.as_str();
             let outfile = format!("{}.json", file);
-            let data = parse_file(infile, compute_crc)?;
+            let data = parse_file(file, compute_crc)?;
             let mut out_file = BufWriter::new(File::open(outfile)?);
             serde_json::to_writer(&mut out_file, &data)?;
             Ok(())
