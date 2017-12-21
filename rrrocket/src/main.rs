@@ -8,6 +8,7 @@ extern crate structopt_derive;
 extern crate structopt;
 extern crate boxcars;
 extern crate serde_json;
+extern crate rayon;
 
 #[macro_use]
 extern crate error_chain;
@@ -30,8 +31,9 @@ mod errors {
 use errors::*;
 use structopt::StructOpt;
 use std::fs::File;
-use std::io::{self, Read, Write};
+use std::io::{Read, Write, BufWriter};
 use error_chain::ChainedError;
+use rayon::prelude::*;
 
 #[derive(StructOpt, Debug, Clone, PartialEq)]
 #[structopt(name = "rrrocket", about = "Parses a Rocket League replay file and outputs JSON")]
@@ -39,8 +41,8 @@ struct Opt {
     #[structopt(short = "c", long = "crc-check", help = "validate replay is not corrupt", default_value = "true")]
     crc: bool,
 
-    #[structopt(help = "Rocket League replay file")]
-    input: String,
+    #[structopt(help = "Rocket League replay files")]
+    input: Vec<String>,
 }
 
 fn parse_file(input: &str, crc: bool) -> Result<boxcars::Replay> {
@@ -52,8 +54,18 @@ fn parse_file(input: &str, crc: bool) -> Result<boxcars::Replay> {
 
 fn run() -> Result<()> {
     let opt = Opt::from_args();
-    let data = parse_file(&opt.input, opt.crc)?;
-	serde_json::to_writer(&mut io::stdout(), &data)?;
+    let compute_crc = opt.crc;
+    println!("{}", compute_crc);
+    let res: Result<Vec<()>> = opt.input.par_iter()
+        .map(|file| {
+            let infile: &str = &file.as_str();
+            let outfile = format!("{}.json", file);
+            let data = parse_file(infile, compute_crc)?;
+            let mut out_file = BufWriter::new(File::open(outfile)?);
+            serde_json::to_writer(&mut out_file, &data)?;
+            Ok(())
+        }).collect();
+    res?;
     Ok(())
 }
 
