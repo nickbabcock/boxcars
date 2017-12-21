@@ -60,5 +60,5 @@ pub use self::parsing::*;
 pub use self::errors::*;
 mod parsing;
 mod models;
-mod crc;
+pub mod crc;
 mod errors;
