@@ -36,8 +36,6 @@
 //! }
 //! ```
 
-#![cfg_attr(feature = "nightly", feature(test))]
-
 extern crate encoding;
 #[macro_use]
 extern crate nom;
@@ -45,9 +43,6 @@ extern crate serde;
 
 #[macro_use]
 extern crate error_chain;
-
-#[cfg(feature = "nightly")]
-extern crate test;
 
 #[cfg(test)]
 extern crate serde_json;
