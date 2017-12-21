@@ -36,7 +36,7 @@ use error_chain::ChainedError;
 use rayon::prelude::*;
 
 #[derive(StructOpt, Debug, Clone, PartialEq)]
-#[structopt(name = "rrrocket", about = "Parses a Rocket League replay file and outputs JSON")]
+#[structopt(name = "rrrocket", about = "Parses Rocket League replay files and outputs a .json file with the decoded information")]
 struct Opt {
     #[structopt(short = "c", long = "crc-check", help = "validate replay is not corrupt", default_value = "true")]
     crc: bool,
