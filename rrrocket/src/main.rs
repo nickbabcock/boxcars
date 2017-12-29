@@ -43,7 +43,7 @@ fn run() -> Result<(), Error> {
                 .create(true)
                 .truncate(true)
                 .open(&outfile)
-                .with_context(|e| format!("Could not open json output file: {}", e))?;
+                .with_context(|e| format!("Could not open json output file: {} with error: {}", outfile, e))?;
             let mut writer = BufWriter::new(fout);
             let data = read_file(file)?;
             let replay = ParserBuilder::new(&data[..])
@@ -52,7 +52,8 @@ fn run() -> Result<(), Error> {
                 } else {
                     CrcCheck::OnError
                 })
-                .parse()?;
+                .parse()
+                .with_context(|e| format!("Could not parse: {} with error: {}", file, e))?;
             serde_json::to_writer(&mut writer, &replay).with_context(|e| {
                 format!("Could not serialize replay {} to {}: {}", file, outfile, e)
             })?;
