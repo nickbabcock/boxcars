@@ -21,6 +21,7 @@ pub struct Replay<'a> {
     pub header_crc: i32,
     pub major_version: i32,
     pub minor_version: i32,
+    pub net_version: Option<i32>,
     pub game_type: Cow<'a, str>,
 
     /// Could use a map to represent properties but I don't want to assume that duplicate keys

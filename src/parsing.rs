@@ -89,6 +89,7 @@ pub enum CrcCheck {
 struct Header<'a> {
     major_version: i32,
     minor_version: i32,
+    net_version: Option<i32>,
     game_type: Cow<'a, str>,
     properties: Vec<(&'a str, HeaderProp<'a>)>,
 }
@@ -206,6 +207,7 @@ impl<'a> Parser<'a> {
             header_crc: header_crc,
             major_version: header.major_version,
             minor_version: header.minor_version,
+            net_version: header.net_version,
             game_type: header.game_type,
             properties: header.properties,
             content_size: content_size,
@@ -229,6 +231,13 @@ impl<'a> Parser<'a> {
         let minor_version = self.take(4, le_i32)
             .with_context(|e| self.err_str("minor version", e))?;
 
+        let net_version = if major_version > 865 && minor_version > 17 {
+            Some(self.take(4, le_i32)
+                .with_context(|e| self.err_str("net version", e))?)
+        } else {
+            None
+        };
+
         let game_type = self.parse_text()
             .with_context(|e| self.err_str("game type", e))?;
 
@@ -238,6 +247,7 @@ impl<'a> Parser<'a> {
         Ok(Header {
             major_version: major_version,
             minor_version: minor_version,
+            net_version: net_version,
             game_type: game_type,
             properties: properties,
         })
@@ -917,6 +927,15 @@ mod tests {
         let data = include_bytes!("../assets/rumble.replay");
         let mut parser = Parser::new(&data[..], CrcCheck::Always);
         assert!(parser.parse().is_ok())
+    }
+
+    #[test]
+    fn test_net_version() {
+        let data = include_bytes!("../assets/netversion.replay");
+        let mut parser = Parser::new(&data[8..], CrcCheck::Always);
+        let header = parser.parse_header().unwrap();
+        assert_eq!(header.major_version, 868);
+        assert_eq!(header.net_version, Some(2));
     }
 
     #[test]
