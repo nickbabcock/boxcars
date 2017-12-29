@@ -888,10 +888,7 @@ mod tests {
         let data = include_bytes!("../assets/fuzz-list-too-large.replay");
         let mut parser = Parser::new(&data[..], CrcCheck::Never);
         let err = parser.parse().unwrap_err();
-        assert_eq!(
-            "Could not decode replay debug info at offset (1010894): list of size 18446744071708060969 is too large",
-            format!("{}", err)
-        );
+        assert!(format!("{}", err).starts_with("Could not decode replay debug info at offset (1010894): list of size"));
     }
 
     #[test]
@@ -904,10 +901,7 @@ mod tests {
             format!("{}", err)
         );
 
-        assert_eq!(
-            "Could not decode replay debug info at offset (1010894): list of size 18446744071708060969 is too large",
-            format!("{}", err.cause().cause().unwrap())
-        );
+        assert!(format!("{}", err.cause().cause().unwrap()).starts_with("Could not decode replay debug info at offset (1010894): list of size"));
     }
 
     #[test]
