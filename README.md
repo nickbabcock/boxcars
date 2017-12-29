@@ -3,22 +3,39 @@ Status](https://travis-ci.org/nickbabcock/boxcars.svg?branch=master)](https://tr
 
 # boxcars
 
-[Boxcars](https://github.com/nickbabcock/boxcars), also stylized as boxca-rs,
-is an example of a [Rocket League](http://www.rocketleaguegame.com/) replay
-parser written in [Rust](https://www.rust-lang.org/en-US/) using
-[nom](https://github.com/Geal/nom) for parsing and
-[serde](https://github.com/serde-rs/serde) for serialization. As stated in the
-title, this is an example, as this library in no way competes with the other
-feature complete parsers such as [Octane](https://github.com/tfausak/octane)
-and
-[RocketLeagueReplayParser](https://github.com/jjbott/RocketLeagueReplayParser).
-Rather, let boxcars be a good example of Rust code using nom, and serde as
-extensive examples are hard to come by. While lacking feature completeness and
-user friendly error message -- [among other
-issues](https://github.com/nickbabcock/boxcars/issues), tests and documentation
-strive to be thorough.
+boxcars is a [Rocket League](http://www.rocketleaguegame.com/) replay parser written in Rust
+using [serde](https://github.com/serde-rs/serde) for serialization. Currently, this library in
+no way competes with the other feature complete parsers such as
+[Octane](https://github.com/tfausak/octane) and
+[`RocketLeagueReplayParser`](https://github.com/jjbott/RocketLeagueReplayParser). Rather, let
+boxcars be a good example of Rust code.
 
 The code is well documented, give it a read!
+
+Below is an example to output the replay structure to json:
+
+```rust
+extern crate boxcars;
+extern crate serde_json;
+extern crate failure;
+
+use std::fs::File;
+use std::io::{self, Read};
+
+fn run() -> Result<(), ::failure::Error> {
+    let filename = "assets/rumble.replay";
+    let mut f = File::open(filename)?;
+    let mut buffer = vec![];
+    f.read_to_end(&mut buffer)?;
+    let replay = boxcars::ParserBuilder::new(&buffer)
+        .on_error_check_crc()
+        .parse()?;
+
+    serde_json::to_writer(&mut io::stdout(), &replay)?;
+    Ok(())
+}
+
+```
 
 # rrrocket
 
@@ -93,13 +110,13 @@ The benchmarks several things:
 - How long to parse the data with crc check and output json of the replay
 
 The benchmark data is below. The most astounding number is that boxcars can
-parse nearly 15,000 replays per second per core. An eight core machine would
-process 120,000 replays a second. This is, without a doubt, an optimistic
-number, but still mightily impressive.
+parse nearly 30,000 replays per second per core. An eight core machine would
+process 240,000 replays a second. This benchmark represents data already in
+memory and doesn't include time to read from disk / network.
 
 ```
-bench_parsing_data                    ... bench:      72,353 ns/iter (+/- 2,329)
+bench_parsing_data                    ... bench:      33,627 ns/iter (+/- 2,329)
 bench_parsing_data_crc_check          ... bench:   2,209,007 ns/iter (+/- 113,528)
-bench_parse_and_json                  ... bench:     138,937 ns/iter (+/- 16,224)
+bench_parse_and_json                  ... bench:      62,557 ns/iter (+/- 16,224)
 bench_parse_and_json_crc_check        ... bench:   2,273,926 ns/iter (+/- 62,011)
 ```

@@ -3,6 +3,6 @@
 extern crate boxcars;
 
 fuzz_target!(|data: &[u8]| {
-    let _ = boxcars::parse(&data, true);
+    let _ = boxcars::ParserBuilder::new(&data).always_check_crc().parse();
 });
 

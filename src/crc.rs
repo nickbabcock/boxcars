@@ -2,10 +2,9 @@
 /// be the typical crc calculation and may be specific to Rocket League and/or
 /// Unreal Engine. Implementation is close, but not the same as the crc create
 pub fn calc_crc(data: &[u8]) -> u32 {
-    !data.iter()
-        .fold(!0xefcb_f201, |acc, &x|
-            (acc << 8) ^ (TABLE[((u32::from(x)) ^ (acc >> 24)) as usize])
-        )
+    !data.iter().fold(!0xefcb_f201, |acc, &x| {
+        (acc << 8) ^ (TABLE[((u32::from(x)) ^ (acc >> 24)) as usize])
+    })
 }
 
 /// Precomputed crc table. It is extremely close to IEEE housed in the

@@ -15,10 +15,6 @@
 //!
 //! Remember, little endian means least significant bit first!
 //!
-//! Rust and nom makes the parsing easy and fast. A combination of Rust's language level features
-//! and nom's syntatic macros make for concise implementations of parser combinators, which allow
-//! for extremely composable statements.
-//!
 //! A replay is split into three major sections, a header, body, and footer.
 //!
 //! ## Header
@@ -29,11 +25,7 @@
 //!
 //! The next four bytes make up the [cyclic redundancy check
 //! (CRC)](https://en.wikipedia.org/wiki/Cyclic_redundancy_check) for the header. The check ensures
-//! that the data has not be tampered with or, more likely, corrupted. Unfortunately, it remains an
-//! outstanding issue to implement this check. I tried utilizing
-//! [crc-rs](https://github.com/mrhooray/crc-rs) with [community-calculated
-//! parameters](https://github.com/tfausak/octane/issues/10#issuecomment-226910062), but didn't get
-//! anywhere.
+//! that the data has not be tampered with or, more likely, corrupted.
 //!
 //! The game's major and minor version follow, each 32bit integers.
 //!
@@ -84,420 +76,590 @@
 //! - Followed by several string info and other classes that seem totally worthless if the network
 //! data isn't parsed
 
-use nom::{self, IResult, le_f32, le_i32, le_u32, le_u64, le_u8};
-use encoding::{DecoderTrap, Encoding};
-use encoding::all::{UTF_16LE, WINDOWS_1252};
+use encoding_rs::{UTF_16LE, WINDOWS_1252};
 use models::*;
 use crc::calc_crc;
-use errors::*;
+use errors::ParseError;
+use std::borrow::Cow;
+use failure::{Error, ResultExt};
+use byteorder::{ByteOrder, LittleEndian};
 
-#[derive(PartialEq, Debug, Clone, Copy)]
-pub enum BoxcarError {
-    Code(u32),
-    TextIncomplete,
-    TextString,
-    CrcIncomplete,
-    UnexpectedCrc { expected: u32, actual: u32 },
-    Utf16,
-    Windows1252,
-    ArrayProp,
-    BoolProp,
-    ByteProp,
-    FloatProp,
-    IntProp,
-    NameProp,
-    QWordProp,
-    StrProp,
+/// Determines under what circumstances the parser should perform the crc check for replay
+/// corruption. Since the crc check is the most time consuming check for parsing (causing
+/// microseconds to turn into milliseconds), clients should choose under what circumstances a crc
+/// check is performed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CrcCheck {
+    /// Always perform the crc check. Useful when the replay has had its contents modified. This
+    /// will catch a user that increased the number of goals they scored (easy) but only if they
+    /// didn't update the crc as well (not as easy).
+    Always,
+
+    /// Never perform the crc check. Useful only when it doesn't matter to know if a replay is
+    /// corrupt or not, you either want the data or the parsing error.
+    Never,
+
+    /// Only perform the crc check when parsing a section fails. This option gets the best of both
+    /// worlds. If parsing fails, the crc check will determine if it is a programming error or the
+    /// replay is corrupt. If parsing succeeds it won't precious time performing the check. This
+    /// option is the default for parsing.
+    OnError,
 }
 
-use BoxcarError::*;
+/// Intermediate parsing structure for the header
+#[derive(Debug, PartialEq)]
+struct Header<'a> {
+    major_version: i32,
+    minor_version: i32,
+    game_type: Cow<'a, str>,
+    properties: Vec<(&'a str, HeaderProp<'a>)>,
+}
 
-/// Text is encoded with a leading int that denotes the number of bytes that
-/// the text spans.
-named!(text_encoded<&[u8], &str, BoxcarError>,
-    return_error!(nom::ErrorKind::Custom(TextIncomplete),
-    fix_error!(BoxcarError,
-    complete!(do_parse!(size: le_u32 >> data: apply!(decode_str, size) >> (data))))));
+/// Intermediate parsing structure for the body / footer
+#[derive(Debug, PartialEq)]
+struct ReplayBody<'a> {
+    levels: Vec<Cow<'a, str>>,
+    keyframes: Vec<KeyFrame>,
+    debug_info: Vec<DebugInfo<'a>>,
+    tick_marks: Vec<TickMark<'a>>,
+    packages: Vec<Cow<'a, str>>,
+    objects: Vec<Cow<'a, str>>,
+    names: Vec<Cow<'a, str>>,
+    class_indices: Vec<ClassIndex<'a>>,
+    net_cache: Vec<ClassNetCache>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ParserBuilder<'a> {
+    data: &'a [u8],
+    crc_check: Option<CrcCheck>,
+}
+
+impl<'a> ParserBuilder<'a> {
+    pub fn new(data: &'a [u8]) -> Self {
+        ParserBuilder {
+            data: data,
+            crc_check: None,
+        }
+    }
+
+    pub fn always_check_crc(mut self) -> ParserBuilder<'a> {
+        self.crc_check = Some(CrcCheck::Always);
+        self
+    }
+
+    pub fn never_check_crc(mut self) -> ParserBuilder<'a> {
+        self.crc_check = Some(CrcCheck::Never);
+        self
+    }
+
+    pub fn on_error_check_crc(mut self) -> ParserBuilder<'a> {
+        self.crc_check = Some(CrcCheck::OnError);
+        self
+    }
+
+    pub fn with_crc_check(mut self, check: CrcCheck) -> ParserBuilder<'a> {
+        self.crc_check = Some(check);
+        self
+    }
+
+    pub fn parse(self) -> Result<Replay<'a>, Error> {
+        let mut parser = Parser::new(self.data, self.crc_check.unwrap_or(CrcCheck::OnError));
+        parser.parse()
+    }
+}
+
+
+/// Holds the current state of parsing a replay
+#[derive(Debug, Clone, PartialEq)]
+pub struct Parser<'a> {
+    /// A slice (not the whole) view of the replay. Bytes are popped off as data is read.
+    data: &'a [u8],
+
+    /// Current offset in regards to the whole view of the replay
+    col: i32,
+    crc_check: CrcCheck,
+}
+
+impl<'a> Parser<'a> {
+    fn new(data: &'a [u8], crc_check: CrcCheck) -> Self {
+        Parser {
+            data: data,
+            col: 0,
+            crc_check: crc_check,
+        }
+    }
+
+    fn err_str(&self, desc: &'static str, e: &ParseError) -> String {
+        format!(
+            "Could not decode replay {} at offset ({}): {}",
+            desc,
+            self.col,
+            e
+        )
+    }
+
+    fn parse(&mut self) -> Result<Replay<'a>, Error> {
+        let header_size = self.take(4, le_i32)
+            .with_context(|e| self.err_str("header size", e))?;
+
+        let header_crc = self.take(4, le_i32)
+            .with_context(|e| self.err_str("header crc", e))?;
+
+        let header_data = self.view_data(header_size as usize)
+            .with_context(|e| self.err_str("header data", e))?;
+
+        let header =
+            self.crc_section(header_data, header_crc as u32, "header", Self::parse_header)?;
+
+        let content_size = self.take(4, le_i32)
+            .with_context(|e| self.err_str("content size", e))?;
+
+        let content_crc = self.take(4, le_i32)
+            .with_context(|e| self.err_str("content crc", e))?;
+
+        let content_data = self.view_data(content_size as usize)
+            .with_context(|e| self.err_str("content data", e))?;
+
+        let body = self.crc_section(content_data, content_crc as u32, "body", Self::parse_body)?;
+
+        Ok(Replay {
+            header_size: header_size,
+            header_crc: header_crc,
+            major_version: header.major_version,
+            minor_version: header.minor_version,
+            game_type: header.game_type,
+            properties: header.properties,
+            content_size: content_size,
+            content_crc: content_crc,
+            levels: body.levels,
+            keyframes: body.keyframes,
+            debug_info: body.debug_info,
+            tick_marks: body.tick_marks,
+            packages: body.packages,
+            objects: body.objects,
+            names: body.names,
+            class_indices: body.class_indices,
+            net_cache: body.net_cache,
+        })
+    }
+
+    fn parse_header(&mut self) -> Result<Header<'a>, Error> {
+        let major_version = self.take(4, le_i32)
+            .with_context(|e| self.err_str("major version", e))?;
+
+        let minor_version = self.take(4, le_i32)
+            .with_context(|e| self.err_str("minor version", e))?;
+
+        let game_type = self.parse_text()
+            .with_context(|e| self.err_str("game type", e))?;
+
+        let properties = self.parse_rdict()
+            .with_context(|e| self.err_str("header properties", e))?;
+
+        Ok(Header {
+            major_version: major_version,
+            minor_version: minor_version,
+            game_type: game_type,
+            properties: properties,
+        })
+    }
+
+    /// Parses a section and performs a crc check as configured
+    fn crc_section<T, F>(
+        &mut self,
+        data: &[u8],
+        crc: u32,
+        section: &str,
+        mut f: F,
+    ) -> Result<T, Error>
+    where
+        F: FnMut(&mut Self) -> Result<T, Error>,
+    {
+        match (self.crc_check, f(self)) {
+            (CrcCheck::Always, res) => {
+                let actual = calc_crc(data);
+                if actual != crc as u32 {
+                    Err(Error::from(ParseError::CrcMismatch(crc, actual)))
+                } else {
+                    res
+                }
+            }
+            (CrcCheck::OnError, Err(e)) => {
+                let actual = calc_crc(data);
+                if actual != crc as u32 {
+                    Err(e.context(format!(
+                        "Failed to parse {} and crc check failed. Replay is corrupt",
+                        section
+                    )).into())
+                } else {
+                    Err(e)
+                }
+            }
+            (CrcCheck::OnError, Ok(s)) => Ok(s),
+            (CrcCheck::Never, res) => res,
+        }
+    }
+
+    fn parse_body(&mut self) -> Result<ReplayBody<'a>, Error> {
+        let levels = self.text_list()
+            .with_context(|e| self.err_str("levels", e))?;
+
+        let keyframes = self.parse_keyframe()
+            .with_context(|e| self.err_str("keyframes", e))?;
+
+        let network_size = self.take(4, le_i32)
+            .with_context(|e| self.err_str("network size", e))?;
+
+        let _network_data = self.view_data(network_size as usize)
+            .with_context(|e| self.err_str("network data", e))?;
+        self.advance(network_size as usize);
+
+        let debug_infos = self.parse_debuginfo()
+            .with_context(|e| self.err_str("debug info", e))?;
+
+        let tickmarks = self.parse_tickmarks()
+            .with_context(|e| self.err_str("tickmarks", e))?;
+
+        let packages = self.text_list()
+            .with_context(|e| self.err_str("packages", e))?;
+        let objects = self.text_list()
+            .with_context(|e| self.err_str("objects", e))?;
+        let names = self.text_list().with_context(|e| self.err_str("names", e))?;
+
+        let class_index = self.parse_classindex()
+            .with_context(|e| self.err_str("class index", e))?;
+
+        let net_cache = self.parse_classcache()
+            .with_context(|e| self.err_str("net cache", e))?;
+
+        Ok(ReplayBody {
+            levels: levels,
+            keyframes: keyframes,
+            debug_info: debug_infos,
+            tick_marks: tickmarks,
+            packages: packages,
+            objects: objects,
+            names: names,
+            class_indices: class_index,
+            net_cache: net_cache,
+        })
+    }
+
+    /// Used for skipping some amount of data
+    fn advance(&mut self, ind: usize) {
+        self.col += ind as i32;
+        self.data = &self.data[ind..];
+    }
+
+    /// Returns a slice of the replay after ensuring there is enough space for the requested slice
+    fn view_data(&self, size: usize) -> Result<&'a [u8], ParseError> {
+        if size > self.data.len() {
+            Err(ParseError::InsufficientData(
+                size as i32,
+                self.data.len() as i32,
+            ))
+        } else {
+            Ok(&self.data[..size])
+        }
+    }
+
+    /// Take the next `size` of bytes and interpret them in an infallible fashion
+    #[inline]
+    fn take<F, T>(&mut self, size: usize, mut f: F) -> Result<T, ParseError>
+    where
+        F: FnMut(&'a [u8]) -> T,
+    {
+        let res = f(self.view_data(size)?);
+        self.advance(size);
+        Ok(res)
+    }
+
+    /// Take the next `size` of bytes and interpret them, but this interpretation can fail
+    fn take_res<F, T>(&mut self, size: usize, mut f: F) -> Result<T, ParseError>
+    where
+        F: FnMut(&'a [u8]) -> Result<T, ParseError>,
+    {
+        let res = f(self.view_data(size)?)?;
+        self.advance(size);
+        Ok(res)
+    }
+
+    /// Repeatedly parse the same elements from replay until `size` elements parsed
+    fn repeat<F, T>(&mut self, size: usize, mut f: F) -> Result<Vec<T>, ParseError>
+    where
+        F: FnMut(&mut Self) -> Result<T, ParseError>,
+    {
+        if size > 25_000 {
+            return Err(ParseError::ListTooLarge(size));
+        }
+
+        let mut res = Vec::with_capacity(size);
+        for _ in 0..size {
+            res.push(f(self)?);
+        }
+        Ok(res)
+    }
+
+    fn list_of<F, T>(&mut self, f: F) -> Result<Vec<T>, ParseError>
+    where
+        F: FnMut(&mut Self) -> Result<T, ParseError>,
+    {
+        let size = self.take(4, le_i32)?;
+        self.repeat(size as usize, f)
+    }
+
+    fn text_list(&mut self) -> Result<Vec<Cow<'a, str>>, ParseError> {
+        self.list_of(|s| s.parse_text())
+    }
+
+    /// Parses UTF-8 string from replay
+    fn parse_str(&mut self) -> Result<&'a str, ParseError> {
+        let size = self.take(4, le_i32)? as usize;
+        self.take_res(size, decode_str)
+    }
+
+    /// Parses either UTF-16 or Windows-1252 encoded strings
+    fn parse_text(&mut self) -> Result<Cow<'a, str>, ParseError> {
+        // The number of bytes that the string is composed of. If negative, the string is UTF-16,
+        // else the string is windows 1252 encoded.
+        let characters = self.take(4, le_i32)?;
+
+        // size.abs() will panic at min_value, so we eschew it for manual checking
+        if characters == 0 {
+            Err(ParseError::ZeroSize)
+        } else if characters > 10_000 || characters < -10_000 {
+            Err(ParseError::TextTooLarge(characters))
+        } else if characters < 0 {
+            // We're dealing with UTF-16 and each character is two bytes, we
+            // multiply the size by 2. The last two bytes included in the count are
+            // null terminators
+            let size = characters * -2;
+            self.take_res(size as usize, |d| decode_utf16(d))
+        } else {
+            self.take_res(characters as usize, |d| decode_windows1252(d))
+        }
+    }
+
+    fn parse_rdict(&mut self) -> Result<Vec<(&'a str, HeaderProp<'a>)>, ParseError> {
+        // Other the actual network data, the header property associative array is the hardest to parse.
+        // The format is to:
+        // - Read string
+        // - If string is "None", we're done
+        // - else we're dealing with a property, and the string just read is the key. Now deserialize the
+        //   value.
+        // The return type of this function is a key value vector because since there is no format
+        // specification, we can't rule out duplicate keys. Possibly consider a multi-map in the future.
+
+        let mut res: Vec<_> = Vec::new();
+        loop {
+            let key = self.parse_str()?;
+            if key == "None" {
+                break;
+            }
+
+            let val = match self.parse_str()? {
+                "ArrayProperty" => self.array_property(),
+                "BoolProperty" => self.bool_property(),
+                "ByteProperty" => self.byte_property(),
+                "FloatProperty" => self.float_property(),
+                "IntProperty" => self.int_property(),
+                "NameProperty" => self.name_property(),
+                "QWordProperty" => self.qword_property(),
+                "StrProperty" => self.str_property(),
+                x => Err(ParseError::UnexpectedProperty(String::from(x))),
+            }?;
+
+            res.push((key, val));
+        }
+
+        Ok(res)
+    }
+
+    // Header properties are encoded in a pretty simple format, with some oddities. The first 64bits
+    // is data that can be discarded, some people think that the 64bits is the length of the data
+    // while others think that the first 32bits is the header length in bytes with the subsequent
+    // 32bits unknown. Doesn't matter to us, we throw it out anyways. The rest of the bytes are
+    // decoded property type specific.
+
+    fn byte_property(&mut self) -> Result<HeaderProp<'a>, ParseError> {
+        // It's unknown (to me at least) why the byte property has two strings in it.
+        self.advance(8);
+        self.parse_str()?;
+        self.parse_str()?;
+        Ok(HeaderProp::Byte)
+    }
+
+    fn str_property(&mut self) -> Result<HeaderProp<'a>, ParseError> {
+        self.advance(8);
+        Ok(HeaderProp::Str(self.parse_text()?))
+    }
+
+    fn name_property(&mut self) -> Result<HeaderProp<'a>, ParseError> {
+        self.advance(8);
+        Ok(HeaderProp::Name(self.parse_text()?))
+    }
+
+    fn int_property(&mut self) -> Result<HeaderProp<'a>, ParseError> {
+        self.take(12, |d| HeaderProp::Int(le_i32(&d[8..])))
+    }
+
+    fn bool_property(&mut self) -> Result<HeaderProp<'a>, ParseError> {
+        self.take(9, |d| HeaderProp::Bool(d[8] == 1))
+    }
+
+    fn float_property(&mut self) -> Result<HeaderProp<'a>, ParseError> {
+        self.take(12, |d| HeaderProp::Float(le_f32(&d[8..])))
+    }
+
+    fn qword_property(&mut self) -> Result<HeaderProp<'a>, ParseError> {
+        self.take(16, |d| HeaderProp::QWord(le_i64(&d[8..])))
+    }
+
+    fn array_property(&mut self) -> Result<HeaderProp<'a>, ParseError> {
+        let size = self.take(12, |d| le_i32(&d[8..]))?;
+        let arr = self.repeat(size as usize, |s| s.parse_rdict())?;
+        Ok(HeaderProp::Array(arr))
+    }
+
+    fn parse_tickmarks(&mut self) -> Result<Vec<TickMark<'a>>, ParseError> {
+        self.list_of(|s| {
+            Ok(TickMark {
+                description: s.parse_text()?,
+                frame: s.take(4, le_i32)?,
+            })
+        })
+    }
+
+    fn parse_keyframe(&mut self) -> Result<Vec<KeyFrame>, ParseError> {
+        self.list_of(|s| {
+            Ok(KeyFrame {
+                time: s.take(4, le_f32)?,
+                frame: s.take(4, le_i32)?,
+                position: s.take(4, le_i32)?,
+            })
+        })
+    }
+
+    fn parse_debuginfo(&mut self) -> Result<Vec<DebugInfo<'a>>, ParseError> {
+        self.list_of(|s| {
+            Ok(DebugInfo {
+                frame: s.take(4, le_i32)?,
+                user: s.parse_text()?,
+                text: s.parse_text()?,
+            })
+        })
+    }
+
+    fn parse_classindex(&mut self) -> Result<Vec<ClassIndex<'a>>, ParseError> {
+        self.list_of(|s| {
+            Ok(ClassIndex {
+                class: s.parse_str()?,
+                index: s.take(4, le_i32)?,
+            })
+        })
+    }
+
+    fn parse_cacheprop(&mut self) -> Result<Vec<CacheProp>, ParseError> {
+        self.list_of(|s| {
+            Ok(CacheProp {
+                index: s.take(4, le_i32)?,
+                id: s.take(4, le_i32)?,
+            })
+        })
+    }
+
+    fn parse_classcache(&mut self) -> Result<Vec<ClassNetCache>, ParseError> {
+        self.list_of(|x| {
+            Ok(ClassNetCache {
+                index: x.take(4, le_i32)?,
+                parent_id: x.take(4, le_i32)?,
+                id: x.take(4, le_i32)?,
+                properties: x.parse_cacheprop()?,
+            })
+        })
+    }
+}
 
 /// Reads a string of a given size from the data. The size includes a null
 /// character as the last character, so we drop it in the returned string
 /// slice. It may seem redundant to store this information, but stackoverflow
 /// contains a nice reasoning for why it may have been done this way:
 /// http://stackoverflow.com/q/6293457/433785
-fn decode_str(input: &[u8], size: u32) -> IResult<&[u8], &str> {
-    if size == 0 {
-        // TODO: This magic number represents that the string is too short
-        IResult::Error(nom::Err::Code(nom::ErrorKind::Custom(3435)))
+fn decode_str(input: &[u8]) -> Result<&str, ParseError> {
+    if input.is_empty() {
+        Err(ParseError::ZeroSize)
     } else {
-        do_parse!(input, data: take_str!(size - 1) >> take!(1) >> (data))
+        Ok(::std::str::from_utf8(&input[..input.len() - 1])?)
     }
 }
 
-/// Decode a byte slice as UTF-16 into Rust's UTF-8 string. If unknown or
-/// invalid UTF-16 sequences are encountered, ignore them.
-fn decode_utf16(input: &[u8]) -> String {
-    UTF_16LE.decode(input, DecoderTrap::Ignore).unwrap()
-}
-
-/// Decode a byte slice as Windows 1252 into Rust's UTF-8 string. If unknown or
-/// invalid Windows 1252 sequences are encountered, ignore them.
-fn decode_windows1252(input: &[u8]) -> String {
-    WINDOWS_1252.decode(input, DecoderTrap::Ignore).unwrap()
-}
-
-/// Given a slice of the data and the number of characters contained, decode
-/// into a `String`. If the size is negative, that means we're dealing with a
-/// UTF-16 string, else it's a regular string.
-fn inner_text(input: &[u8], size: i32) -> IResult<&[u8], String> {
-    // size.abs() will panic at min_value, so we eschew it for manual checking
-    if size > 10000 || size < -10000 || size == 0 {
-        // TODO: This magic number represents that the string is too long
-        IResult::Error(nom::Err::Code(nom::ErrorKind::Custom(3434)))
-    } else if size < 0 {
-        // We're dealing with UTF-16 and each character is two bytes, we
-        // multiply the size by 2. The last two bytes included in the count are
-        // null terminators, we trim those off.
-        do_parse!(input,
-          data: map!(take!(size * -2 - 2), decode_utf16) >>
-          take!(2) >>
-          (data))
+fn decode_utf16(input: &[u8]) -> Result<Cow<str>, ParseError> {
+    if input.len() < 2 {
+        Err(ParseError::ZeroSize)
     } else {
-        do_parse!(input,
-          data: map!(take!(size - 1), decode_windows1252) >>
-          take!(1) >>
-          (data))
+        let (s, _) = UTF_16LE.decode_without_bom_handling(&input[..input.len() - 2]);
+        Ok(s)
     }
 }
 
-/// The first four bytes are the number of characters in the string and rest is
-/// the contents of the string.
-named!(text_string<&[u8], String, BoxcarError>,
-    return_error!(nom::ErrorKind::Custom(TextString),
-    fix_error!(BoxcarError,
-    complete!(
-    do_parse!(size: le_i32 >> data: apply!(inner_text, size) >> (data))))));
-
-/// Header properties are encoded in a pretty simple format, with some oddities. The first 64bits
-/// is data that can be discarded, some people think that the 64bits is the length of the data
-/// while others think that the first 32bits is the header length in bytes with the subsequent
-/// 32bits unknown. Doesn't matter to us, we throw it out anyways. The rest of the bytes are
-/// decoded property type specific.
-
-named!(str_prop<&[u8], HeaderProp, BoxcarError>,
-  return_error!(nom::ErrorKind::Custom(StrProp),
-  complete!(
-  do_parse!(fix_error!(BoxcarError, le_u64) >>
-            x: text_string >> (HeaderProp::Str(x))))));
-
-named!(name_prop<&[u8], HeaderProp, BoxcarError>,
-  complete!(
-  do_parse!(fix_error!(BoxcarError, le_u64) >>
-            x: text_string >> (HeaderProp::Name(x)))));
-
-named!(int_prop<&[u8], HeaderProp, BoxcarError>,
-  fix_error!(BoxcarError,
-  complete!(
-  do_parse!(le_u64 >> x: le_u32 >> (HeaderProp::Int(x))))));
-
-named!(bool_prop<&[u8], HeaderProp, BoxcarError>,
-  fix_error!(BoxcarError,
-  complete!(
-  do_parse!(le_u64 >> x: le_u8 >> (HeaderProp::Bool(x == 1))))));
-
-named!(float_prop<&[u8], HeaderProp, BoxcarError>,
-  fix_error!(BoxcarError,
-  complete!(
-  do_parse!(le_u64 >> x: le_f32 >> (HeaderProp::Float(x))))));
-
-named!(qword_prop<&[u8], HeaderProp, BoxcarError>,
-  fix_error!(BoxcarError,
-  complete!(
-  do_parse!(le_u64 >> x: le_u64 >> (HeaderProp::QWord(x))))));
-
-/// The byte property is the odd one out. It's two strings following each other. No rhyme or
-/// reason.
-named!(byte_prop<&[u8], HeaderProp, BoxcarError>,
-  do_parse!(fix_error!(BoxcarError, le_u64) >>
-    text_encoded >> text_encoded >> (HeaderProp::Byte)));
-
-/// The array property has the same leading 64bits that are discarded but also contains the length
-/// of the aray as the next 32bits. Each element in the array is a dictionary so we decode `size`
-/// number of dictionaries.
-named!(array_prop<&[u8], HeaderProp, BoxcarError>,
-    fix_error!(BoxcarError,
-    complete!(
-    do_parse!(
-        le_u64 >>
-        size: le_u32 >>
-        elems: count!(rdict, size as usize) >>
-        (HeaderProp::Array(elems))))));
-
-/// The next string in the data tells us how to decode the property and what type it is.
-named!(rprop_encoded<&[u8], HeaderProp, BoxcarError>,
-  switch!(text_encoded,
-    "ArrayProperty" => call!(array_prop) |
-    "BoolProperty" => call!(bool_prop) |
-    "ByteProperty" => call!(byte_prop) |
-    "FloatProperty" => call!(float_prop) |
-    "IntProperty" => call!(int_prop) |
-    "NameProperty" => call!(name_prop) |
-    "QWordProperty" => call!(qword_prop) |
-    "StrProperty" => call!(str_prop)
-  )
-);
-
-/// Other the actual network data, the header property associative array is the hardest to parse.
-/// The format is to:
-/// - Read string
-/// - If string is "None", we're done
-/// - else we're dealing with a property, and the string just read is the key. Now deserialize the
-///   value.
-/// The return type of this function is a key value vector because since there is no format
-/// specification, we can't rule out duplicate keys. Possibly consider a multi-map in the future.
-fn rdict(input: &[u8]) -> IResult<&[u8], Vec<(String, HeaderProp)>, BoxcarError> {
-    let mut v: Vec<(String, HeaderProp)> = Vec::new();
-
-    // Initialize to a dummy value to avoid unitialized errors
-    let mut res: IResult<&[u8], Vec<(String, HeaderProp)>, BoxcarError> = IResult::Done(input, Vec::new());
-
-    // Done only if we see an error or if we see "None"
-    let mut done = false;
-
-    // Keeps track of where we currently are in the slice.
-    let mut cslice = input;
-
-    while !done {
-        match text_encoded(cslice) {
-            IResult::Done(i, txt) => {
-                cslice = i;
-                match txt {
-                    "None" => done = true,
-                    _ => match rprop_encoded(cslice) {
-                        IResult::Done(inp, val) => {
-                            cslice = inp;
-                            v.push((txt.to_string(), val));
-                        }
-                        IResult::Incomplete(a) => {
-                            res = IResult::Incomplete(a);
-                            done = true
-                        }
-                        IResult::Error(a) => {
-                            res = IResult::Error(a);
-                            done = true
-                        }
-                    },
-                }
-            }
-
-            IResult::Incomplete(a) => {
-                done = true;
-                res = IResult::Incomplete(a);
-            }
-
-            IResult::Error(a) => {
-                done = true;
-                res = IResult::Error(a);
-            }
-        }
-    }
-
-    match res {
-        IResult::Done(_, _) => IResult::Done(cslice, v),
-        _ => res,
-    }
-}
-
-pub fn parse(input: &[u8], crc_check: bool) -> Result<Replay> {
-    if crc_check {
-        full_crc_check(input).to_result()
-            .and_then(|_| data_parse(input).to_result())
-            .map_err(|e| Error::from(ErrorKind::Parsing(format!("error list: {}", &e))))
+fn decode_windows1252(input: &[u8]) -> Result<Cow<str>, ParseError> {
+    if input.is_empty() {
+        Err(ParseError::ZeroSize)
     } else {
-        data_parse(input).to_result()
-            .map_err(|e| Error::from(ErrorKind::Parsing(format!("error list: {}", &e))))
+        let (s, _) = WINDOWS_1252.decode_without_bom_handling(&input[..input.len() - 1]);
+        Ok(s)
     }
 }
 
-named!(data_parse<&[u8], Replay, BoxcarError>,
-    complete!(do_parse!(
-        header_size:  fix_error!(BoxcarError, le_u32) >>
-        header_crc:   fix_error!(BoxcarError, le_u32) >>
-        major_version: fix_error!(BoxcarError, le_u32) >>
-        minor_version: fix_error!(BoxcarError, le_u32) >>
-        game_type: text_encoded >>
-        properties: rdict >>
-        content_size: fix_error!(BoxcarError, le_u32) >>
-        content_crc: fix_error!(BoxcarError, le_u32) >>
-        levels: text_list >>
-        keyframes: keyframe_list >>
-        network_size: fix_error!(BoxcarError, le_u32) >>
-
-// This is where this example falls short is that decoding the network data is not
-// implemented. See Octane or RocketLeagueReplayParser for more info.
-        fix_error!(BoxcarError, take!(network_size)) >>
-        debug_info: debuginfo_list >>
-        tick_marks: tickmark_list >>
-        packages: text_list >>
-        objects: text_list >>
-        names: text_list >>
-        class_indices: classindex_list >>
-        net_cache: classnetcache_list >>
-
-        (Replay {
-          header_size: header_size,
-          header_crc: header_crc,
-          major_version: major_version,
-          minor_version: minor_version,
-          game_type: game_type.to_string(),
-          properties: properties,
-          content_size: content_size,
-          content_crc: content_crc,
-          levels: levels,
-          keyframes: keyframes,
-          debug_info: debug_info,
-          tick_marks: tick_marks,
-          packages: packages,
-          objects: objects,
-          names: names,
-          class_indices: class_indices,
-          net_cache: net_cache
-        })
-    ))
-);
-
-/// Below are a series of decoding functions that take in data and returns some domain object (eg:
-/// `TickMark`, `KeyFrame`, etc.
-
-named!(keyframe_encoded<&[u8], KeyFrame, BoxcarError>,
-  fix_error!(BoxcarError,
-  do_parse!(time: le_f32 >>
-           frame: le_u32 >>
-           position: le_u32 >>
-           (KeyFrame {time: time, frame: frame, position: position}))));
-
-named!(debuginfo_encoded<&[u8], DebugInfo, BoxcarError>,
-  do_parse!(frame: fix_error!(BoxcarError, le_u32) >> user: text_string >> text: text_string >>
-    (DebugInfo { frame: frame, user: user, text: text })));
-
-named!(tickmark_encoded<&[u8], TickMark, BoxcarError>,
-  do_parse!(description: text_string >>
-           frame: fix_error!(BoxcarError, le_u32) >>
-           (TickMark {description: description, frame: frame})));
-
-named!(classindex_encoded<&[u8], ClassIndex, BoxcarError>,
-  do_parse!(class: text_string >> index: fix_error!(BoxcarError, le_u32) >>
-    (ClassIndex { class: class, index: index })));
-
-named!(cacheprop_encoded<&[u8], CacheProp, BoxcarError>,
-  fix_error!(BoxcarError,
-  do_parse!(index: le_u32 >> id: le_u32 >>
-    (CacheProp { index: index, id: id }))));
-
-named!(classnetcache_encoded<&[u8], ClassNetCache, BoxcarError>,
-  fix_error!(BoxcarError,
-  do_parse!(index: le_u32 >>
-            parent_id: le_u32 >>
-            id: le_u32 >>
-            prop_size: le_u32 >>
-            properties: count!(cacheprop_encoded, prop_size as usize) >>
-            (ClassNetCache {
-             index: index,
-             parent_id: parent_id,
-             id: id,
-             properties: properties
-            }))));
-
-/// All the domain objects can be observed in a list that is initially prefixed by the length.
-/// There may be a way to consolidate the implementations, but they're already currently concise.
-
-named!(text_list<&[u8], Vec<String>, BoxcarError>,
-  fix_error!(BoxcarError,
-  do_parse!(size: le_u32 >> elems: count!(text_string, size as usize) >> (elems))));
-
-named!(keyframe_list<&[u8], Vec<KeyFrame>, BoxcarError>,
-  fix_error!(BoxcarError,
-  do_parse!(size: le_u32 >> elems: count!(keyframe_encoded, size as usize) >> (elems))));
-
-named!(debuginfo_list<&[u8], Vec<DebugInfo>, BoxcarError>,
-  fix_error!(BoxcarError,
-  do_parse!(size: le_u32 >> elems: count!(debuginfo_encoded, size as usize) >> (elems))));
-
-named!(tickmark_list<&[u8], Vec<TickMark>, BoxcarError>,
-  fix_error!(BoxcarError,
-  do_parse!(size: le_u32 >> elems: count!(tickmark_encoded, size as usize) >> (elems))));
-
-named!(classindex_list<&[u8], Vec<ClassIndex>, BoxcarError>,
-  fix_error!(BoxcarError,
-  do_parse!(size: le_u32 >> elems: count!(classindex_encoded, size as usize) >> (elems))));
-
-named!(classnetcache_list<&[u8], Vec<ClassNetCache>, BoxcarError>,
-  fix_error!(BoxcarError,
-  do_parse!(size: le_u32 >> elems: count!(classnetcache_encoded, size as usize) >> (elems))));
-
-/// Given a pair of expected crc value and data, perform crc on the data and return `Ok`
-/// if the expected matched the actual, else an `Err`
-fn confirm_crc(pair: (u32, &[u8])) -> IResult<&[u8], (), BoxcarError> {
-    let (crc, data) = pair;
-    let res = calc_crc(data);
-    if res == crc {
-        IResult::Done(data, ())
-    } else {
-        IResult::Error(nom::Err::Code(nom::ErrorKind::Custom(UnexpectedCrc { expected: crc, actual: res })))
-    }
+#[inline]
+fn le_i32(d: &[u8]) -> i32 {
+    LittleEndian::read_i32(d)
 }
 
-/// Gather the expected crc and data to perform the crc on in a tuple
-named!(crc_gather<&[u8], (u32, &[u8])>,
-    complete!(
-    do_parse!(
-        size: le_u32 >>
-        crc: le_u32 >>
-        data: take!(size) >>
-        ((crc, data)))));
+#[inline]
+fn le_f32(d: &[u8]) -> f32 {
+    LittleEndian::read_f32(d)
+}
 
-/// Extracts crc data and ensures that it is correct
-named!(crc_check<&[u8], (), BoxcarError>,
-  flat_map!(fix_error!(BoxcarError, crc_gather), confirm_crc));
-
-/// A Rocket League replay is split into two parts with respect to crc calculation. The header and
-/// body. Each section is prefixed by the length of the section and the expected crc.
-named!(full_crc_check<&[u8], &[u8], BoxcarError>,
-    fix_error!(BoxcarError,
-    recognize!(do_parse!(crc_check >> crc_check >> (())))));
-
+#[inline]
+fn le_i64(d: &[u8]) -> i64 {
+    LittleEndian::read_i64(d)
+}
 
 #[cfg(test)]
 mod tests {
-    use nom::IResult::Done;
-    use nom::ErrorKind;
-    use nom::error_to_list;
-    use models::*;
-    use models::HeaderProp::*;
-    use super::BoxcarError::*;
+    use super::{CrcCheck, Parser};
+    use errors::ParseError;
+    use models::{HeaderProp, TickMark};
+    use std::borrow::Cow;
 
     #[test]
     fn parse_text_encoding() {
         // dd skip=16 count=28 if=rumble.replay of=text.replay bs=1
         let data = include_bytes!("../assets/text.replay");
-        let r = super::text_encoded(data);
-        assert_eq!(r, Done(&[][..], "TAGame.Replay_Soccar_TA"));
+        let mut parser = Parser::new(&data[..], CrcCheck::Never);
+        assert_eq!(parser.parse_str().unwrap(), "TAGame.Replay_Soccar_TA");
     }
 
     #[test]
     fn parse_text_encoding_bad() {
         // dd skip=16 count=28 if=rumble.replay of=text.replay bs=1
         let data = include_bytes!("../assets/text.replay");
-        let r = super::text_encoded(&data[..data.len() - 1]);
-        let errors = r.unwrap_err();
-        let v = error_to_list(&errors);
-        assert_eq!(v[0], ErrorKind::Custom(TextIncomplete));
+        let mut parser = Parser::new(&data[..data.len() - 1], CrcCheck::Never);
+        let res = parser.parse_str();
+        assert!(res.is_err());
+        let error = res.unwrap_err();
+        assert_eq!(error, ParseError::InsufficientData(24, 23));
     }
 
     #[test]
     fn parse_text_zero_size() {
-        let data = [0, 0, 0, 0, 0];
-        let r = super::text_encoded(&data[..]);
-        assert!(r.is_err())
+        let mut parser = Parser::new(&[0, 0, 0, 0, 0], CrcCheck::Never);
+        let res = parser.parse_str();
+        assert!(res.is_err());
+        let error = res.unwrap_err();
+        assert_eq!(error, ParseError::ZeroSize);
     }
 
     #[test]
@@ -505,77 +667,75 @@ mod tests {
         // Test for when there is not enough data to decode text length
         // dd skip=16 count=28 if=rumble.replay of=text.replay bs=1
         let data = include_bytes!("../assets/text.replay");
-        let r = super::text_encoded(&data[..2]);
-        let errors = r.unwrap_err();
-        let v = error_to_list(&errors);
-        assert_eq!(v[0], ErrorKind::Custom(TextIncomplete));
+        let mut parser = Parser::new(&data[..2], CrcCheck::Never);
+        let res = parser.parse_str();
+        assert!(res.is_err());
+        let error = res.unwrap_err();
+        assert_eq!(error, ParseError::InsufficientData(4, 2));
     }
 
     #[test]
     fn parse_utf16_string() {
         // dd skip=((0x120)) count=28 if=utf-16.replay of=utf-16-text.replay bs=1
         let data = include_bytes!("../assets/utf-16-text.replay");
-        let r = super::text_string(data);
-        assert_eq!(r, Done(&[][..], "\u{2623}D[e]!v1zz\u{2623}".to_string()));
+        let mut parser = Parser::new(&data[..], CrcCheck::Never);
+        let res = parser.parse_text().unwrap();
+        assert_eq!(res, "\u{2623}D[e]!v1zz\u{2623}");
     }
 
     #[test]
     fn test_windows1252_string() {
         let data = include_bytes!("../assets/windows_1252.replay");
-        let actual = super::text_string(&data[0x1ad..0x1c4]);
-        assert_eq!(actual, Done(&[][..], "caudillman6000\u{b3}(2)".to_string()));
+        let mut parser = Parser::new(&data[0x1ad..0x1c4], CrcCheck::Never);
+        let res = parser.parse_text().unwrap();
+        assert_eq!(res, "caudillman6000\u{b3}(2)");
     }
 
     /// Define behavior on invalid UTF-16 sequences.
     #[test]
     fn parse_invalid_utf16_string() {
         let data = [0xfd, 0xff, 0xff, 0xff, 0xd8, 0xd8, 0x00, 0x00, 0x00, 0x00];
-        let r = super::text_string(&data);
-        assert_eq!(r, Done(&[][..], "\u{0}".to_string()));
+        let mut parser = Parser::new(&data[..], CrcCheck::Never);
+        let res = parser.parse_text().unwrap();
+        assert_eq!(res, "�\u{0}");
     }
 
     #[test]
     fn rdict_no_elements() {
         let data = [0x05, 0x00, 0x00, 0x00, b'N', b'o', b'n', b'e', 0x00];
-        let r = super::rdict(&data);
-        assert_eq!(r, Done(&[][..], Vec::new()));
+        let mut parser = Parser::new(&data[..], CrcCheck::Never);
+        let res = parser.parse_rdict().unwrap();
+        assert_eq!(res, Vec::new());
     }
 
     #[test]
     fn rdict_one_element() {
         // dd skip=$((0x1269)) count=$((0x12a8 - 0x1269)) if=rumble.replay of=rdict_one.replay bs=1
         let data = include_bytes!("../assets/rdict_one.replay");
-        let r = super::rdict(data);
-        assert_eq!(r, Done(&[][..],  vec![("PlayerName".to_string(), Str("comagoosie".to_string()))]));
-    }
-
-    #[test]
-    fn rdict_one_element_bad_str() {
-        let mut data = Vec::new();
-        data.extend([0x00; 8].iter().clone());
-        data.extend([0x06, 0x00, 0x00, 0x00].iter().clone());
-        data.extend(b"bobby");
-        let r = super::str_prop(&data[..]);
-        let errors = r.unwrap_err();
-        let v = error_to_list(&errors);
-        assert_eq!(v[0], ErrorKind::Custom(StrProp));
-        assert_eq!(v[1], ErrorKind::Custom(TextString));
+        let mut parser = Parser::new(&data[..], CrcCheck::Never);
+        let res = parser.parse_rdict().unwrap();
+        assert_eq!(
+            res,
+            vec![("PlayerName", HeaderProp::Str(Cow::Borrowed("comagoosie")))]
+        );
     }
 
     #[test]
     fn rdict_one_int_element() {
         // dd skip=$((0x250)) count=$((0x284 - 0x250)) if=rumble.replay of=rdict_int.replay bs=1
         let data = include_bytes!("../assets/rdict_int.replay");
-        let r = super::rdict(data);
-        assert_eq!(r, Done(&[][..], vec![("PlayerTeam".to_string(), Int(0))]));
+        let mut parser = Parser::new(&data[..], CrcCheck::Never);
+        let res = parser.parse_rdict().unwrap();
+        assert_eq!(res, vec![("PlayerTeam", HeaderProp::Int(0))]);
     }
 
     #[test]
     fn rdict_one_bool_element() {
         // dd skip=$((0xa0f)) count=$((0xa3b - 0xa0f)) if=rumble.replay of=rdict_bool.replay bs=1
         let data = include_bytes!("../assets/rdict_bool.replay");
-        let r = super::rdict(data);
-        assert_eq!(r, Done(&[][..], vec![("bBot".to_string(), Bool(false))]));
+        let mut parser = Parser::new(&data[..], CrcCheck::Never);
+        let res = parser.parse_rdict().unwrap();
+        assert_eq!(res, vec![("bBot", HeaderProp::Bool(false))]);
     }
 
     fn append_none(input: &[u8]) -> Vec<u8> {
@@ -590,80 +750,94 @@ mod tests {
     fn rdict_one_name_element() {
         // dd skip=$((0x1237)) count=$((0x1269 - 0x1237)) if=rumble.replay of=rdict_name.replay bs=1
         let data = append_none(include_bytes!("../assets/rdict_name.replay"));
-        let r = super::rdict(&data);
-        assert_eq!(r, Done(&[][..],  vec![("MatchType".to_string(), Name("Online".to_string()))]));
-
+        let mut parser = Parser::new(&data[..], CrcCheck::Never);
+        let res = parser.parse_rdict().unwrap();
+        assert_eq!(
+            res,
+            vec![("MatchType", HeaderProp::Name(Cow::Borrowed("Online")))]
+        );
     }
 
     #[test]
     fn rdict_one_float_element() {
         // dd skip=$((0x10a2)) count=$((0x10ce - 0x10a2)) if=rumble.replay of=rdict_float.replay bs=1
         let data = append_none(include_bytes!("../assets/rdict_float.replay"));
-        let r = super::rdict(&data);
-        assert_eq!(r, Done(&[][..],  vec![("RecordFPS".to_string(), Float(30.0))]));
+        let mut parser = Parser::new(&data[..], CrcCheck::Never);
+        let res = parser.parse_rdict().unwrap();
+        assert_eq!(res, vec![("RecordFPS", HeaderProp::Float(30.0))]);
     }
 
     #[test]
     fn rdict_one_qword_element() {
         // dd skip=$((0x576)) count=$((0x5a5 - 0x576)) if=rumble.replay of=rdict_qword.replay bs=1
         let data = append_none(include_bytes!("../assets/rdict_qword.replay"));
-        let r = super::rdict(&data);
-        assert_eq!(r, Done(&[][..],  vec![("OnlineID".to_string(), QWord(76561198101748375))]));
+        let mut parser = Parser::new(&data[..], CrcCheck::Never);
+        let res = parser.parse_rdict().unwrap();
+        assert_eq!(
+            res,
+            vec![("OnlineID", HeaderProp::QWord(76561198101748375))]
+        );
     }
 
     #[test]
     fn rdict_one_array_element() {
         // dd skip=$((0xab)) count=$((0x3f7 + 36)) if=rumble.replay of=rdict_array.replay bs=1
         let data = append_none(include_bytes!("../assets/rdict_array.replay"));
-        let r = super::rdict(&data);
+        let mut parser = Parser::new(&data[..], CrcCheck::Never);
+        let res = parser.parse_rdict().unwrap();
         let expected = vec![
             vec![
-                ("frame".to_string(), Int(441)),
-                ("PlayerName".to_string(), Str("Cakeboss".to_string())),
-                ("PlayerTeam".to_string(), Int(1))
-            ], vec![
-                ("frame".to_string(), Int(1738)),
-                ("PlayerName".to_string(), Str("Sasha Kaun".to_string())),
-                ("PlayerTeam".to_string(), Int(0))
-            ], vec![
-                ("frame".to_string(), Int(3504)),
-                ("PlayerName".to_string(), Str("SilentWarrior".to_string())),
-                ("PlayerTeam".to_string(), Int(0))
-            ], vec![
-                ("frame".to_string(), Int(5058)),
-                ("PlayerName".to_string(), Str("jeffreyj1".to_string())),
-                ("PlayerTeam".to_string(), Int(1))
-            ], vec![
-                ("frame".to_string(), Int(5751)),
-                ("PlayerName".to_string(), Str("GOOSE LORD".to_string())),
-                ("PlayerTeam".to_string(), Int(0))
-            ], vec![
-                ("frame".to_string(), Int(6083)),
-                ("PlayerName".to_string(), Str("GOOSE LORD".to_string())),
-                ("PlayerTeam".to_string(), Int(0))
-            ], vec![
-                ("frame".to_string(), Int(7021)),
-                ("PlayerName".to_string(), Str("SilentWarrior".to_string())),
-                ("PlayerTeam".to_string(), Int(0))
-            ]
+                ("frame", HeaderProp::Int(441)),
+                ("PlayerName", HeaderProp::Str(Cow::Borrowed("Cakeboss"))),
+                ("PlayerTeam", HeaderProp::Int(1)),
+            ],
+            vec![
+                ("frame", HeaderProp::Int(1738)),
+                ("PlayerName", HeaderProp::Str(Cow::Borrowed("Sasha Kaun"))),
+                ("PlayerTeam", HeaderProp::Int(0)),
+            ],
+            vec![
+                ("frame", HeaderProp::Int(3504)),
+                (
+                    "PlayerName",
+                    HeaderProp::Str(Cow::Borrowed("SilentWarrior")),
+                ),
+                ("PlayerTeam", HeaderProp::Int(0)),
+            ],
+            vec![
+                ("frame", HeaderProp::Int(5058)),
+                ("PlayerName", HeaderProp::Str(Cow::Borrowed("jeffreyj1"))),
+                ("PlayerTeam", HeaderProp::Int(1)),
+            ],
+            vec![
+                ("frame", HeaderProp::Int(5751)),
+                ("PlayerName", HeaderProp::Str(Cow::Borrowed("GOOSE LORD"))),
+                ("PlayerTeam", HeaderProp::Int(0)),
+            ],
+            vec![
+                ("frame", HeaderProp::Int(6083)),
+                ("PlayerName", HeaderProp::Str(Cow::Borrowed("GOOSE LORD"))),
+                ("PlayerTeam", HeaderProp::Int(0)),
+            ],
+            vec![
+                ("frame", HeaderProp::Int(7021)),
+                (
+                    "PlayerName",
+                    HeaderProp::Str(Cow::Borrowed("SilentWarrior")),
+                ),
+                ("PlayerTeam", HeaderProp::Int(0)),
+            ],
         ];
-        assert_eq!(r, Done(&[][..],  vec![("Goals".to_string(), Array(expected))]));
+        assert_eq!(res, vec![("Goals", HeaderProp::Array(expected))]);
     }
 
     #[test]
     fn rdict_one_byte_element() {
         // dd skip=$((0xdf0)) count=$((0xe41 - 0xdf0)) if=rumble.replay of=rdict_byte.replay bs=1
         let data = append_none(include_bytes!("../assets/rdict_byte.replay"));
-        let r = super::rdict(&data);
-        assert_eq!(r, Done(&[][..], vec![("Platform".to_string(), Byte)]));
-    }
-
-
-    #[test]
-    fn key_frame_decode() {
-        let data = include_bytes!("../assets/rumble.replay");
-        let r = super::keyframe_encoded(&data[0x12da..0x12da + 12]);
-        assert_eq!(r, Done(&[][..], KeyFrame { time: 16.297668, frame: 208, position: 137273 } ));
+        let mut parser = Parser::new(&data[..], CrcCheck::Never);
+        let res = parser.parse_rdict().unwrap();
+        assert_eq!(res, vec![("Platform", HeaderProp::Byte)]);
     }
 
     #[test]
@@ -671,19 +845,9 @@ mod tests {
         let data = include_bytes!("../assets/rumble.replay");
 
         // List is 2A long, each keyframe is 12 bytes. Then add four for list length = 508
-        let r = super::keyframe_list(&data[0x12ca..0x12ca + 508]);
-        match r {
-            Done(i, val) => {
-                let left: &[u8] = &[][..];
-
-                // There are 42 key frames in this list
-                assert_eq!(val.len(), 42);
-                assert_eq!(i, left);
-            }
-            _ => {
-                assert!(false);
-            }
-        }
+        let mut parser = Parser::new(&data[0x12ca..0x12ca + 508], CrcCheck::Never);
+        let frames = parser.parse_keyframe().unwrap();
+        assert_eq!(frames.len(), 42);
     }
 
     #[test]
@@ -691,82 +855,107 @@ mod tests {
         let data = include_bytes!("../assets/rumble.replay");
 
         // 7 tick marks at 8 bytes + size of tick list
-        let r = super::tickmark_list(&data[0xf6cce..0xf6d50]);
-        match r {
-            Done(i, val) => {
-                let left: &[u8] = &[][..];
+        let mut parser = Parser::new(&data[0xf6cce..0xf6d50], CrcCheck::Never);
+        let ticks = parser.parse_tickmarks().unwrap();
 
-                // There are 7 tick marks in this list
-                assert_eq!(val.len(), 7);
-                assert_eq!(val[0], TickMark { description: "Team1Goal".to_string(), frame: 396 });
-                assert_eq!(i, left);
+        assert_eq!(ticks.len(), 7);
+        assert_eq!(
+            ticks[0],
+            TickMark {
+                description: Cow::Borrowed("Team1Goal"),
+                frame: 396,
             }
-            _ => {
-                assert!(false);
-            }
-        }
+        );
     }
 
     #[test]
     fn test_the_whole_shebang() {
         let data = include_bytes!("../assets/rumble.replay");
-        let left: &[u8] = &[][..];
-        match super::data_parse(data) {
-            Done(i, _) => assert_eq!(i, left),
-            _ => assert!(false),
-        }
+        let mut parser = Parser::new(&data[..], CrcCheck::Never);
+        assert!(parser.parse().is_ok())
     }
 
     #[test]
     fn test_the_parsing_empty() {
-        match super::parse(&[][..], false) {
-            Ok(_) => assert!(false),
-            _ => assert!(true),
-        }
+        let mut parser = Parser::new(&[], CrcCheck::Never);
+        assert!(parser.parse().is_err());
     }
 
     #[test]
     fn test_the_parsing_text_too_long() {
         let data = include_bytes!("../assets/fuzz-string-too-long.replay");
-        assert!(super::parse(&data[..], false).is_err());
+        let mut parser = Parser::new(&data[..], CrcCheck::Never);
+        assert!(parser.parse().is_err())
     }
 
     #[test]
     fn test_the_fuzz_corpus_abs_panic() {
         let data = include_bytes!("../assets/fuzz-corpus.replay");
-        assert!(super::parse(&data[..], false).is_err());
+        let mut parser = Parser::new(&data[..], CrcCheck::Never);
+        assert!(parser.parse().is_err())
+    }
+
+    #[test]
+    fn test_the_fuzz_corpus_large_list() {
+        let data = include_bytes!("../assets/fuzz-list-too-large.replay");
+        let mut parser = Parser::new(&data[..], CrcCheck::Never);
+        let err = parser.parse().unwrap_err();
+        assert_eq!(
+            "Could not decode replay debug info at offset (1010894): list of size 18446744071708060969 is too large",
+            format!("{}", err)
+        );
+    }
+
+    #[test]
+    fn test_the_fuzz_corpus_large_list_on_error_crc() {
+        let data = include_bytes!("../assets/fuzz-list-too-large.replay");
+        let mut parser = Parser::new(&data[..], CrcCheck::OnError);
+        let err = parser.parse().unwrap_err();
+        assert_eq!(
+            "Failed to parse body and crc check failed. Replay is corrupt",
+            format!("{}", err)
+        );
+
+        assert_eq!(
+            "Could not decode replay debug info at offset (1010894): list of size 18446744071708060969 is too large",
+            format!("{}", err.cause().cause().unwrap())
+        );
+    }
+
+    #[test]
+    fn test_the_fuzz_corpus_large_list_always_crc() {
+        let data = include_bytes!("../assets/fuzz-list-too-large.replay");
+        let mut parser = Parser::new(&data[..], CrcCheck::Always);
+        let err = parser.parse().unwrap_err();
+        assert_eq!(
+            "Crc mismatch. Expected 3765941959 but received 1314727725",
+            format!("{}", err)
+        );
+        assert!(err.cause().cause().is_none());
     }
 
     #[test]
     fn test_the_whole_shebang_with_crc() {
         let data = include_bytes!("../assets/rumble.replay");
-        match super::parse(data, true) {
-            Ok(_) => assert!(true),
-            _ => assert!(false),
-        }
+        let mut parser = Parser::new(&data[..], CrcCheck::Always);
+        assert!(parser.parse().is_ok())
     }
 
     #[test]
-    fn test_crc_check_header() {
-        let data = include_bytes!("../assets/rumble.replay");
-        let r = super::crc_check(&data[..4776]);
-        assert_eq!(r, Done(&[][..], ()));
-    }
-
-    #[test]
-    fn test_crc_check_header_bad() {
+    fn test_crc_check_with_bad() {
         let mut data = include_bytes!("../assets/rumble.replay").to_vec();
-        data[4775] = 100;
-        let r = super::crc_check(&data[..4776]);
-        let errors = r.unwrap_err();
-        let v = error_to_list(&errors);
-        assert_eq!(v[0], ErrorKind::Custom(UnexpectedCrc { expected: 337843175, actual: 2877465516 }));
-    }
 
-    #[test]
-    fn test_crc_check_full() {
-        let data = include_bytes!("../assets/rumble.replay");
-        let r = super::full_crc_check(&data[..]);
-        assert_eq!(r, Done(&[][..], &data[..]));
+        // Changing this byte won't make the parsing fail but will make the crc check fail
+        data[4775] = 100;
+        let mut parser = Parser::new(&data[..], CrcCheck::Always);
+        let res = parser.parse();
+        assert!(res.is_err());
+        assert_eq!(
+            "Crc mismatch. Expected 337843175 but received 2877465516",
+            format!("{}", res.unwrap_err())
+        );
+
+        parser = Parser::new(&data[..], CrcCheck::OnError);
+        assert!(parser.parse().is_ok());
     }
 }

@@ -12,7 +12,7 @@ use std::io;
 fn bench_parse_crc(b: &mut Bencher) {
     let data = include_bytes!("../assets/rumble.replay");
     b.iter(|| {
-        assert!(parse(data, true).is_ok());
+        assert!(ParserBuilder::new(data).always_check_crc().parse().is_ok());
     });
 }
 
@@ -20,7 +20,7 @@ fn bench_parse_crc(b: &mut Bencher) {
 fn bench_parse_no_crc(b: &mut Bencher) {
     let data = include_bytes!("../assets/rumble.replay");
     b.iter(|| {
-        assert!(parse(data, false).is_ok());
+        assert!(ParserBuilder::new(data).on_error_check_crc().parse().is_ok());
     });
 }
 
@@ -28,7 +28,7 @@ fn bench_parse_no_crc(b: &mut Bencher) {
 fn bench_parse_crc_json(b: &mut Bencher) {
     let data = include_bytes!("../assets/rumble.replay");
     b.iter(|| {
-        let data = parse(data, true).unwrap();
+        let data = ParserBuilder::new(data).always_check_crc().parse().unwrap();
         assert!(serde_json::to_writer(&mut io::sink(), &data).is_ok());
     });
 }
@@ -37,7 +37,7 @@ fn bench_parse_crc_json(b: &mut Bencher) {
 fn bench_parse_no_crc_json(b: &mut Bencher) {
     let data = include_bytes!("../assets/rumble.replay");
     b.iter(|| {
-        let data = parse(data, false).unwrap();
-        assert!(serde_json::to_writer(&mut io::sink(), &data).is_ok());
+        let replay = ParserBuilder::new(data).on_error_check_crc().parse().unwrap();
+        assert!(serde_json::to_writer(&mut io::sink(), &replay).is_ok());
     });
 }

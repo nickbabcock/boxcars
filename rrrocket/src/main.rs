@@ -1,77 +1,74 @@
-//! # CLI
-//!
-//! The command line version of the library. Given a file path argument, it will ingest all the
-//! data into memory, and attempt parsing. If the parsing is successful, JSON is outputted to
-//! stdout, else a non-helpful error message is printed. Sorry!
+extern crate boxcars;
+extern crate failure;
+extern crate rayon;
+extern crate serde_json;
+extern crate structopt;
 #[macro_use]
 extern crate structopt_derive;
-extern crate structopt;
-extern crate boxcars;
-extern crate serde_json;
-extern crate rayon;
 
-#[macro_use]
-extern crate error_chain;
-
-mod errors {
-    use boxcars;
-    use serde_json;
-    error_chain! {
-        foreign_links {
-            Io(::std::io::Error);
-            Serde(serde_json::Error);
-        }
-
-        links {
-            Boxcar(boxcars::Error, boxcars::ErrorKind);
-        }
-    }
-}
-
-use errors::*;
+use failure::{Error, ResultExt};
 use structopt::StructOpt;
-use std::fs::File;
-use std::io::{Read, Write, BufWriter};
-use error_chain::ChainedError;
+use std::fs::{File, OpenOptions};
+use std::io::{self, BufWriter};
+use std::io::prelude::*;
 use rayon::prelude::*;
+use boxcars::{CrcCheck, ParserBuilder};
 
 #[derive(StructOpt, Debug, Clone, PartialEq)]
-#[structopt(name = "rrrocket", about = "Parses Rocket League replay files and outputs a .json file with the decoded information")]
+#[structopt(name = "rrrocket", about = "Parses Rocket League replay files and writes a .json file with the decoded information")]
 struct Opt {
-    #[structopt(short = "c", long = "crc-check", help = "validate replay is not corrupt", default_value = "true")]
+    #[structopt(short = "c", long = "crc-check", help = "validate replay is not corrupt")]
     crc: bool,
 
-    #[structopt(help = "Rocket League replay files")]
-    input: Vec<String>,
+    #[structopt(help = "Rocket League replay files")] input: Vec<String>,
 }
 
-fn parse_file(input: &str, crc: bool) -> Result<boxcars::Replay> {
-    let mut f = File::open(input)?;
+fn read_file(input: &str) -> Result<Vec<u8>, Error> {
+    let mut f = File::open(input)
+        .with_context(|e| format!("Could not open rocket league file: {} -- {}", input, e))?;
     let mut buffer = vec![];
-    f.read_to_end(&mut buffer)?;
-	Ok(boxcars::parse(&buffer, crc)?)
+    f.read_to_end(&mut buffer)
+        .with_context(|e| format!("Could not read rocket league file: {} -- {}", input, e))?;
+    Ok(buffer)
 }
 
-fn run() -> Result<()> {
+fn run() -> Result<(), Error> {
     let opt = Opt::from_args();
-    let compute_crc = opt.crc;
-    println!("{}", compute_crc);
-    let res: Result<Vec<()>> = opt.input.par_iter()
+    let res: Result<Vec<()>, Error> = opt.input
+        .par_iter()
         .map(|file| {
             let outfile = format!("{}.json", file);
-            let data = parse_file(file, compute_crc)?;
-            let mut out_file = BufWriter::new(File::open(outfile)?);
-            serde_json::to_writer(&mut out_file, &data)?;
+            let fout = OpenOptions::new()
+                .write(true)
+                .truncate(true)
+                .open(&outfile)
+                .with_context(|e| format!("Could not open json output file: {}", e))?;
+            let mut writer = BufWriter::new(fout);
+            let data = read_file(file)?;
+            let replay = ParserBuilder::new(&data[..])
+                .with_crc_check(if opt.crc {
+                    CrcCheck::Always
+                } else {
+                    CrcCheck::OnError
+                })
+                .parse()?;
+            serde_json::to_writer(&mut writer, &replay).with_context(|e| {
+                format!("Could not serialize replay {} to {}: {}", file, outfile, e)
+            })?;
             Ok(())
-        }).collect();
+        })
+        .collect();
     res?;
     Ok(())
 }
 
 fn main() {
     if let Err(ref e) = run() {
-        writeln!(::std::io::stderr(), "{}", e.display_chain())
-			.expect("Error writing to stderr");
+        let mut stderr = io::stderr();
+        for fail in e.causes() {
+            let _ = writeln!(stderr, "{}", fail);
+        }
+
         ::std::process::exit(1);
     }
 }

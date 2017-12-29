@@ -12,30 +12,31 @@
 use serde::{Serialize, Serializer};
 use serde::ser::{SerializeMap, SerializeSeq};
 use std::collections::HashMap;
+use std::borrow::Cow;
 
 /// The structure that a rocket league replay is parsed into.
 #[derive(Serialize, PartialEq, Debug)]
-pub struct Replay {
-    pub header_size: u32,
-    pub header_crc: u32,
-    pub major_version: u32,
-    pub minor_version: u32,
-    pub game_type: String,
+pub struct Replay<'a> {
+    pub header_size: i32,
+    pub header_crc: i32,
+    pub major_version: i32,
+    pub minor_version: i32,
+    pub game_type: Cow<'a, str>,
 
     /// Could use a map to represent properties but I don't want to assume that duplicate keys
     /// can't exist, so to be safe, use a traditional vector.
     #[serde(serialize_with = "pair_vec")]
-    pub properties: Vec<(String, HeaderProp)>,
-    pub content_size: u32,
-    pub content_crc: u32,
-    pub levels: Vec<String>,
+    pub properties: Vec<(&'a str, HeaderProp<'a>)>,
+    pub content_size: i32,
+    pub content_crc: i32,
+    pub levels: Vec<Cow<'a, str>>,
     pub keyframes: Vec<KeyFrame>,
-    pub debug_info: Vec<DebugInfo>,
-    pub tick_marks: Vec<TickMark>,
-    pub packages: Vec<String>,
-    pub objects: Vec<String>,
-    pub names: Vec<String>,
-    pub class_indices: Vec<ClassIndex>,
+    pub debug_info: Vec<DebugInfo<'a>>,
+    pub tick_marks: Vec<TickMark<'a>>,
+    pub packages: Vec<Cow<'a, str>>,
+    pub objects: Vec<Cow<'a, str>>,
+    pub names: Vec<Cow<'a, str>>,
+    pub class_indices: Vec<ClassIndex<'a>>,
     pub net_cache: Vec<ClassNetCache>,
 }
 
@@ -44,9 +45,9 @@ pub struct Replay {
 /// time. For instance, a tickmark could be at frame 396 for a goal at frame 441. At 30 fps, this
 /// would be 1.5 seconds of ramp up time.
 #[derive(Serialize, PartialEq, Debug)]
-pub struct TickMark {
-    pub description: String,
-    pub frame: u32,
+pub struct TickMark<'a> {
+    pub description: Cow<'a, str>,
+    pub frame: i32,
 }
 
 /// Keyframes as defined by the video compression section in the [wikipedia][] article, are the
@@ -57,8 +58,8 @@ pub struct TickMark {
 #[derive(Serialize, PartialEq, Debug)]
 pub struct KeyFrame {
     pub time: f32,
-    pub frame: u32,
-    pub position: u32,
+    pub frame: i32,
+    pub position: i32,
 }
 
 /// All the interesting data are stored as properties in the header, properties such as:
@@ -68,45 +69,45 @@ pub struct KeyFrame {
 /// A property can be a number, string, or a more complex object such as an array containing
 /// additional properties.
 #[derive(PartialEq, Debug)]
-pub enum HeaderProp {
-    Array(Vec<Vec<(String, HeaderProp)>>),
+pub enum HeaderProp<'a> {
+    Array(Vec<Vec<(&'a str, HeaderProp<'a>)>>),
     Bool(bool),
     Byte,
     Float(f32),
-    Int(u32),
-    Name(String),
-    QWord(u64),
-    Str(String),
+    Int(i32),
+    Name(Cow<'a, str>),
+    QWord(i64),
+    Str(Cow<'a, str>),
 }
 
 /// Debugging info stored in the replay if debugging is enabled.
 #[derive(Serialize, PartialEq, Debug)]
-pub struct DebugInfo {
-    pub frame: u32,
-    pub user: String,
-    pub text: String,
+pub struct DebugInfo<'a> {
+    pub frame: i32,
+    pub user: Cow<'a, str>,
+    pub text: Cow<'a, str>,
 }
 
 /// Contains useful information when decoding the network stream, which we aren't
 #[derive(Serialize, PartialEq, Debug)]
-pub struct ClassIndex {
-    pub class: String,
-    pub index: u32,
+pub struct ClassIndex<'a> {
+    pub class: &'a str,
+    pub index: i32,
 }
 
 /// Contains useful information when decoding the network stream, which we aren't
 #[derive(Serialize, PartialEq, Debug)]
 pub struct CacheProp {
-    pub index: u32,
-    pub id: u32,
+    pub index: i32,
+    pub id: i32,
 }
 
 /// Contains useful information when decoding the network stream, which we aren't
 #[derive(Serialize, PartialEq, Debug)]
 pub struct ClassNetCache {
-    pub index: u32,
-    pub parent_id: u32,
-    pub id: u32,
+    pub index: i32,
+    pub parent_id: i32,
+    pub id: i32,
     pub properties: Vec<CacheProp>,
 }
 
@@ -134,7 +135,7 @@ where
 /// enum value. Since header values are self describing in JSON, we do not need to serialize the
 /// enum type. This is slightly lossy as in the serialized format it will be ambiguous if a value
 /// is a `Name` or `Str`, as well as `Byte`, `Float`, `Int`, or `QWord`.
-impl Serialize for HeaderProp {
+impl<'a> Serialize for HeaderProp<'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -145,7 +146,7 @@ impl Serialize for HeaderProp {
                 for inner in x {
                     // Look for a better way to do this instead of allocating the intermediate map
                     let mut els = HashMap::new();
-                    for &(ref key, ref val) in inner.iter() {
+                    for &(key, ref val) in inner.iter() {
                         els.insert(key, val);
                     }
                     try!(state.serialize_element(&els));
@@ -155,8 +156,8 @@ impl Serialize for HeaderProp {
             HeaderProp::Bool(ref x) => serializer.serialize_bool(*x),
             HeaderProp::Byte => serializer.serialize_u8(0),
             HeaderProp::Float(ref x) => serializer.serialize_f32(*x),
-            HeaderProp::Int(ref x) => serializer.serialize_u32(*x),
-            HeaderProp::QWord(ref x) => serializer.serialize_u64(*x),
+            HeaderProp::Int(ref x) => serializer.serialize_i32(*x),
+            HeaderProp::QWord(ref x) => serializer.serialize_i64(*x),
             HeaderProp::Name(ref x) | HeaderProp::Str(ref x) => serializer.serialize_str(x),
         }
     }
@@ -168,6 +169,7 @@ mod tests {
     use serde;
     use std;
     use serde_json;
+    use std::borrow::Cow;
 
     fn to_json<T: serde::Serialize>(input: &T) -> std::string::String {
         serde_json::to_string(input).unwrap()
@@ -177,13 +179,17 @@ mod tests {
     fn serialize_header_array() {
         let data = vec![
             vec![
-                ("frame".to_string(), HeaderProp::Int(441)),
-                ("PlayerName".to_string(), HeaderProp::Str("rust is awesome".to_string()))
-            ], vec![
-                ("frame".to_string(), HeaderProp::Int(1738)),
-                ("PlayerName".to_string(), HeaderProp::Str("rusty".to_string()))
-            ]
-          ];
+                ("frame", HeaderProp::Int(441)),
+                (
+                    "PlayerName",
+                    HeaderProp::Str(Cow::Borrowed("rust is awesome")),
+                ),
+            ],
+            vec![
+                ("frame", HeaderProp::Int(1738)),
+                ("PlayerName", HeaderProp::Str(Cow::Borrowed("rusty"))),
+            ],
+        ];
         let actual = to_json(&HeaderProp::Array(data));
         assert!(actual.contains("\"PlayerName\":\"rust is awesome\""));
         assert!(actual.contains("\"PlayerName\":\"rusty\""));
@@ -208,7 +214,13 @@ mod tests {
     #[test]
     fn serialize_header_str() {
         let val = "hello world";
-        assert_eq!(to_json(&HeaderProp::Str(val.to_string())), "\"hello world\"");
-        assert_eq!(to_json(&HeaderProp::Name(val.to_string())), "\"hello world\"");
+        assert_eq!(
+            to_json(&HeaderProp::Str(Cow::Borrowed(val))),
+            "\"hello world\""
+        );
+        assert_eq!(
+            to_json(&HeaderProp::Name(Cow::Borrowed(val))),
+            "\"hello world\""
+        );
     }
 }
