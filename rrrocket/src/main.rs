@@ -43,7 +43,13 @@ fn run() -> Result<(), Error> {
                 .create(true)
                 .truncate(true)
                 .open(&outfile)
-                .with_context(|e| format!("Could not open json output file: {} with error: {}", outfile, e))?;
+                .with_context(|e| {
+                    format!(
+                        "Could not open json output file: {} with error: {}",
+                        outfile,
+                        e
+                    )
+                })?;
             let mut writer = BufWriter::new(fout);
             let data = read_file(file)?;
             let replay = ParserBuilder::new(&data[..])
