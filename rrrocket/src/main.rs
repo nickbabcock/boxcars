@@ -40,6 +40,7 @@ fn run() -> Result<(), Error> {
             let outfile = format!("{}.json", file);
             let fout = OpenOptions::new()
                 .write(true)
+                .create(true)
                 .truncate(true)
                 .open(&outfile)
                 .with_context(|e| format!("Could not open json output file: {}", e))?;
