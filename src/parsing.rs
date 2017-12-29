@@ -1,7 +1,7 @@
 //! # Parsing
 //!
-//! A Rocket League game replay is a binary encoded file with an emphasis on little endian
-//! encodings. The number 100 would be represented as the four byte sequence:
+//! A Rocket League game replay is a little endian binary encoded file with an emphasis. The number
+//! 100 would be represented as the four byte sequence:
 //!
 //! ```plain
 //! 0x64 0x00 0x00 0x00
@@ -12,8 +12,6 @@
 //! ```plain
 //! 0x00 0x00 0x00 0x64
 //! ```
-//!
-//! Remember, little endian means least significant bit first!
 //!
 //! A replay is split into three major sections, a header, body, and footer.
 //!
@@ -37,9 +35,6 @@
 //!
 //! ## Body
 //!
-//! The body is the least implemented section, but it contains some familiar notions, such as
-//! length prefixed data strutures.
-//!
 //! Out of the body we get:
 //!
 //! - Levels (what level did the match take place)
@@ -47,34 +42,17 @@
 //! - The body's crc. This check is actually for the rest of the content (including the footer).
 //!
 //! Since everything is length prefixed, we're able to skip the network stream data. This would be
-//! 90% of the file, and it's a shame that my enthusiasm for implementing this section waned. When
-//! the developers of the game say the section isn't easy to parse, the major rocket league
-//! libraries dedicate half of their code to parsing the section, and the with each patch
-//! everything breaks, it's an incredible feat for anyone to retain enthusiam. Way to go
-//! maintainers!
-//!
-//! Most of the interesting bits like player stats and goals are contained in the header, so it's
-//! not a tremendous loss if we can't parse the network data. If we were able to parse the network
-//! data, it would allow us to run benchmark against other implementations. Octane's readme states:
-//!
-//! > Octane parses most replays in less than 5 seconds.
-//!
-//! Which is what initially got me curious if, utilizing the right tools, I could do better.
-//! Running Octane on `assets/rumble.replay` found in the repo, it decoded the information and
-//! converted it to JSON in 2.3s. Considering the file is 1MB, I saw room for improvement. Using
-//! the implementation here to output the header and footer data in JSON took 1ms. Yes, this is not an
-//! apples to apples comparison, and one should continue using proven tools, not some example
-//! project, but if I were to extrapolate, there isn't 1000x additional work needed.
+//! 90% of the file.  Most of the interesting bits like player stats and goals are contained in the
+//! header, so it's not a tremendous loss if we can't parse the network data.
 //!
 //! ## Footer
 //!
-//! After the network stream there isn't too much of interest to us, as it relates more to the
-//! network stream, but there was a low barrier to parse it. From the footer we see:
+//! After the network stream there we see:
 //!
 //! - Debug info
 //! - Tickmarks
-//! - Followed by several string info and other classes that seem totally worthless if the network
-//! data isn't parsed
+//! - Packages
+//! - Etc
 
 use encoding_rs::{UTF_16LE, WINDOWS_1252};
 use models::*;
