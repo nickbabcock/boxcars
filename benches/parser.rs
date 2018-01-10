@@ -9,18 +9,26 @@ use boxcars::*;
 use std::io;
 
 #[bench]
-fn bench_parse_crc(b: &mut Bencher) {
+fn bench_parse_crc_body(b: &mut Bencher) {
     let data = include_bytes!("../assets/rumble.replay");
     b.iter(|| {
-        assert!(ParserBuilder::new(data).always_check_crc().parse().is_ok());
+        assert!(ParserBuilder::new(data).always_check_crc().must_parse_network_data().parse().is_ok());
     });
 }
 
 #[bench]
-fn bench_parse_no_crc(b: &mut Bencher) {
+fn bench_parse_no_crc_body(b: &mut Bencher) {
     let data = include_bytes!("../assets/rumble.replay");
     b.iter(|| {
-        assert!(ParserBuilder::new(data).on_error_check_crc().parse().is_ok());
+        assert!(ParserBuilder::new(data).on_error_check_crc().must_parse_network_data().parse().is_ok());
+    });
+}
+
+#[bench]
+fn bench_parse_no_crc_no_body(b: &mut Bencher) {
+    let data = include_bytes!("../assets/rumble.replay");
+    b.iter(|| {
+        assert!(ParserBuilder::new(data).on_error_check_crc().never_parse_network_data().parse().is_ok());
     });
 }
 

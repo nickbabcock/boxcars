@@ -12,12 +12,16 @@ serde_derive = "1"
 failure = "0.1.1"
 encoding_rs = "0.7"
 byteorder = "1"
+phf = "0.7"
+fnv = "1.0"
+if_chain = "0.1"
+bitter = { path = "bitter", version = "0.1" }
 
 [dev-dependencies]
 serde_json = "1"
 
-[workspace]
-members = ["rrrocket"]
+[build-dependencies]
+phf_codegen = "0.7"
 
-[profile.bench]
-debug = true
+[workspace]
+members = ["rrrocket", "bitter"]

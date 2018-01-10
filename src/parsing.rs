@@ -61,6 +61,13 @@ use errors::ParseError;
 use std::borrow::Cow;
 use failure::{Error, ResultExt};
 use byteorder::{ByteOrder, LittleEndian};
+use bitter::BitGet;
+use {SPAWN_STATS, ATTRIBUTES, OBJECT_CLASSES, PARENT_CLASSES};
+use network::{SpawnTrajectory, NewActor, Trajectory, UpdatedAttribute, Frame};
+use attributes::{AttributeDecoder, Attribute};
+use std::collections::HashMap;
+use std::collections::hash_map::Entry;
+use fnv::FnvHashMap;
 
 /// Determines under what circumstances the parser should perform the crc check for replay
 /// corruption. Since the crc check is the most time consuming check for parsing (causing
@@ -84,14 +91,50 @@ pub enum CrcCheck {
     OnError,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NetworkParse {
+    Always,
+    Never,
+    IgnoreOnError,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ActorAction {
+    Created,
+    Updated,
+    Destroyed,
+}
+
 /// Intermediate parsing structure for the header
 #[derive(Debug, PartialEq)]
-struct Header<'a> {
-    major_version: i32,
-    minor_version: i32,
-    net_version: Option<i32>,
-    game_type: Cow<'a, str>,
-    properties: Vec<(&'a str, HeaderProp<'a>)>,
+pub struct Header<'a> {
+    pub major_version: i32,
+    pub minor_version: i32,
+    pub net_version: Option<i32>,
+    pub game_type: Cow<'a, str>,
+    pub properties: Vec<(&'a str, HeaderProp<'a>)>,
+}
+
+impl<'a> Header<'a> {
+    fn num_frames(&self) -> Option<i32> {
+        self.properties.iter()
+            .find(|&&(key, _)| key == "NumFrames")
+            .and_then(|&(_, ref prop)| if let HeaderProp::Int(v) = *prop {
+                Some(v)
+            } else {
+                None
+            })
+    }
+
+    fn max_channels(&self) -> Option<i32> {
+        self.properties.iter()
+            .find(|&&(key, _)| key == "MaxChannels")
+            .and_then(|&(_, ref prop)| if let HeaderProp::Int(v) = *prop {
+                Some(v)
+            } else {
+                None
+            })
+    }
 }
 
 /// Intermediate parsing structure for the body / footer
@@ -106,12 +149,14 @@ struct ReplayBody<'a> {
     names: Vec<Cow<'a, str>>,
     class_indices: Vec<ClassIndex<'a>>,
     net_cache: Vec<ClassNetCache>,
+    network_data: &'a [u8],
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ParserBuilder<'a> {
     data: &'a [u8],
     crc_check: Option<CrcCheck>,
+    network_parse: Option<NetworkParse>,
 }
 
 impl<'a> ParserBuilder<'a> {
@@ -119,6 +164,7 @@ impl<'a> ParserBuilder<'a> {
         ParserBuilder {
             data: data,
             crc_check: None,
+            network_parse: None,
         }
     }
 
@@ -142,10 +188,40 @@ impl<'a> ParserBuilder<'a> {
         self
     }
 
+    pub fn must_parse_network_data(mut self) -> ParserBuilder<'a> {
+        self.network_parse = Some(NetworkParse::Always);
+        self
+    }
+
+    pub fn never_parse_network_data(mut self) -> ParserBuilder<'a> {
+        self.network_parse = Some(NetworkParse::Never);
+        self
+    }
+
+    pub fn ignore_network_data_on_error(mut self) -> ParserBuilder<'a> {
+        self.network_parse = Some(NetworkParse::IgnoreOnError);
+        self
+    }
+
+    pub fn with_network_parse(mut self, parse: NetworkParse) -> ParserBuilder<'a> {
+        self.network_parse = Some(parse);
+        self
+    }
+
     pub fn parse(self) -> Result<Replay<'a>, Error> {
-        let mut parser = Parser::new(self.data, self.crc_check.unwrap_or(CrcCheck::OnError));
+        let mut parser = Parser::new(
+            self.data,
+            self.crc_check.unwrap_or(CrcCheck::OnError),
+            self.network_parse.unwrap_or(NetworkParse::IgnoreOnError),
+        );
         parser.parse()
     }
+}
+
+struct CacheInfo<'a> {
+    max_prop_id: i32,
+    prop_id_bits: i32,
+    attributes: &'a HashMap<i32, fn(&AttributeDecoder, &mut BitGet) -> Attribute>,
 }
 
 
@@ -158,14 +234,16 @@ pub struct Parser<'a> {
     /// Current offset in regards to the whole view of the replay
     col: i32,
     crc_check: CrcCheck,
+    network_parse: NetworkParse,
 }
 
 impl<'a> Parser<'a> {
-    fn new(data: &'a [u8], crc_check: CrcCheck) -> Self {
+    fn new(data: &'a [u8], crc_check: CrcCheck, network_parse: NetworkParse) -> Self {
         Parser {
             data: data,
             col: 0,
             crc_check: crc_check,
+            network_parse: network_parse,
         }
     }
 
@@ -202,6 +280,19 @@ impl<'a> Parser<'a> {
 
         let body = self.crc_section(content_data, content_crc as u32, "body", Self::parse_body)?;
 
+        let mut network: Option<NetworkFrames> = None;
+        match self.network_parse {
+            NetworkParse::Always => {
+                network = Some(self.parse_network(&header, &body)?);
+            }
+            NetworkParse::IgnoreOnError => {
+                if let Ok(v) = self.parse_network(&header, &body) {
+                    network = Some(v);
+                }
+            }
+            NetworkParse::Never => network = None,
+        }
+
         Ok(Replay {
             header_size: header_size,
             header_crc: header_crc,
@@ -212,6 +303,7 @@ impl<'a> Parser<'a> {
             properties: header.properties,
             content_size: content_size,
             content_crc: content_crc,
+            network_frames: network,
             levels: body.levels,
             keyframes: body.keyframes,
             debug_info: body.debug_info,
@@ -222,6 +314,222 @@ impl<'a> Parser<'a> {
             class_indices: body.class_indices,
             net_cache: body.net_cache,
         })
+    }
+
+    fn parse_network(&mut self, header: &Header, body: &ReplayBody) -> Result<NetworkFrames, Error> {
+        let normalized_objects: Vec<&str> = body.objects.iter().map(|x| {
+            let a: &str = x;
+            if a.contains("TheWorld:PersistentLevel.CrowdActor_TA") {
+                "TheWorld:PersistentLevel.CrowdActor_TA"
+            } else if a.contains("TheWorld:PersistentLevel.CrowdManager_TA") {
+                "TheWorld:PersistentLevel.CrowdManager_TA"
+            } else if a.contains("TheWorld:PersistentLevel.VehiclePickup_Boost_TA") {
+                "TheWorld:PersistentLevel.VehiclePickup_Boost_TA"
+            } else if a.contains("TheWorld:PersistentLevel.InMapScoreboard_TA") {
+                "TheWorld:PersistentLevel.InMapScoreboard_TA"
+            } else if a.contains("TheWorld:PersistentLevel.BreakOutActor_Platform_TA") {
+                "TheWorld:PersistentLevel.BreakOutActor_Platform_TA"
+            } else {
+                a
+            }
+        }).collect();
+
+		let spawns: Vec<SpawnTrajectory> = 
+            body.objects.iter()
+                .map(|x| {
+                    // Deref into string slice
+                    let a: &str = x;
+                    SPAWN_STATS.get(a).map(|v| *v).unwrap_or(SpawnTrajectory::None)
+                })
+                .collect();
+
+        let attrs: Vec<_> =
+            normalized_objects.iter()
+                .map(|x| {
+                    // Deref into string slice
+                    let a: &str = x;
+                    ATTRIBUTES.get(a).map(|v| *v).unwrap_or(AttributeDecoder::decode_not_implemented)
+                })
+                .collect();
+
+
+        let mut normalized_name_obj_ind: HashMap<&str, Vec<usize>> = HashMap::new();
+        for (i, x) in normalized_objects.iter().enumerate() {
+            normalized_name_obj_ind.entry(x).or_insert(Vec::new()).push(i);
+        }
+
+        let name_obj_ind: HashMap<&str, usize> =
+            body.objects.iter().enumerate().map(|(ind, name)| {
+                // Deref into string slice
+                let a: &str = name;
+                (a, ind)
+            }).collect();
+
+        let mut object_ind_attrs: HashMap<i32, HashMap<_, _>> = HashMap::new();
+        let mut object_ind_cache_id: HashMap<i32, i32> = HashMap::new();
+
+        for cache in body.net_cache.iter() {
+            let mut all_props: HashMap<i32, _> = cache.properties.iter()
+                .map(|x| (x.stream_id, attrs[x.object_ind as usize]))
+                .collect();
+
+            if let Entry::Vacant(e) = object_ind_cache_id.entry(cache.object_ind) {
+                e.insert(cache.cache_id);
+            } else {
+                return Err(format_err!("object ind: {} should not have more than one cache id", cache.object_ind));
+            }
+
+            // cache ids can occur multiple times
+            // If the class we are looking at appears in `PARENT_CLASSES` that has first priority
+            let object_name: &str = &*body.objects[cache.object_ind as usize];
+            if let Some(parent_name) = PARENT_CLASSES.get(object_name) {
+                if let Some(parent_ind) = name_obj_ind.get(parent_name) {
+                    if let Some(parent_attrs) = object_ind_attrs.get(&(*parent_ind as i32)) {
+                        all_props.extend(parent_attrs.iter());
+                    }
+                }
+            }
+
+            object_ind_attrs.insert(cache.object_ind, all_props);
+        }
+
+        for (obj, parent) in OBJECT_CLASSES.entries(){
+            // It's ok if an object class doesn't appear in our replay. For instance, basketball
+            // objects don't appear in a soccer replay.
+            if let Some(indices) = normalized_name_obj_ind.get(obj) {
+                let parent_ind = name_obj_ind.get(parent).ok_or_else(||
+                    format_err!("Replay contained object index: {} but not the parent class: {}",
+                        obj, parent))?; 
+
+                for i in indices {
+                    let parent_attrs: HashMap<_, _> = object_ind_attrs.get(&(*parent_ind as i32)).unwrap().clone();
+                    object_ind_attrs.insert((*i as i32), parent_attrs);
+                }
+            }
+        }
+
+        let object_ind_attributes: FnvHashMap<i32, CacheInfo> =
+            object_ind_attrs.iter().map(|(obj_ind, attrs)| {
+                let key = *obj_ind;
+                let max = *attrs.keys().max().unwrap_or(&2) + 1;
+                (key, CacheInfo { 
+                    max_prop_id: max,
+                    prop_id_bits: log2((max as u32).checked_next_power_of_two().unwrap()) as i32,
+                    attributes: attrs,
+                })
+            }).collect();
+
+        let color_ind = *name_obj_ind.get("TAGame.ProductAttribute_UserColor_TA").unwrap_or(&0) as u32;
+        let painted_ind = *name_obj_ind.get("TAGame.ProductAttribute_Painted_TA").unwrap_or(&0)  as u32;
+
+        // 1023 stolen from rattletrap
+        let channels = header.max_channels().unwrap_or(1023);
+        let channel_bits = log2((channels as u32).checked_next_power_of_two().unwrap()) as i32;
+        let num_frames = header.num_frames();
+
+        if let Some(frame_len) = num_frames {
+            let attr_decoder = AttributeDecoder::new(&header, color_ind, painted_ind);
+            let mut frames: Vec<Frame> = Vec::with_capacity(frame_len as usize);
+            let mut actors = FnvHashMap::default();
+            let mut bits = BitGet::new(body.network_data);
+
+            loop {
+                if bits.is_empty() {
+                    break;
+                }
+
+                let time = bits.read_f32_unchecked();
+                if time < 0.0 || (time > 0.0 && time < 1e-10) {
+                    bail!("Time too small");
+                }
+
+                let delta = bits.read_f32_unchecked();
+                if delta < 0.0 || (delta > 0.0 && delta < 1e-10) {
+                    bail!("Delta too small");
+                }
+
+                if time == 0.0 && delta == 0.0 {
+                    break;
+                }
+
+                let mut new_actors = Vec::new();
+                let mut updated_actors = Vec::new();
+                let mut deleted_actors = Vec::new();
+
+                while bits.read_bit_unchecked() {
+                    let actor_id = bits.read_i32_bits_unchecked(channel_bits);
+                    
+                    // alive
+                    if bits.read_bit_unchecked() {
+                        // new
+                        if bits.read_bit_unchecked() {
+                            let name_id = 
+                                if header.major_version > 868 || (header.major_version == 868 && header.minor_version >= 14) {
+                                    Some(bits.read_u32_unchecked() as i32)
+                                } else {
+                                    None
+                                };
+
+                            let _ = bits.read_bit_unchecked();
+                            let type_id = bits.read_u32_unchecked() as i32;
+                            
+                            actors.insert(actor_id, type_id);
+
+                            // fix index
+                            let traj = Trajectory::from_spawn_unchecked(&mut bits, spawns[type_id as usize]);
+                            new_actors.push(NewActor {
+                                actor_id: actor_id,
+                                object_ind: type_id,
+                                initial_trajectory: traj
+                            });
+
+                        } else {
+                            let type_id = actors.get(&actor_id).ok_or_else(|| format_err!("Actor id: {} was not found", actor_id))?;
+                            let cache_info = object_ind_attributes.get(type_id)
+                                .ok_or_else(|| format_err!("Actor id: {} of object index: {} ({}) but not attributes found",
+                                    actor_id,
+                                    type_id,
+                                    normalized_objects.get(*type_id as usize).unwrap_or(&"Out of bounds")))?;
+
+                            while bits.read_bit_unchecked() {
+                                let prop_id = bits.read_bits_max_unchecked(cache_info.prop_id_bits, cache_info.max_prop_id) as i32;
+                                assert!(prop_id < cache_info.max_prop_id);
+
+                                let attr = cache_info.attributes.get(&prop_id)
+                                    .ok_or_else(|| format_err!("Actor id: {} of object index: {} ({}) but attribute cache id: {} not found in {:?}",
+                                        actor_id,
+                                        type_id,
+                                        normalized_objects.get(*type_id as usize).unwrap_or(&"Out of bounds"),
+                                        prop_id,
+                                        cache_info.attributes.keys()))?;
+
+                                let attribute = attr(&attr_decoder, &mut bits); 
+                                updated_actors.push(UpdatedAttribute {
+                                    actor_id: actor_id,
+                                    attribute_id: prop_id,
+                                    attribute: attribute,
+                                });
+                            }
+                        }
+                    } else {
+                        deleted_actors.push(actor_id);
+                        actors.remove(&actor_id);
+                    }
+                }
+                
+                frames.push(Frame {
+                    time: time,
+                    delta: delta,
+                    new_actors: new_actors,
+                    deleted_actors: deleted_actors,
+                    updated_actors: updated_actors,
+                });
+            }
+
+            Ok(NetworkFrames { frames: frames })
+        } else {
+            Ok(NetworkFrames { frames: Vec::new() })
+        }
     }
 
     fn parse_header(&mut self) -> Result<Header<'a>, Error> {
@@ -299,9 +607,8 @@ impl<'a> Parser<'a> {
         let network_size = self.take(4, le_i32)
             .with_context(|e| self.err_str("network size", e))?;
 
-        let _network_data = self.view_data(network_size as usize)
+        let network_data = self.take(network_size as usize, |d| d)
             .with_context(|e| self.err_str("network data", e))?;
-        self.advance(network_size as usize);
 
         let debug_infos = self.parse_debuginfo()
             .with_context(|e| self.err_str("debug info", e))?;
@@ -331,6 +638,7 @@ impl<'a> Parser<'a> {
             names: names,
             class_indices: class_index,
             net_cache: net_cache,
+            network_data: network_data,
         })
     }
 
@@ -551,8 +859,8 @@ impl<'a> Parser<'a> {
     fn parse_cacheprop(&mut self) -> Result<Vec<CacheProp>, ParseError> {
         self.list_of(|s| {
             Ok(CacheProp {
-                index: s.take(4, le_i32)?,
-                id: s.take(4, le_i32)?,
+                object_ind: s.take(4, le_i32)?,
+                stream_id: s.take(4, le_i32)?,
             })
         })
     }
@@ -560,13 +868,25 @@ impl<'a> Parser<'a> {
     fn parse_classcache(&mut self) -> Result<Vec<ClassNetCache>, ParseError> {
         self.list_of(|x| {
             Ok(ClassNetCache {
-                index: x.take(4, le_i32)?,
+                object_ind: x.take(4, le_i32)?,
                 parent_id: x.take(4, le_i32)?,
-                id: x.take(4, le_i32)?,
+                cache_id: x.take(4, le_i32)?,
                 properties: x.parse_cacheprop()?,
             })
         })
     }
+}
+
+const MULTIPLY_DE_BRUIJN_BIT_POSITION2: [u32; 32] = 
+[
+  0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8, 
+  31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9
+];
+
+
+// https://graphics.stanford.edu/~seander/bithacks.html#IntegerLogDeBruijn
+fn log2(v: u32) -> u32 {
+	MULTIPLY_DE_BRUIJN_BIT_POSITION2[((v.wrapping_mul(0x077CB531)) >> 27) as usize]
 }
 
 /// Reads a string of a given size from the data. The size includes a null
@@ -582,7 +902,7 @@ fn decode_str(input: &[u8]) -> Result<&str, ParseError> {
     }
 }
 
-fn decode_utf16(input: &[u8]) -> Result<Cow<str>, ParseError> {
+pub fn decode_utf16(input: &[u8]) -> Result<Cow<str>, ParseError> {
     if input.len() < 2 {
         Err(ParseError::ZeroSize)
     } else {
@@ -591,7 +911,7 @@ fn decode_utf16(input: &[u8]) -> Result<Cow<str>, ParseError> {
     }
 }
 
-fn decode_windows1252(input: &[u8]) -> Result<Cow<str>, ParseError> {
+pub fn decode_windows1252(input: &[u8]) -> Result<Cow<str>, ParseError> {
     if input.is_empty() {
         Err(ParseError::ZeroSize)
     } else {
@@ -617,7 +937,7 @@ fn le_i64(d: &[u8]) -> i64 {
 
 #[cfg(test)]
 mod tests {
-    use super::{CrcCheck, Parser};
+    use super::{CrcCheck, Parser, NetworkParse};
     use errors::ParseError;
     use models::{HeaderProp, TickMark};
     use std::borrow::Cow;
@@ -626,7 +946,7 @@ mod tests {
     fn parse_text_encoding() {
         // dd skip=16 count=28 if=rumble.replay of=text.replay bs=1
         let data = include_bytes!("../assets/text.replay");
-        let mut parser = Parser::new(&data[..], CrcCheck::Never);
+        let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Never);
         assert_eq!(parser.parse_str().unwrap(), "TAGame.Replay_Soccar_TA");
     }
 
@@ -634,7 +954,7 @@ mod tests {
     fn parse_text_encoding_bad() {
         // dd skip=16 count=28 if=rumble.replay of=text.replay bs=1
         let data = include_bytes!("../assets/text.replay");
-        let mut parser = Parser::new(&data[..data.len() - 1], CrcCheck::Never);
+        let mut parser = Parser::new(&data[..data.len() - 1], CrcCheck::Never, NetworkParse::Never);
         let res = parser.parse_str();
         assert!(res.is_err());
         let error = res.unwrap_err();
@@ -643,7 +963,7 @@ mod tests {
 
     #[test]
     fn parse_text_zero_size() {
-        let mut parser = Parser::new(&[0, 0, 0, 0, 0], CrcCheck::Never);
+        let mut parser = Parser::new(&[0, 0, 0, 0, 0], CrcCheck::Never, NetworkParse::Never);
         let res = parser.parse_str();
         assert!(res.is_err());
         let error = res.unwrap_err();
@@ -655,7 +975,7 @@ mod tests {
         // Test for when there is not enough data to decode text length
         // dd skip=16 count=28 if=rumble.replay of=text.replay bs=1
         let data = include_bytes!("../assets/text.replay");
-        let mut parser = Parser::new(&data[..2], CrcCheck::Never);
+        let mut parser = Parser::new(&data[..2], CrcCheck::Never, NetworkParse::Never);
         let res = parser.parse_str();
         assert!(res.is_err());
         let error = res.unwrap_err();
@@ -666,7 +986,7 @@ mod tests {
     fn parse_utf16_string() {
         // dd skip=((0x120)) count=28 if=utf-16.replay of=utf-16-text.replay bs=1
         let data = include_bytes!("../assets/utf-16-text.replay");
-        let mut parser = Parser::new(&data[..], CrcCheck::Never);
+        let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Never);
         let res = parser.parse_text().unwrap();
         assert_eq!(res, "\u{2623}D[e]!v1zz\u{2623}");
     }
@@ -674,7 +994,7 @@ mod tests {
     #[test]
     fn test_windows1252_string() {
         let data = include_bytes!("../assets/windows_1252.replay");
-        let mut parser = Parser::new(&data[0x1ad..0x1c4], CrcCheck::Never);
+        let mut parser = Parser::new(&data[0x1ad..0x1c4], CrcCheck::Never, NetworkParse::Never);
         let res = parser.parse_text().unwrap();
         assert_eq!(res, "caudillman6000\u{b3}(2)");
     }
@@ -683,7 +1003,7 @@ mod tests {
     #[test]
     fn parse_invalid_utf16_string() {
         let data = [0xfd, 0xff, 0xff, 0xff, 0xd8, 0xd8, 0x00, 0x00, 0x00, 0x00];
-        let mut parser = Parser::new(&data[..], CrcCheck::Never);
+        let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Never);
         let res = parser.parse_text().unwrap();
         assert_eq!(res, "�\u{0}");
     }
@@ -691,7 +1011,7 @@ mod tests {
     #[test]
     fn rdict_no_elements() {
         let data = [0x05, 0x00, 0x00, 0x00, b'N', b'o', b'n', b'e', 0x00];
-        let mut parser = Parser::new(&data[..], CrcCheck::Never);
+        let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Never);
         let res = parser.parse_rdict().unwrap();
         assert_eq!(res, Vec::new());
     }
@@ -700,7 +1020,7 @@ mod tests {
     fn rdict_one_element() {
         // dd skip=$((0x1269)) count=$((0x12a8 - 0x1269)) if=rumble.replay of=rdict_one.replay bs=1
         let data = include_bytes!("../assets/rdict_one.replay");
-        let mut parser = Parser::new(&data[..], CrcCheck::Never);
+        let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Never);
         let res = parser.parse_rdict().unwrap();
         assert_eq!(
             res,
@@ -712,7 +1032,7 @@ mod tests {
     fn rdict_one_int_element() {
         // dd skip=$((0x250)) count=$((0x284 - 0x250)) if=rumble.replay of=rdict_int.replay bs=1
         let data = include_bytes!("../assets/rdict_int.replay");
-        let mut parser = Parser::new(&data[..], CrcCheck::Never);
+        let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Never);
         let res = parser.parse_rdict().unwrap();
         assert_eq!(res, vec![("PlayerTeam", HeaderProp::Int(0))]);
     }
@@ -721,7 +1041,7 @@ mod tests {
     fn rdict_one_bool_element() {
         // dd skip=$((0xa0f)) count=$((0xa3b - 0xa0f)) if=rumble.replay of=rdict_bool.replay bs=1
         let data = include_bytes!("../assets/rdict_bool.replay");
-        let mut parser = Parser::new(&data[..], CrcCheck::Never);
+        let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Never);
         let res = parser.parse_rdict().unwrap();
         assert_eq!(res, vec![("bBot", HeaderProp::Bool(false))]);
     }
@@ -738,7 +1058,7 @@ mod tests {
     fn rdict_one_name_element() {
         // dd skip=$((0x1237)) count=$((0x1269 - 0x1237)) if=rumble.replay of=rdict_name.replay bs=1
         let data = append_none(include_bytes!("../assets/rdict_name.replay"));
-        let mut parser = Parser::new(&data[..], CrcCheck::Never);
+        let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Never);
         let res = parser.parse_rdict().unwrap();
         assert_eq!(
             res,
@@ -750,7 +1070,7 @@ mod tests {
     fn rdict_one_float_element() {
         // dd skip=$((0x10a2)) count=$((0x10ce - 0x10a2)) if=rumble.replay of=rdict_float.replay bs=1
         let data = append_none(include_bytes!("../assets/rdict_float.replay"));
-        let mut parser = Parser::new(&data[..], CrcCheck::Never);
+        let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Never);
         let res = parser.parse_rdict().unwrap();
         assert_eq!(res, vec![("RecordFPS", HeaderProp::Float(30.0))]);
     }
@@ -759,7 +1079,7 @@ mod tests {
     fn rdict_one_qword_element() {
         // dd skip=$((0x576)) count=$((0x5a5 - 0x576)) if=rumble.replay of=rdict_qword.replay bs=1
         let data = append_none(include_bytes!("../assets/rdict_qword.replay"));
-        let mut parser = Parser::new(&data[..], CrcCheck::Never);
+        let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Never);
         let res = parser.parse_rdict().unwrap();
         assert_eq!(
             res,
@@ -771,7 +1091,7 @@ mod tests {
     fn rdict_one_array_element() {
         // dd skip=$((0xab)) count=$((0x3f7 + 36)) if=rumble.replay of=rdict_array.replay bs=1
         let data = append_none(include_bytes!("../assets/rdict_array.replay"));
-        let mut parser = Parser::new(&data[..], CrcCheck::Never);
+        let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Never);
         let res = parser.parse_rdict().unwrap();
         let expected = vec![
             vec![
@@ -823,7 +1143,7 @@ mod tests {
     fn rdict_one_byte_element() {
         // dd skip=$((0xdf0)) count=$((0xe41 - 0xdf0)) if=rumble.replay of=rdict_byte.replay bs=1
         let data = append_none(include_bytes!("../assets/rdict_byte.replay"));
-        let mut parser = Parser::new(&data[..], CrcCheck::Never);
+        let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Never);
         let res = parser.parse_rdict().unwrap();
         assert_eq!(res, vec![("Platform", HeaderProp::Byte)]);
     }
@@ -833,7 +1153,7 @@ mod tests {
         let data = include_bytes!("../assets/rumble.replay");
 
         // List is 2A long, each keyframe is 12 bytes. Then add four for list length = 508
-        let mut parser = Parser::new(&data[0x12ca..0x12ca + 508], CrcCheck::Never);
+        let mut parser = Parser::new(&data[0x12ca..0x12ca + 508], CrcCheck::Never, NetworkParse::Never);
         let frames = parser.parse_keyframe().unwrap();
         assert_eq!(frames.len(), 42);
     }
@@ -843,7 +1163,7 @@ mod tests {
         let data = include_bytes!("../assets/rumble.replay");
 
         // 7 tick marks at 8 bytes + size of tick list
-        let mut parser = Parser::new(&data[0xf6cce..0xf6d50], CrcCheck::Never);
+        let mut parser = Parser::new(&data[0xf6cce..0xf6d50], CrcCheck::Never, NetworkParse::Never);
         let ticks = parser.parse_tickmarks().unwrap();
 
         assert_eq!(ticks.len(), 7);
@@ -859,34 +1179,34 @@ mod tests {
     #[test]
     fn test_the_whole_shebang() {
         let data = include_bytes!("../assets/rumble.replay");
-        let mut parser = Parser::new(&data[..], CrcCheck::Never);
+        let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Never);
         assert!(parser.parse().is_ok())
     }
 
     #[test]
     fn test_the_parsing_empty() {
-        let mut parser = Parser::new(&[], CrcCheck::Never);
+        let mut parser = Parser::new(&[], CrcCheck::Never, NetworkParse::Never);
         assert!(parser.parse().is_err());
     }
 
     #[test]
     fn test_the_parsing_text_too_long() {
         let data = include_bytes!("../assets/fuzz-string-too-long.replay");
-        let mut parser = Parser::new(&data[..], CrcCheck::Never);
+        let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Never);
         assert!(parser.parse().is_err())
     }
 
     #[test]
     fn test_the_fuzz_corpus_abs_panic() {
         let data = include_bytes!("../assets/fuzz-corpus.replay");
-        let mut parser = Parser::new(&data[..], CrcCheck::Never);
+        let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Never);
         assert!(parser.parse().is_err())
     }
 
     #[test]
     fn test_the_fuzz_corpus_large_list() {
         let data = include_bytes!("../assets/fuzz-list-too-large.replay");
-        let mut parser = Parser::new(&data[..], CrcCheck::Never);
+        let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Never);
         let err = parser.parse().unwrap_err();
         assert!(
             format!("{}", err).starts_with(
@@ -898,7 +1218,7 @@ mod tests {
     #[test]
     fn test_the_fuzz_corpus_large_list_on_error_crc() {
         let data = include_bytes!("../assets/fuzz-list-too-large.replay");
-        let mut parser = Parser::new(&data[..], CrcCheck::OnError);
+        let mut parser = Parser::new(&data[..], CrcCheck::OnError, NetworkParse::Never);
         let err = parser.parse().unwrap_err();
         assert_eq!(
             "Failed to parse body and crc check failed. Replay is corrupt",
@@ -915,7 +1235,7 @@ mod tests {
     #[test]
     fn test_the_fuzz_corpus_large_list_always_crc() {
         let data = include_bytes!("../assets/fuzz-list-too-large.replay");
-        let mut parser = Parser::new(&data[..], CrcCheck::Always);
+        let mut parser = Parser::new(&data[..], CrcCheck::Always, NetworkParse::Never);
         let err = parser.parse().unwrap_err();
         assert_eq!(
             "Crc mismatch. Expected 3765941959 but received 1314727725",
@@ -927,17 +1247,41 @@ mod tests {
     #[test]
     fn test_the_whole_shebang_with_crc() {
         let data = include_bytes!("../assets/rumble.replay");
-        let mut parser = Parser::new(&data[..], CrcCheck::Always);
+        let mut parser = Parser::new(&data[..], CrcCheck::Always, NetworkParse::Never);
         assert!(parser.parse().is_ok())
     }
 
     #[test]
     fn test_net_version() {
         let data = include_bytes!("../assets/netversion.replay");
-        let mut parser = Parser::new(&data[8..], CrcCheck::Always);
+        let mut parser = Parser::new(&data[8..], CrcCheck::Always, NetworkParse::Never);
         let header = parser.parse_header().unwrap();
         assert_eq!(header.major_version, 868);
         assert_eq!(header.net_version, Some(2));
+    }
+
+/*    #[test]
+    fn test_no_frames() {
+        let data = include_bytes!("../assets/no-frames.replay");
+        let mut parser = Parser::new(&data[..], CrcCheck::Always, NetworkParse::Always);
+        let replay = parser.parse().unwrap();
+        let expected: Vec<i32> = Vec::new();
+        assert_eq!(replay.network_frames.unwrap().frames, expected);
+    }*/
+
+    #[test]
+    fn test_small_frames() {
+        let data = include_bytes!("../assets/small-frames.replay");
+        let mut parser = Parser::new(&data[..], CrcCheck::Always, NetworkParse::Always);
+        let replay = parser.parse().unwrap();
+        assert_eq!(replay.network_frames.unwrap().frames.len(), 231);
+    }
+
+    #[test]
+    fn test_rumble_body() {
+        let data = include_bytes!("../assets/rumble.replay");
+        let mut parser = Parser::new(&data[..], CrcCheck::Always, NetworkParse::Always);
+        assert!(parser.parse().is_ok());
     }
 
     #[test]
@@ -946,7 +1290,7 @@ mod tests {
 
         // Changing this byte won't make the parsing fail but will make the crc check fail
         data[4775] = 100;
-        let mut parser = Parser::new(&data[..], CrcCheck::Always);
+        let mut parser = Parser::new(&data[..], CrcCheck::Always, NetworkParse::Never);
         let res = parser.parse();
         assert!(res.is_err());
         assert_eq!(
@@ -954,7 +1298,7 @@ mod tests {
             format!("{}", res.unwrap_err())
         );
 
-        parser = Parser::new(&data[..], CrcCheck::OnError);
+        parser = Parser::new(&data[..], CrcCheck::OnError, NetworkParse::Never);
         assert!(parser.parse().is_ok());
     }
 }

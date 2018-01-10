@@ -13,6 +13,7 @@ use serde::{Serialize, Serializer};
 use serde::ser::{SerializeMap, SerializeSeq};
 use std::collections::HashMap;
 use std::borrow::Cow;
+use network::Frame;
 
 /// The structure that a rocket league replay is parsed into.
 #[derive(Serialize, PartialEq, Debug)]
@@ -30,6 +31,7 @@ pub struct Replay<'a> {
     pub properties: Vec<(&'a str, HeaderProp<'a>)>,
     pub content_size: i32,
     pub content_crc: i32,
+    pub network_frames: Option<NetworkFrames>,
     pub levels: Vec<Cow<'a, str>>,
     pub keyframes: Vec<KeyFrame>,
     pub debug_info: Vec<DebugInfo<'a>>,
@@ -39,6 +41,11 @@ pub struct Replay<'a> {
     pub names: Vec<Cow<'a, str>>,
     pub class_indices: Vec<ClassIndex<'a>>,
     pub net_cache: Vec<ClassNetCache>,
+}
+
+#[derive(Serialize, PartialEq, Debug)]
+pub struct NetworkFrames {
+    pub frames: Vec<Frame>,
 }
 
 /// In Rocket league replays, there are tickmarks that typically represent a significant event in
@@ -99,16 +106,16 @@ pub struct ClassIndex<'a> {
 /// Contains useful information when decoding the network stream, which we aren't
 #[derive(Serialize, PartialEq, Debug)]
 pub struct CacheProp {
-    pub index: i32,
-    pub id: i32,
+    pub object_ind: i32,
+    pub stream_id: i32,
 }
 
 /// Contains useful information when decoding the network stream, which we aren't
 #[derive(Serialize, PartialEq, Debug)]
 pub struct ClassNetCache {
-    pub index: i32,
+    pub object_ind: i32,
     pub parent_id: i32,
-    pub id: i32,
+    pub cache_id: i32,
     pub properties: Vec<CacheProp>,
 }
 
