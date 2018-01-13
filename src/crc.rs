@@ -58,4 +58,9 @@ mod tests {
         let data = include_bytes!("../assets/rumble.replay");
         assert_eq!(calc_crc(&data[..]), 2034487435);
     }
+
+    #[test]
+    fn single_byte_test() {
+        assert_eq!(calc_crc(&[0xa0]), 0x76cc8c81);
+    }
 }
