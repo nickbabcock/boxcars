@@ -324,22 +324,22 @@ impl<'a> Parser<'a> {
 
 		let spawns: Vec<SpawnTrajectory> = 
             body.objects.iter()
-                .map(|x| {
-                    SPAWN_STATS.get(x.deref()).map(|v| *v).unwrap_or(SpawnTrajectory::None)
-                })
+                .map(|x|
+                    SPAWN_STATS.get(x.deref()).cloned().unwrap_or(SpawnTrajectory::None)
+                )
                 .collect();
 
         let attrs: Vec<_> =
             normalized_objects.iter()
-                .map(|x| {
-                    ATTRIBUTES.get(x.deref()).map(|v| *v).unwrap_or(AttributeDecoder::decode_not_implemented)
-                })
+                .map(|x|
+                    ATTRIBUTES.get(x.deref()).cloned().unwrap_or(AttributeDecoder::decode_not_implemented)
+                )
                 .collect();
 
 
         let mut normalized_name_obj_ind: HashMap<&str, Vec<usize>> = HashMap::new();
         for (i, x) in normalized_objects.iter().enumerate() {
-            normalized_name_obj_ind.entry(x).or_insert(Vec::new()).push(i);
+            normalized_name_obj_ind.entry(x).or_insert_with(Vec::new).push(i);
         }
 
         let name_obj_ind: HashMap<&str, usize> =
@@ -350,7 +350,7 @@ impl<'a> Parser<'a> {
         let mut object_ind_attrs: HashMap<i32, HashMap<_, _>> = HashMap::new();
         let mut object_ind_cache_id: HashMap<i32, i32> = HashMap::new();
 
-        for cache in body.net_cache.iter() {
+        for cache in &body.net_cache {
             let mut all_props: HashMap<i32, _> = cache.properties.iter()
                 .map(|x| (x.stream_id, attrs[x.object_ind as usize]))
                 .collect();
@@ -410,7 +410,7 @@ impl<'a> Parser<'a> {
         let num_frames = header.num_frames();
 
         if let Some(frame_len) = num_frames {
-            let attr_decoder = AttributeDecoder::new(&header, color_ind, painted_ind);
+            let attr_decoder = AttributeDecoder::new(header, color_ind, painted_ind);
             let mut frames: Vec<Frame> = Vec::with_capacity(frame_len as usize);
             let mut actors = FnvHashMap::default();
             let mut bits = BitGet::new(body.network_data);
