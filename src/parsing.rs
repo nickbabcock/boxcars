@@ -1242,14 +1242,14 @@ mod tests {
         assert_eq!(header.net_version, Some(2));
     }
 
-/*    #[test]
+    #[test]
     fn test_no_frames() {
         let data = include_bytes!("../assets/no-frames.replay");
         let mut parser = Parser::new(&data[..], CrcCheck::Always, NetworkParse::Always);
         let replay = parser.parse().unwrap();
-        let expected: Vec<i32> = Vec::new();
+        let expected: Vec<_> = Vec::new();
         assert_eq!(replay.network_frames.unwrap().frames, expected);
-    }*/
+    }
 
     #[test]
     fn test_small_frames() {
