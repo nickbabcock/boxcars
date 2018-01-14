@@ -107,8 +107,8 @@ impl<'a> BitGet<'a> {
             self.read_unchecked();
             let had_read = 64 - shifted;
             let to_read = bits - had_read;
-            let big = ((self.current >> self.position << had_read) as u32)
-                & BIT_MASKS[bits as usize];
+            let big =
+                ((self.current >> self.position << had_read) as u32) & BIT_MASKS[bits as usize];
             self.position += to_read;
             big + little
         } else {
@@ -131,8 +131,8 @@ impl<'a> BitGet<'a> {
             self.read().map(|_| {
                 let had_read = 64 - shifted;
                 let to_read = bits - had_read;
-                let big = ((self.current >> self.position << had_read) as u32)
-                    & BIT_MASKS[bits as usize];
+                let big =
+                    ((self.current >> self.position << had_read) as u32) & BIT_MASKS[bits as usize];
                 self.position += to_read;
                 big + little
             })
@@ -540,9 +540,10 @@ mod tests {
 
     #[test]
     fn test_u32_bits_unchecked2() {
-        let mut bitter = BitGet::new(&[0x9c, 0x73, 0xce, 0x39, 0xe7,
-                                       0x9c, 0x73, 0xce, 0x39, 0xe7,
-                                       0x9c, 0x73, 0xce, 0x39, 0xe7]);
+        let mut bitter = BitGet::new(&[
+            0x9c, 0x73, 0xce, 0x39, 0xe7, 0x9c, 0x73, 0xce, 0x39, 0xe7, 0x9c, 0x73, 0xce, 0x39,
+            0xe7,
+        ]);
         for _ in 0..10 {
             assert_eq!(bitter.read_u32_bits_unchecked(5), 28);
         }
@@ -550,9 +551,10 @@ mod tests {
 
     #[test]
     fn test_u32_bits2() {
-        let mut bitter = BitGet::new(&[0x9c, 0x73, 0xce, 0x39, 0xe7,
-                                       0x9c, 0x73, 0xce, 0x39, 0xe7,
-                                       0x9c, 0x73, 0xce, 0x39, 0xe7]);
+        let mut bitter = BitGet::new(&[
+            0x9c, 0x73, 0xce, 0x39, 0xe7, 0x9c, 0x73, 0xce, 0x39, 0xe7, 0x9c, 0x73, 0xce, 0x39,
+            0xe7,
+        ]);
         for _ in 0..10 {
             assert_eq!(bitter.read_u32_bits(5), Some(28));
         }
