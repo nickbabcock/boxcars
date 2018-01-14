@@ -68,6 +68,7 @@ use attributes::{AttributeDecoder, Attribute};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use fnv::FnvHashMap;
+use std::ops::Deref;
 
 /// Determines under what circumstances the parser should perform the crc check for replay
 /// corruption. Since the crc check is the most time consuming check for parsing (causing
@@ -317,26 +318,21 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_network(&mut self, header: &Header, body: &ReplayBody) -> Result<NetworkFrames, Error> {
-        let normalized_objects: Vec<&str> = body.objects.iter().map(|x| {
-            let name: &str = x;
-            normalize_object(name)
-        }).collect();
+        let normalized_objects: Vec<&str> = body.objects.iter().map(|x|
+            normalize_object(x.deref())
+        ).collect();
 
 		let spawns: Vec<SpawnTrajectory> = 
             body.objects.iter()
                 .map(|x| {
-                    // Deref into string slice
-                    let a: &str = x;
-                    SPAWN_STATS.get(a).map(|v| *v).unwrap_or(SpawnTrajectory::None)
+                    SPAWN_STATS.get(x.deref()).map(|v| *v).unwrap_or(SpawnTrajectory::None)
                 })
                 .collect();
 
         let attrs: Vec<_> =
             normalized_objects.iter()
                 .map(|x| {
-                    // Deref into string slice
-                    let a: &str = x;
-                    ATTRIBUTES.get(a).map(|v| *v).unwrap_or(AttributeDecoder::decode_not_implemented)
+                    ATTRIBUTES.get(x.deref()).map(|v| *v).unwrap_or(AttributeDecoder::decode_not_implemented)
                 })
                 .collect();
 
@@ -347,11 +343,9 @@ impl<'a> Parser<'a> {
         }
 
         let name_obj_ind: HashMap<&str, usize> =
-            body.objects.iter().enumerate().map(|(ind, name)| {
-                // Deref into string slice
-                let a: &str = name;
-                (a, ind)
-            }).collect();
+            body.objects.iter().enumerate().map(|(ind, name)|
+                (name.deref(), ind)
+            ).collect();
 
         let mut object_ind_attrs: HashMap<i32, HashMap<_, _>> = HashMap::new();
         let mut object_ind_cache_id: HashMap<i32, i32> = HashMap::new();
