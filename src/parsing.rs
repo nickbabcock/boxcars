@@ -66,7 +66,6 @@ use {SPAWN_STATS, ATTRIBUTES, OBJECT_CLASSES, PARENT_CLASSES};
 use network::{SpawnTrajectory, NewActor, Trajectory, UpdatedAttribute, Frame, normalize_object};
 use attributes::{AttributeDecoder, Attribute};
 use std::collections::HashMap;
-use std::collections::hash_map::Entry;
 use fnv::FnvHashMap;
 use std::ops::Deref;
 
@@ -350,18 +349,11 @@ impl<'a> Parser<'a> {
             ).collect();
 
         let mut object_ind_attrs: HashMap<i32, HashMap<_, _>> = HashMap::new();
-        let mut object_ind_cache_id: HashMap<i32, i32> = HashMap::new();
 
         for cache in &body.net_cache {
             let mut all_props: HashMap<i32, _> = cache.properties.iter()
                 .map(|x| (x.stream_id, attrs[x.object_ind as usize]))
                 .collect();
-
-            if let Entry::Vacant(e) = object_ind_cache_id.entry(cache.object_ind) {
-                e.insert(cache.cache_id);
-            } else {
-                return Err(format_err!("object ind: {} should not have more than one cache id", cache.object_ind));
-            }
 
             // cache ids can occur multiple times
             // If the class we are looking at appears in `PARENT_CLASSES` that has first priority
