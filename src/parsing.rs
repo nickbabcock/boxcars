@@ -63,7 +63,7 @@ use failure::{Error, ResultExt};
 use byteorder::{ByteOrder, LittleEndian};
 use bitter::BitGet;
 use {SPAWN_STATS, ATTRIBUTES, OBJECT_CLASSES, PARENT_CLASSES};
-use network::{SpawnTrajectory, NewActor, Trajectory, UpdatedAttribute, Frame};
+use network::{SpawnTrajectory, NewActor, Trajectory, UpdatedAttribute, Frame, normalize_object};
 use attributes::{AttributeDecoder, Attribute};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
@@ -318,20 +318,8 @@ impl<'a> Parser<'a> {
 
     fn parse_network(&mut self, header: &Header, body: &ReplayBody) -> Result<NetworkFrames, Error> {
         let normalized_objects: Vec<&str> = body.objects.iter().map(|x| {
-            let a: &str = x;
-            if a.contains("TheWorld:PersistentLevel.CrowdActor_TA") {
-                "TheWorld:PersistentLevel.CrowdActor_TA"
-            } else if a.contains("TheWorld:PersistentLevel.CrowdManager_TA") {
-                "TheWorld:PersistentLevel.CrowdManager_TA"
-            } else if a.contains("TheWorld:PersistentLevel.VehiclePickup_Boost_TA") {
-                "TheWorld:PersistentLevel.VehiclePickup_Boost_TA"
-            } else if a.contains("TheWorld:PersistentLevel.InMapScoreboard_TA") {
-                "TheWorld:PersistentLevel.InMapScoreboard_TA"
-            } else if a.contains("TheWorld:PersistentLevel.BreakOutActor_Platform_TA") {
-                "TheWorld:PersistentLevel.BreakOutActor_Platform_TA"
-            } else {
-                a
-            }
+            let name: &str = x;
+            normalize_object(name)
         }).collect();
 
 		let spawns: Vec<SpawnTrajectory> = 
