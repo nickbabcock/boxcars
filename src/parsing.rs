@@ -318,6 +318,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_network(&mut self, header: &Header, body: &ReplayBody) -> Result<NetworkFrames, Error> {
+        // Create a parallel vector where each object has it's name normalized
         let normalized_objects: Vec<&str> = body.objects.iter().map(|x|
             normalize_object(x.deref())
         ).collect();
@@ -336,7 +337,8 @@ impl<'a> Parser<'a> {
                 )
                 .collect();
 
-
+        // Create a map of an object's normalized name to a list of indices in the object
+        // vector that have that same normalized name
         let mut normalized_name_obj_ind: HashMap<&str, Vec<usize>> = HashMap::new();
         for (i, x) in normalized_objects.iter().enumerate() {
             normalized_name_obj_ind.entry(x).or_insert_with(Vec::new).push(i);
