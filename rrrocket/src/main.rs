@@ -12,7 +12,7 @@ use std::fs::{File, OpenOptions};
 use std::io::{self, BufWriter};
 use std::io::prelude::*;
 use rayon::prelude::*;
-use boxcars::{CrcCheck, ParserBuilder, NetworkParse};
+use boxcars::{CrcCheck, NetworkParse, ParserBuilder};
 
 #[derive(StructOpt, Debug, Clone, PartialEq)]
 #[structopt(name = "rrrocket", about = "Parses Rocket League replay files and writes a .json file with the decoded information")]
@@ -49,8 +49,7 @@ fn run() -> Result<(), Error> {
                 .with_context(|e| {
                     format!(
                         "Could not open json output file: {} with error: {}",
-                        outfile,
-                        e
+                        outfile, e
                     )
                 })?;
             let mut writer = BufWriter::new(fout);
