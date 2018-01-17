@@ -18,9 +18,17 @@ git = "https://github.com/rust-fuzz/libfuzzer-sys.git"
 members = ["."]
 
 [[bin]]
-name = "check-crc"
-path = "fuzz_targets/check-crc.rs"
+name = "crc-body"
+path = "fuzz_targets/crc-body.rs"
 
 [[bin]]
-name = "no-check-crc"
-path = "fuzz_targets/no-check-crc.rs"
+name = "no-crc-body"
+path = "fuzz_targets/no-crc-body.rs"
+
+[[bin]]
+name = "crc-no-body"
+path = "fuzz_targets/crc-no-body.rs"
+
+[[bin]]
+name = "no-crc-no-body"
+path = "fuzz_targets/no-crc-no-body.rs"
