@@ -5,3 +5,10 @@ authors = ["Nick Babcock <nbabcock19@hotmail.com>"]
 
 [dependencies]
 byteorder = "1"
+
+[[bench]]
+name = "bitget"
+harness = false
+
+[dev-dependencies]
+criterion = "0.1.2"
