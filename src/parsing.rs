@@ -756,19 +756,19 @@ impl<'a> Parser<'a> {
 
     fn byte_property(&mut self) -> Result<HeaderProp<'a>, ParseError> {
         // It's unknown (to me at least) why the byte property has two strings in it.
-        self.advance(8);
+        self.take(8, |_d| ())?;
         self.parse_str()?;
         self.parse_str()?;
         Ok(HeaderProp::Byte)
     }
 
     fn str_property(&mut self) -> Result<HeaderProp<'a>, ParseError> {
-        self.advance(8);
+        self.take(8, |_d| ())?;
         Ok(HeaderProp::Str(self.parse_text()?))
     }
 
     fn name_property(&mut self) -> Result<HeaderProp<'a>, ParseError> {
-        self.advance(8);
+        self.take(8, |_d| ())?;
         Ok(HeaderProp::Name(self.parse_text()?))
     }
 
@@ -1168,6 +1168,13 @@ mod tests {
     #[test]
     fn test_the_parsing_text_too_long() {
         let data = include_bytes!("../assets/fuzz-string-too-long.replay");
+        let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Never);
+        assert!(parser.parse().is_err())
+    }
+
+    #[test]
+    fn test_fuzz_corpus_slice_index() {
+        let data = include_bytes!("../assets/fuzz-slice-index.replay");
         let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Never);
         assert!(parser.parse().is_err())
     }
