@@ -1,6 +1,6 @@
+extern crate bitter;
 #[macro_use]
 extern crate criterion;
-extern crate bitter;
 
 use criterion::{black_box, Criterion};
 use bitter::BitGet;
@@ -73,7 +73,8 @@ fn bench_read_f32_unchecked(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches,
+criterion_group!(
+    benches,
     bench_read_u32_bits_unchecked,
     bench_read_u32_bits_checked,
     bench_read_u8_unchecked,
