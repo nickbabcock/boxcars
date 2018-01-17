@@ -17,10 +17,10 @@ use boxcars::{CrcCheck, NetworkParse, ParserBuilder};
 #[derive(StructOpt, Debug, Clone, PartialEq)]
 #[structopt(name = "rrrocket", about = "Parses Rocket League replay files and writes a .json file with the decoded information")]
 struct Opt {
-    #[structopt(short = "c", long = "crc-check", help = "validate replay is not corrupt")]
+    #[structopt(short = "c", long = "crc-check", help = "forces a crc check for corruption even when replay was successfully parsed")]
     crc: bool,
 
-    #[structopt(short = "n", long = "network-parse", help = "parses the network data of a replay")]
+    #[structopt(short = "n", long = "network-parse", help = "parses the network data of a replay instead of skipping it")]
     body: bool,
 
     #[structopt(help = "Rocket League replay files")] input: Vec<String>,
