@@ -57,7 +57,7 @@
 use encoding_rs::{UTF_16LE, WINDOWS_1252};
 use models::*;
 use crc::calc_crc;
-use errors::ParseError;
+use errors::{ParseError, AttributeError};
 use std::borrow::Cow;
 use failure::{Error, ResultExt};
 use byteorder::{ByteOrder, LittleEndian};
@@ -221,7 +221,7 @@ impl<'a> ParserBuilder<'a> {
 struct CacheInfo<'a> {
     max_prop_id: i32,
     prop_id_bits: i32,
-    attributes: &'a HashMap<i32, fn(&AttributeDecoder, &mut BitGet) -> Attribute>,
+    attributes: &'a HashMap<i32, fn(&AttributeDecoder, &mut BitGet) -> Result<Attribute, AttributeError>>,
 }
 
 
@@ -479,7 +479,7 @@ impl<'a> Parser<'a> {
                                         prop_id,
                                         cache_info.attributes.keys()))?;
 
-                                let attribute = attr(&attr_decoder, &mut bits); 
+                                let attribute = attr(&attr_decoder, &mut bits).unwrap(); 
                                 updated_actors.push(UpdatedAttribute {
                                     actor_id: actor_id,
                                     attribute_id: prop_id,
