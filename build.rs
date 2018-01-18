@@ -10,6 +10,7 @@ fn main() {
     let mut file = BufWriter::new(File::create(&path).unwrap());
 
     write!(&mut file, "use attributes::{{Attribute, AttributeDecoder}};\n ").unwrap();
+    write!(&mut file, "use errors::AttributeError;\n ").unwrap();
     write!(&mut file, "use bitter::BitGet;\n ").unwrap();
 
     write!(&mut file, "static SPAWN_STATS: phf::Map<&'static str, SpawnTrajectory> = ").unwrap();
@@ -101,7 +102,7 @@ fn main() {
     write!(&mut file, ";\n").unwrap();
 
 
-    write!(&mut file, "static ATTRIBUTES: phf::Map<&'static str, fn(&AttributeDecoder, &mut BitGet) -> Attribute> = ").unwrap();
+    write!(&mut file, "static ATTRIBUTES: phf::Map<&'static str, fn(&AttributeDecoder, &mut BitGet) -> Result<Attribute, AttributeError>> = ").unwrap();
     phf_codegen::Map::new()
         .entry("Engine.Actor:bBlockActors", "AttributeDecoder::decode_boolean")
         .entry("Engine.Actor:bCollideActors", "AttributeDecoder::decode_boolean")

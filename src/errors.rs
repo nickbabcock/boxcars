@@ -23,3 +23,15 @@ impl From<str::Utf8Error> for ParseError {
         ParseError::Utf8Error(error)
     }
 }
+
+#[derive(PartialEq, Debug, Clone, Fail)]
+pub enum AttributeError {
+    #[fail(display = "Not enough data to decode attribute {}", _0)]
+    NotEnoughDataFor(&'static str),
+
+    #[fail(display = "Unrecognized remote id of {}", _0)]
+    UnrecognizedRemoteId(u8),
+
+    #[fail(display = "Does not have an attribute implementation")]
+    Unimplemented,
+}
