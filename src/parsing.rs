@@ -505,7 +505,7 @@ impl<'a> Parser<'a> {
                 }
 
                 let delta = bits.read_f32()
-                    .ok_or_else(|| NetworkError::NotEnoughDataFor("Time"))?;
+                    .ok_or_else(|| NetworkError::NotEnoughDataFor("Delta"))?;
 
                 if delta < 0.0 || (delta > 0.0 && delta < 1e-10) {
                     return Err(NetworkError::DeltaOutOfRange(time))?;
