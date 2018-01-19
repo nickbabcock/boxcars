@@ -9,9 +9,7 @@ fn main() {
     let path = Path::new(&env::var("OUT_DIR").unwrap()).join("generated.rs");
     let mut file = BufWriter::new(File::create(&path).unwrap());
 
-    write!(&mut file, "use attributes::{{Attribute, AttributeDecoder}};\n ").unwrap();
-    write!(&mut file, "use errors::AttributeError;\n ").unwrap();
-    write!(&mut file, "use bitter::BitGet;\n ").unwrap();
+    write!(&mut file, "use attributes::{{AttributeDecoder, AttributeDecodeFn}};\n ").unwrap();
 
     write!(&mut file, "static SPAWN_STATS: phf::Map<&'static str, SpawnTrajectory> = ").unwrap();
     phf_codegen::Map::new()
@@ -102,7 +100,7 @@ fn main() {
     write!(&mut file, ";\n").unwrap();
 
 
-    write!(&mut file, "static ATTRIBUTES: phf::Map<&'static str, fn(&AttributeDecoder, &mut BitGet) -> Result<Attribute, AttributeError>> = ").unwrap();
+    write!(&mut file, "static ATTRIBUTES: phf::Map<&'static str, AttributeDecodeFn> = ").unwrap();
     phf_codegen::Map::new()
         .entry("Engine.Actor:bBlockActors", "AttributeDecoder::decode_boolean")
         .entry("Engine.Actor:bCollideActors", "AttributeDecoder::decode_boolean")

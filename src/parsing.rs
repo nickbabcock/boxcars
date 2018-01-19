@@ -57,14 +57,14 @@
 use encoding_rs::{UTF_16LE, WINDOWS_1252};
 use models::*;
 use crc::calc_crc;
-use errors::{AttributeError, NetworkError, ParseError};
+use errors::{NetworkError, ParseError};
 use std::borrow::Cow;
 use failure::{Error, ResultExt};
 use byteorder::{ByteOrder, LittleEndian};
 use bitter::BitGet;
 use {ATTRIBUTES, OBJECT_CLASSES, PARENT_CLASSES, SPAWN_STATS};
 use network::{normalize_object, Frame, NewActor, SpawnTrajectory, Trajectory, UpdatedAttribute};
-use attributes::{Attribute, AttributeDecoder};
+use attributes::{AttributeDecoder, AttributeDecodeFn};
 use std::collections::HashMap;
 use fnv::FnvHashMap;
 use std::ops::Deref;
@@ -227,8 +227,7 @@ impl<'a> ParserBuilder<'a> {
 struct CacheInfo<'a> {
     max_prop_id: i32,
     prop_id_bits: i32,
-    attributes:
-        &'a HashMap<i32, fn(&AttributeDecoder, &mut BitGet) -> Result<Attribute, AttributeError>>,
+    attributes: &'a HashMap<i32, AttributeDecodeFn>,
 }
 
 /// Holds the current state of parsing a replay
