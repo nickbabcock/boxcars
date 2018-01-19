@@ -35,3 +35,15 @@ pub enum AttributeError {
     #[fail(display = "Does not have an attribute implementation")]
     Unimplemented,
 }
+
+#[derive(PartialEq, Debug, Clone, Fail)]
+pub enum NetworkError {
+    #[fail(display = "Not enough data to decode {}", _0)]
+    NotEnoughDataFor(&'static str),
+
+    #[fail(display = "Time is out of range: {}", _0)]
+    TimeOutOfRange(f32),
+
+    #[fail(display = "Delta is out of range: {}", _0)]
+    DeltaOutOfRange(f32),  
+}

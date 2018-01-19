@@ -95,6 +95,10 @@ impl<'a> BitGet<'a> {
         self.read_u32_bits_unchecked(bits) as i32
     }
 
+    pub fn read_i32_bits(&mut self, bits: i32) -> Option<i32> {
+        self.read_u32_bits(bits).map(|x| x as i32)
+    }
+
     /// Assumes that the number of bits are available in the bitstream and reads them into a u32
     pub fn read_u32_bits_unchecked(&mut self, bits: i32) -> u32 {
         if self.position <= 64 - bits {

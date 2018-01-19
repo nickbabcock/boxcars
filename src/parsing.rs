@@ -57,7 +57,7 @@
 use encoding_rs::{UTF_16LE, WINDOWS_1252};
 use models::*;
 use crc::calc_crc;
-use errors::{ParseError, AttributeError};
+use errors::{ParseError, AttributeError, NetworkError};
 use std::borrow::Cow;
 use failure::{Error, ResultExt};
 use byteorder::{ByteOrder, LittleEndian};
@@ -414,14 +414,18 @@ impl<'a> Parser<'a> {
                     break;
                 }
 
-                let time = bits.read_f32_unchecked();
+                let time = bits.read_f32()
+                    .ok_or_else(|| NetworkError::NotEnoughDataFor("Time"))?;
+
                 if time < 0.0 || (time > 0.0 && time < 1e-10) {
-                    bail!("Time too small");
+                    return Err(NetworkError::TimeOutOfRange(time))?;
                 }
 
-                let delta = bits.read_f32_unchecked();
+                let delta = bits.read_f32()
+                    .ok_or_else(|| NetworkError::NotEnoughDataFor("Time"))?;
+
                 if delta < 0.0 || (delta > 0.0 && delta < 1e-10) {
-                    bail!("Delta too small");
+                    return Err(NetworkError::DeltaOutOfRange(time))?;
                 }
 
                 if time == 0.0 && delta == 0.0 {
@@ -432,33 +436,43 @@ impl<'a> Parser<'a> {
                 let mut updated_actors = Vec::new();
                 let mut deleted_actors = Vec::new();
 
-                while bits.read_bit_unchecked() {
-                    let actor_id = bits.read_i32_bits_unchecked(channel_bits);
+                while bits.read_bit().ok_or_else(|| NetworkError::NotEnoughDataFor("Actor data"))? {
+                    let actor_id = bits.read_i32_bits(channel_bits)
+                        .ok_or_else(|| NetworkError::NotEnoughDataFor("Actor Id"))?;
                     
                     // alive
-                    if bits.read_bit_unchecked() {
+                    if bits.read_bit().ok_or_else(|| NetworkError::NotEnoughDataFor("Is actor alive"))? {
                         // new
-                        if bits.read_bit_unchecked() {
-                            let name_id = 
-                                if header.major_version > 868 || (header.major_version == 868 && header.minor_version >= 14) {
-                                    Some(bits.read_u32_unchecked() as i32)
+                        if bits.read_bit().ok_or_else(|| NetworkError::NotEnoughDataFor("Is new actor"))? {
+                            let new_act = 
+                            if_chain! {
+                                if let Some(name_id) = 
+                                    if header.major_version > 868 || (header.major_version == 868 && header.minor_version >= 14) {
+                                        bits.read_i32().map(Some)
+                                    } else {
+                                        Some(None)
+                                    };
+
+                                if let Some(_) = bits.read_bit();
+                                if let Some(type_id) = bits.read_i32();
+                                if let Some(traj) = Trajectory::from_spawn(&mut bits, spawns[type_id as usize]);
+                                then {
+                                    Some(NewActor {
+                                        actor_id: actor_id,
+                                        object_ind: type_id,
+                                        initial_trajectory: traj
+                                    })
                                 } else {
                                     None
-                                };
+                                }
+                            };
 
-                            let _ = bits.read_bit_unchecked();
-                            let type_id = bits.read_u32_unchecked() as i32;
-                            
-                            actors.insert(actor_id, type_id);
-
-                            // fix index
-                            let traj = Trajectory::from_spawn_unchecked(&mut bits, spawns[type_id as usize]);
-                            new_actors.push(NewActor {
-                                actor_id: actor_id,
-                                object_ind: type_id,
-                                initial_trajectory: traj
-                            });
-
+                            if let Some(actor) = new_act {
+                                actors.insert(actor.actor_id, actor.object_ind);
+                                new_actors.push(actor);
+                            } else {
+                                return Err(NetworkError::NotEnoughDataFor("New Actor"))?;
+                            }
                         } else {
                             let type_id = actors.get(&actor_id).ok_or_else(|| format_err!("Actor id: {} was not found", actor_id))?;
                             let cache_info = object_ind_attributes.get(type_id)
@@ -467,8 +481,8 @@ impl<'a> Parser<'a> {
                                     type_id,
                                     normalized_objects.get(*type_id as usize).unwrap_or(&"Out of bounds")))?;
 
-                            while bits.read_bit_unchecked() {
-                                let prop_id = bits.read_bits_max_unchecked(cache_info.prop_id_bits, cache_info.max_prop_id) as i32;
+                            while bits.read_bit().ok_or_else(|| NetworkError::NotEnoughDataFor("Is prop present"))? {
+                                let prop_id = bits.read_bits_max(cache_info.prop_id_bits, cache_info.max_prop_id).map(|x| x as i32).ok_or_else(|| NetworkError::NotEnoughDataFor("Prop id"))?;
                                 assert!(prop_id < cache_info.max_prop_id);
 
                                 let attr = cache_info.attributes.get(&prop_id)
@@ -479,7 +493,7 @@ impl<'a> Parser<'a> {
                                         prop_id,
                                         cache_info.attributes.keys()))?;
 
-                                let attribute = attr(&attr_decoder, &mut bits).unwrap(); 
+                                let attribute = attr(&attr_decoder, &mut bits)?;
                                 updated_actors.push(UpdatedAttribute {
                                     actor_id: actor_id,
                                     attribute_id: prop_id,
