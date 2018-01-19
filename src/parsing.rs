@@ -460,11 +460,7 @@ impl<'a> Parser<'a> {
             let mut actors = FnvHashMap::default();
             let mut bits = BitGet::new(body.network_data);
 
-            loop {
-                if bits.is_empty() {
-                    break;
-                }
-
+            while !bits.is_empty() {
                 let time = bits.read_f32()
                     .ok_or_else(|| NetworkError::NotEnoughDataFor("Time"))?;
 
