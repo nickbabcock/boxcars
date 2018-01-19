@@ -380,8 +380,7 @@ impl<'a> Parser<'a> {
             // objects don't appear in a soccer replay.
             if let Some(indices) = normalized_name_obj_ind.get(obj) {
                 let parent_ind = name_obj_ind.get(parent).ok_or_else(||
-                    format_err!("Replay contained object index: {} but not the parent class: {}",
-                        obj, parent))?; 
+                    NetworkError::MissingParentClass(String::from(*obj), String::from(*parent)))?;
 
                 for i in indices {
                     let parent_attrs: HashMap<_, _> = object_ind_attrs.get(&(*parent_ind as i32)).ok_or_else(|| NetworkError::ParentIndexHasNoAttributes(*parent_ind as i32, *i as i32))?.clone();
@@ -488,24 +487,21 @@ impl<'a> Parser<'a> {
                                 return Err(NetworkError::NotEnoughDataFor("New Actor"))?;
                             }
                         } else {
-                            let type_id = actors.get(&actor_id).ok_or_else(|| format_err!("Actor id: {} was not found", actor_id))?;
+                            let type_id = actors.get(&actor_id).ok_or_else(|| NetworkError::MissingActor(actor_id))?;
                             let cache_info = object_ind_attributes.get(type_id)
-                                .ok_or_else(|| format_err!("Actor id: {} of object index: {} ({}) but not attributes found",
-                                    actor_id,
-                                    type_id,
-                                    normalized_objects.get(*type_id as usize).unwrap_or(&"Out of bounds")))?;
+                                .ok_or_else(|| NetworkError::MissingCache(actor_id, *type_id, String::from(body.objects.get(*type_id as usize).map(Deref::deref).unwrap_or("Out of bounds"))))?;
 
                             while bits.read_bit().ok_or_else(|| NetworkError::NotEnoughDataFor("Is prop present"))? {
                                 let prop_id = bits.read_bits_max(cache_info.prop_id_bits, cache_info.max_prop_id).map(|x| x as i32).ok_or_else(|| NetworkError::NotEnoughDataFor("Prop id"))?;
                                 assert!(prop_id < cache_info.max_prop_id);
 
                                 let attr = cache_info.attributes.get(&prop_id)
-                                    .ok_or_else(|| format_err!("Actor id: {} of object index: {} ({}) but attribute cache id: {} not found in {:?}",
+                                    .ok_or_else(|| NetworkError::MissingAttribute(
                                         actor_id,
-                                        type_id,
-                                        normalized_objects.get(*type_id as usize).unwrap_or(&"Out of bounds"),
+                                        *type_id,
+                                        String::from(body.objects.get(*type_id as usize).map(Deref::deref).unwrap_or("Out of bounds")),
                                         prop_id,
-                                        cache_info.attributes.keys()))?;
+                                        cache_info.attributes.keys().map(|x| x.to_string()).collect::<Vec<_>>().join(",")))?;
 
                                 let attribute = attr(&attr_decoder, &mut bits)?;
                                 updated_actors.push(UpdatedAttribute {

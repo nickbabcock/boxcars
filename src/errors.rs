@@ -59,6 +59,18 @@ pub enum NetworkError {
     #[fail(display = "Stream id of {} references out of range object index: {}", _0, _1)]
     StreamTooLargeIndex(i32, i32),  
 
+    #[fail(display = "Replay contained object: {} but not the parent class: {}", _0, _1)]
+    MissingParentClass(String, String),  
+
     #[fail(display = "Parent index of {} for object index of {} was not recognized to have attributes", _0, _1)]
     ParentIndexHasNoAttributes(i32, i32),  
+
+    #[fail(display = "Actor id: {} was not found", _0)]
+    MissingActor(i32),  
+
+    #[fail(display = "Actor id: {} of object index: {} ({}) but no attributes found", _0, _1, _2)]
+    MissingCache(i32, i32, String),  
+
+    #[fail(display = "Actor id: {} of object index: {} ({}) but attribute cache id: {} not found in {}", _0, _1, _2, _3, _4)]
+    MissingAttribute(i32, i32, String, i32, String),  
 }
