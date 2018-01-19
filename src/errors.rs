@@ -46,4 +46,19 @@ pub enum NetworkError {
 
     #[fail(display = "Delta is out of range: {}", _0)]
     DeltaOutOfRange(f32),  
+
+    #[fail(display = "Too many prop ids ({}) for object index: {}", _0, _1)]
+    PropIdsTooLarge(i32, i32),  
+
+    #[fail(display = "Number of channels exceeds maximum: {}", _0)]
+    ChannelsTooLarge(i32),  
+
+    #[fail(display = "Type Id of {} exceeds range", _0)]
+    TypeIdOutOfRange(i32),  
+
+    #[fail(display = "Stream id of {} references out of range object index: {}", _0, _1)]
+    StreamTooLargeIndex(i32, i32),  
+
+    #[fail(display = "Parent index of {} for object index of {} was not recognized to have attributes", _0, _1)]
+    ParentIndexHasNoAttributes(i32, i32),  
 }

@@ -351,9 +351,15 @@ impl<'a> Parser<'a> {
         let mut object_ind_attrs: HashMap<i32, HashMap<_, _>> = HashMap::new();
 
         for cache in &body.net_cache {
-            let mut all_props: HashMap<i32, _> = cache.properties.iter()
-                .map(|x| (x.stream_id, attrs[x.object_ind as usize]))
+            let mut all_props: Result<HashMap<i32, _>, NetworkError> = cache.properties.iter()
+                .map(|x| {
+                    let attr = attrs.get(x.object_ind as usize)
+                        .ok_or_else(|| NetworkError::StreamTooLargeIndex(x.stream_id, x.object_ind))?;
+                    Ok((x.stream_id, *attr))
+                })
                 .collect();
+
+            let mut all_props = all_props?;
 
             // cache ids can occur multiple times
             // If the class we are looking at appears in `PARENT_CLASSES` that has first priority
@@ -378,29 +384,33 @@ impl<'a> Parser<'a> {
                         obj, parent))?; 
 
                 for i in indices {
-                    let parent_attrs: HashMap<_, _> = object_ind_attrs.get(&(*parent_ind as i32)).unwrap().clone();
+                    let parent_attrs: HashMap<_, _> = object_ind_attrs.get(&(*parent_ind as i32)).ok_or_else(|| NetworkError::ParentIndexHasNoAttributes(*parent_ind as i32, *i as i32))?.clone();
                     object_ind_attrs.insert((*i as i32), parent_attrs);
                 }
             }
         }
 
-        let object_ind_attributes: FnvHashMap<i32, CacheInfo> =
+        let object_ind_attributes: Result<FnvHashMap<i32, CacheInfo>, NetworkError> =
             object_ind_attrs.iter().map(|(obj_ind, attrs)| {
                 let key = *obj_ind;
                 let max = *attrs.keys().max().unwrap_or(&2) + 1;
-                (key, CacheInfo { 
+                let next_max = (max as u32).checked_next_power_of_two().ok_or_else(|| NetworkError::PropIdsTooLarge(max, key))?;
+                Ok((key, CacheInfo { 
                     max_prop_id: max,
-                    prop_id_bits: log2((max as u32).checked_next_power_of_two().unwrap()) as i32,
+                    prop_id_bits: log2(next_max) as i32,
                     attributes: attrs,
-                })
+                }))
             }).collect();
+
+        let object_ind_attributes = object_ind_attributes?;
 
         let color_ind = *name_obj_ind.get("TAGame.ProductAttribute_UserColor_TA").unwrap_or(&0) as u32;
         let painted_ind = *name_obj_ind.get("TAGame.ProductAttribute_Painted_TA").unwrap_or(&0)  as u32;
 
         // 1023 stolen from rattletrap
         let channels = header.max_channels().unwrap_or(1023);
-        let channel_bits = log2((channels as u32).checked_next_power_of_two().unwrap()) as i32;
+        let channels = (channels as u32).checked_next_power_of_two().ok_or_else(|| NetworkError::ChannelsTooLarge(channels))?;
+        let channel_bits = log2(channels as u32) as i32;
         let num_frames = header.num_frames();
 
         if let Some(frame_len) = num_frames {
@@ -455,7 +465,11 @@ impl<'a> Parser<'a> {
 
                                 if let Some(_) = bits.read_bit();
                                 if let Some(type_id) = bits.read_i32();
-                                if let Some(traj) = Trajectory::from_spawn(&mut bits, spawns[type_id as usize]);
+                                
+                                let spawn = spawns.get(type_id as usize)
+                                    .ok_or_else(|| NetworkError::TypeIdOutOfRange(type_id))?;
+
+                                if let Some(traj) = Trajectory::from_spawn(&mut bits, *spawn);
                                 then {
                                     Some(NewActor {
                                         actor_id: actor_id,
