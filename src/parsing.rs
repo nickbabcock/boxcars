@@ -57,14 +57,14 @@
 use encoding_rs::{UTF_16LE, WINDOWS_1252};
 use models::*;
 use crc::calc_crc;
-use errors::{ParseError, AttributeError, NetworkError};
+use errors::{AttributeError, NetworkError, ParseError};
 use std::borrow::Cow;
 use failure::{Error, ResultExt};
 use byteorder::{ByteOrder, LittleEndian};
 use bitter::BitGet;
-use {SPAWN_STATS, ATTRIBUTES, OBJECT_CLASSES, PARENT_CLASSES};
-use network::{SpawnTrajectory, NewActor, Trajectory, UpdatedAttribute, Frame, normalize_object};
-use attributes::{AttributeDecoder, Attribute};
+use {ATTRIBUTES, OBJECT_CLASSES, PARENT_CLASSES, SPAWN_STATS};
+use network::{normalize_object, Frame, NewActor, SpawnTrajectory, Trajectory, UpdatedAttribute};
+use attributes::{Attribute, AttributeDecoder};
 use std::collections::HashMap;
 use fnv::FnvHashMap;
 use std::ops::Deref;
@@ -117,22 +117,28 @@ pub struct Header<'a> {
 
 impl<'a> Header<'a> {
     fn num_frames(&self) -> Option<i32> {
-        self.properties.iter()
+        self.properties
+            .iter()
             .find(|&&(key, _)| key == "NumFrames")
-            .and_then(|&(_, ref prop)| if let HeaderProp::Int(v) = *prop {
-                Some(v)
-            } else {
-                None
+            .and_then(|&(_, ref prop)| {
+                if let HeaderProp::Int(v) = *prop {
+                    Some(v)
+                } else {
+                    None
+                }
             })
     }
 
     fn max_channels(&self) -> Option<i32> {
-        self.properties.iter()
+        self.properties
+            .iter()
             .find(|&&(key, _)| key == "MaxChannels")
-            .and_then(|&(_, ref prop)| if let HeaderProp::Int(v) = *prop {
-                Some(v)
-            } else {
-                None
+            .and_then(|&(_, ref prop)| {
+                if let HeaderProp::Int(v) = *prop {
+                    Some(v)
+                } else {
+                    None
+                }
             })
     }
 }
@@ -221,9 +227,9 @@ impl<'a> ParserBuilder<'a> {
 struct CacheInfo<'a> {
     max_prop_id: i32,
     prop_id_bits: i32,
-    attributes: &'a HashMap<i32, fn(&AttributeDecoder, &mut BitGet) -> Result<Attribute, AttributeError>>,
+    attributes:
+        &'a HashMap<i32, fn(&AttributeDecoder, &mut BitGet) -> Result<Attribute, AttributeError>>,
 }
-
 
 /// Holds the current state of parsing a replay
 #[derive(Debug, Clone, PartialEq)]
@@ -250,9 +256,7 @@ impl<'a> Parser<'a> {
     fn err_str(&self, desc: &'static str, e: &ParseError) -> String {
         format!(
             "Could not decode replay {} at offset ({}): {}",
-            desc,
-            self.col,
-            e
+            desc, self.col, e
         )
     }
 
@@ -316,45 +320,63 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_network(&mut self, header: &Header, body: &ReplayBody) -> Result<NetworkFrames, Error> {
+    fn parse_network(
+        &mut self,
+        header: &Header,
+        body: &ReplayBody,
+    ) -> Result<NetworkFrames, Error> {
         // Create a parallel vector where each object has it's name normalized
-        let normalized_objects: Vec<&str> = body.objects.iter().map(|x|
-            normalize_object(x.deref())
-        ).collect();
+        let normalized_objects: Vec<&str> = body.objects
+            .iter()
+            .map(|x| normalize_object(x.deref()))
+            .collect();
 
-		let spawns: Vec<SpawnTrajectory> = 
-            body.objects.iter()
-                .map(|x|
-                    SPAWN_STATS.get(x.deref()).cloned().unwrap_or(SpawnTrajectory::None)
-                )
-                .collect();
+        let spawns: Vec<SpawnTrajectory> = body.objects
+            .iter()
+            .map(|x| {
+                SPAWN_STATS
+                    .get(x.deref())
+                    .cloned()
+                    .unwrap_or(SpawnTrajectory::None)
+            })
+            .collect();
 
-        let attrs: Vec<_> =
-            normalized_objects.iter()
-                .map(|x|
-                    ATTRIBUTES.get(x.deref()).cloned().unwrap_or(AttributeDecoder::decode_not_implemented)
-                )
-                .collect();
+        let attrs: Vec<_> = normalized_objects
+            .iter()
+            .map(|x| {
+                ATTRIBUTES
+                    .get(x.deref())
+                    .cloned()
+                    .unwrap_or(AttributeDecoder::decode_not_implemented)
+            })
+            .collect();
 
         // Create a map of an object's normalized name to a list of indices in the object
         // vector that have that same normalized name
         let mut normalized_name_obj_ind: HashMap<&str, Vec<usize>> = HashMap::new();
         for (i, x) in normalized_objects.iter().enumerate() {
-            normalized_name_obj_ind.entry(x).or_insert_with(Vec::new).push(i);
+            normalized_name_obj_ind
+                .entry(x)
+                .or_insert_with(Vec::new)
+                .push(i);
         }
 
-        let name_obj_ind: HashMap<&str, usize> =
-            body.objects.iter().enumerate().map(|(ind, name)|
-                (name.deref(), ind)
-            ).collect();
+        let name_obj_ind: HashMap<&str, usize> = body.objects
+            .iter()
+            .enumerate()
+            .map(|(ind, name)| (name.deref(), ind))
+            .collect();
 
         let mut object_ind_attrs: HashMap<i32, HashMap<_, _>> = HashMap::new();
 
         for cache in &body.net_cache {
-            let mut all_props: Result<HashMap<i32, _>, NetworkError> = cache.properties.iter()
+            let mut all_props: Result<HashMap<i32, _>, NetworkError> = cache
+                .properties
+                .iter()
                 .map(|x| {
-                    let attr = attrs.get(x.object_ind as usize)
-                        .ok_or_else(|| NetworkError::StreamTooLargeIndex(x.stream_id, x.object_ind))?;
+                    let attr = attrs.get(x.object_ind as usize).ok_or_else(|| {
+                        NetworkError::StreamTooLargeIndex(x.stream_id, x.object_ind)
+                    })?;
                     Ok((x.stream_id, *attr))
                 })
                 .collect();
@@ -375,40 +397,60 @@ impl<'a> Parser<'a> {
             object_ind_attrs.insert(cache.object_ind, all_props);
         }
 
-        for (obj, parent) in OBJECT_CLASSES.entries(){
+        for (obj, parent) in OBJECT_CLASSES.entries() {
             // It's ok if an object class doesn't appear in our replay. For instance, basketball
             // objects don't appear in a soccer replay.
             if let Some(indices) = normalized_name_obj_ind.get(obj) {
-                let parent_ind = name_obj_ind.get(parent).ok_or_else(||
-                    NetworkError::MissingParentClass(String::from(*obj), String::from(*parent)))?;
+                let parent_ind = name_obj_ind.get(parent).ok_or_else(|| {
+                    NetworkError::MissingParentClass(String::from(*obj), String::from(*parent))
+                })?;
 
                 for i in indices {
-                    let parent_attrs: HashMap<_, _> = object_ind_attrs.get(&(*parent_ind as i32)).ok_or_else(|| NetworkError::ParentIndexHasNoAttributes(*parent_ind as i32, *i as i32))?.clone();
+                    let parent_attrs: HashMap<_, _> = object_ind_attrs
+                        .get(&(*parent_ind as i32))
+                        .ok_or_else(|| {
+                            NetworkError::ParentIndexHasNoAttributes(*parent_ind as i32, *i as i32)
+                        })?
+                        .clone();
                     object_ind_attrs.insert((*i as i32), parent_attrs);
                 }
             }
         }
 
         let object_ind_attributes: Result<FnvHashMap<i32, CacheInfo>, NetworkError> =
-            object_ind_attrs.iter().map(|(obj_ind, attrs)| {
-                let key = *obj_ind;
-                let max = *attrs.keys().max().unwrap_or(&2) + 1;
-                let next_max = (max as u32).checked_next_power_of_two().ok_or_else(|| NetworkError::PropIdsTooLarge(max, key))?;
-                Ok((key, CacheInfo { 
-                    max_prop_id: max,
-                    prop_id_bits: log2(next_max) as i32,
-                    attributes: attrs,
-                }))
-            }).collect();
+            object_ind_attrs
+                .iter()
+                .map(|(obj_ind, attrs)| {
+                    let key = *obj_ind;
+                    let max = *attrs.keys().max().unwrap_or(&2) + 1;
+                    let next_max = (max as u32)
+                        .checked_next_power_of_two()
+                        .ok_or_else(|| NetworkError::PropIdsTooLarge(max, key))?;
+                    Ok((
+                        key,
+                        CacheInfo {
+                            max_prop_id: max,
+                            prop_id_bits: log2(next_max) as i32,
+                            attributes: attrs,
+                        },
+                    ))
+                })
+                .collect();
 
         let object_ind_attributes = object_ind_attributes?;
 
-        let color_ind = *name_obj_ind.get("TAGame.ProductAttribute_UserColor_TA").unwrap_or(&0) as u32;
-        let painted_ind = *name_obj_ind.get("TAGame.ProductAttribute_Painted_TA").unwrap_or(&0)  as u32;
+        let color_ind = *name_obj_ind
+            .get("TAGame.ProductAttribute_UserColor_TA")
+            .unwrap_or(&0) as u32;
+        let painted_ind = *name_obj_ind
+            .get("TAGame.ProductAttribute_Painted_TA")
+            .unwrap_or(&0) as u32;
 
         // 1023 stolen from rattletrap
         let channels = header.max_channels().unwrap_or(1023);
-        let channels = (channels as u32).checked_next_power_of_two().ok_or_else(|| NetworkError::ChannelsTooLarge(channels))?;
+        let channels = (channels as u32)
+            .checked_next_power_of_two()
+            .ok_or_else(|| NetworkError::ChannelsTooLarge(channels))?;
         let channel_bits = log2(channels as u32) as i32;
         let num_frames = header.num_frames();
 
@@ -445,17 +487,22 @@ impl<'a> Parser<'a> {
                 let mut updated_actors = Vec::new();
                 let mut deleted_actors = Vec::new();
 
-                while bits.read_bit().ok_or_else(|| NetworkError::NotEnoughDataFor("Actor data"))? {
+                while bits.read_bit()
+                    .ok_or_else(|| NetworkError::NotEnoughDataFor("Actor data"))?
+                {
                     let actor_id = bits.read_i32_bits(channel_bits)
                         .ok_or_else(|| NetworkError::NotEnoughDataFor("Actor Id"))?;
-                    
+
                     // alive
-                    if bits.read_bit().ok_or_else(|| NetworkError::NotEnoughDataFor("Is actor alive"))? {
+                    if bits.read_bit()
+                        .ok_or_else(|| NetworkError::NotEnoughDataFor("Is actor alive"))?
+                    {
                         // new
-                        if bits.read_bit().ok_or_else(|| NetworkError::NotEnoughDataFor("Is new actor"))? {
-                            let new_act = 
-                            if_chain! {
-                                if let Some(name_id) = 
+                        if bits.read_bit()
+                            .ok_or_else(|| NetworkError::NotEnoughDataFor("Is new actor"))?
+                        {
+                            let new_act = if_chain! {
+                                if let Some(name_id) =
                                     if header.major_version > 868 || (header.major_version == 868 && header.minor_version >= 14) {
                                         bits.read_i32().map(Some)
                                     } else {
@@ -464,7 +511,7 @@ impl<'a> Parser<'a> {
 
                                 if let Some(_) = bits.read_bit();
                                 if let Some(type_id) = bits.read_i32();
-                                
+
                                 let spawn = spawns.get(type_id as usize)
                                     .ok_or_else(|| NetworkError::TypeIdOutOfRange(type_id))?;
 
@@ -487,21 +534,51 @@ impl<'a> Parser<'a> {
                                 return Err(NetworkError::NotEnoughDataFor("New Actor"))?;
                             }
                         } else {
-                            let type_id = actors.get(&actor_id).ok_or_else(|| NetworkError::MissingActor(actor_id))?;
-                            let cache_info = object_ind_attributes.get(type_id)
-                                .ok_or_else(|| NetworkError::MissingCache(actor_id, *type_id, String::from(body.objects.get(*type_id as usize).map(Deref::deref).unwrap_or("Out of bounds"))))?;
+                            let type_id = actors
+                                .get(&actor_id)
+                                .ok_or_else(|| NetworkError::MissingActor(actor_id))?;
+                            let cache_info = object_ind_attributes.get(type_id).ok_or_else(|| {
+                                NetworkError::MissingCache(
+                                    actor_id,
+                                    *type_id,
+                                    String::from(
+                                        body.objects
+                                            .get(*type_id as usize)
+                                            .map(Deref::deref)
+                                            .unwrap_or("Out of bounds"),
+                                    ),
+                                )
+                            })?;
 
-                            while bits.read_bit().ok_or_else(|| NetworkError::NotEnoughDataFor("Is prop present"))? {
-                                let prop_id = bits.read_bits_max(cache_info.prop_id_bits, cache_info.max_prop_id).map(|x| x as i32).ok_or_else(|| NetworkError::NotEnoughDataFor("Prop id"))?;
+                            while bits.read_bit()
+                                .ok_or_else(|| NetworkError::NotEnoughDataFor("Is prop present"))?
+                            {
+                                let prop_id = bits.read_bits_max(
+                                    cache_info.prop_id_bits,
+                                    cache_info.max_prop_id,
+                                ).map(|x| x as i32)
+                                    .ok_or_else(|| NetworkError::NotEnoughDataFor("Prop id"))?;
                                 assert!(prop_id < cache_info.max_prop_id);
 
-                                let attr = cache_info.attributes.get(&prop_id)
-                                    .ok_or_else(|| NetworkError::MissingAttribute(
+                                let attr = cache_info.attributes.get(&prop_id).ok_or_else(|| {
+                                    NetworkError::MissingAttribute(
                                         actor_id,
                                         *type_id,
-                                        String::from(body.objects.get(*type_id as usize).map(Deref::deref).unwrap_or("Out of bounds")),
+                                        String::from(
+                                            body.objects
+                                                .get(*type_id as usize)
+                                                .map(Deref::deref)
+                                                .unwrap_or("Out of bounds"),
+                                        ),
                                         prop_id,
-                                        cache_info.attributes.keys().map(|x| x.to_string()).collect::<Vec<_>>().join(",")))?;
+                                        cache_info
+                                            .attributes
+                                            .keys()
+                                            .map(|x| x.to_string())
+                                            .collect::<Vec<_>>()
+                                            .join(","),
+                                    )
+                                })?;
 
                                 let attribute = attr(&attr_decoder, &mut bits)?;
                                 updated_actors.push(UpdatedAttribute {
@@ -516,7 +593,7 @@ impl<'a> Parser<'a> {
                         actors.remove(&actor_id);
                     }
                 }
-                
+
                 frames.push(Frame {
                     time: time,
                     delta: delta,
@@ -877,16 +954,14 @@ impl<'a> Parser<'a> {
     }
 }
 
-const MULTIPLY_DE_BRUIJN_BIT_POSITION2: [u32; 32] = 
-[
-  0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8, 
-  31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9
+const MULTIPLY_DE_BRUIJN_BIT_POSITION2: [u32; 32] = [
+    0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8, 31, 27, 13, 23, 21, 19, 16, 7, 26,
+    12, 18, 6, 11, 5, 10, 9,
 ];
-
 
 // https://graphics.stanford.edu/~seander/bithacks.html#IntegerLogDeBruijn
 fn log2(v: u32) -> u32 {
-	MULTIPLY_DE_BRUIJN_BIT_POSITION2[((v.wrapping_mul(0x077CB531)) >> 27) as usize]
+    MULTIPLY_DE_BRUIJN_BIT_POSITION2[((v.wrapping_mul(0x077CB531)) >> 27) as usize]
 }
 
 /// Reads a string of a given size from the data. The size includes a null
@@ -937,7 +1012,7 @@ fn le_i64(d: &[u8]) -> i64 {
 
 #[cfg(test)]
 mod tests {
-    use super::{CrcCheck, Parser, NetworkParse};
+    use super::{CrcCheck, NetworkParse, Parser};
     use errors::ParseError;
     use models::{HeaderProp, TickMark};
     use std::borrow::Cow;
@@ -954,7 +1029,11 @@ mod tests {
     fn parse_text_encoding_bad() {
         // dd skip=16 count=28 if=rumble.replay of=text.replay bs=1
         let data = include_bytes!("../assets/text.replay");
-        let mut parser = Parser::new(&data[..data.len() - 1], CrcCheck::Never, NetworkParse::Never);
+        let mut parser = Parser::new(
+            &data[..data.len() - 1],
+            CrcCheck::Never,
+            NetworkParse::Never,
+        );
         let res = parser.parse_str();
         assert!(res.is_err());
         let error = res.unwrap_err();
@@ -1153,7 +1232,11 @@ mod tests {
         let data = include_bytes!("../assets/rumble.replay");
 
         // List is 2A long, each keyframe is 12 bytes. Then add four for list length = 508
-        let mut parser = Parser::new(&data[0x12ca..0x12ca + 508], CrcCheck::Never, NetworkParse::Never);
+        let mut parser = Parser::new(
+            &data[0x12ca..0x12ca + 508],
+            CrcCheck::Never,
+            NetworkParse::Never,
+        );
         let frames = parser.parse_keyframe().unwrap();
         assert_eq!(frames.len(), 42);
     }
@@ -1163,7 +1246,11 @@ mod tests {
         let data = include_bytes!("../assets/rumble.replay");
 
         // 7 tick marks at 8 bytes + size of tick list
-        let mut parser = Parser::new(&data[0xf6cce..0xf6d50], CrcCheck::Never, NetworkParse::Never);
+        let mut parser = Parser::new(
+            &data[0xf6cce..0xf6d50],
+            CrcCheck::Never,
+            NetworkParse::Never,
+        );
         let ticks = parser.parse_tickmarks().unwrap();
 
         assert_eq!(ticks.len(), 7);
