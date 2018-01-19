@@ -365,6 +365,8 @@ impl<'a> Parser<'a> {
             .map(|x| normalize_object(x.deref()))
             .collect();
 
+        // Create a parallel vector where we lookup how to decode an object's initial trajectory
+        // when they spawn as a new actor
         let spawns: Vec<SpawnTrajectory> = body.objects
             .iter()
             .map(|x| {
@@ -395,6 +397,7 @@ impl<'a> Parser<'a> {
                 .push(i);
         }
 
+        // Map each object's name to it's index
         let name_obj_ind: HashMap<&str, usize> = body.objects
             .iter()
             .enumerate()
@@ -402,7 +405,6 @@ impl<'a> Parser<'a> {
             .collect();
 
         let mut object_ind_attrs: HashMap<i32, HashMap<_, _>> = HashMap::new();
-
         for cache in &body.net_cache {
             let mut all_props: Result<HashMap<i32, _>, NetworkError> = cache
                 .properties
@@ -533,12 +535,21 @@ impl<'a> Parser<'a> {
                         {
                             let actor =
                                 Parser::parse_new_actor(&mut bits, header, &spawns, actor_id)?;
+
+                            // Insert the new actor so we can keep track of it for attribute
+                            // updates. It's common for an actor id to already exist, so we
+                            // overwrite it.
                             actors.insert(actor.actor_id, actor.object_ind);
                             new_actors.push(actor);
                         } else {
+                            // We'll be updating an existing actor with some attributes so we need
+                            // to track down what the actor's type is
                             let type_id = actors
                                 .get(&actor_id)
                                 .ok_or_else(|| NetworkError::MissingActor(actor_id))?;
+
+                            // Once we have the type we need to look up what attributes are
+                            // available for said type
                             let cache_info = object_ind_attributes.get(type_id).ok_or_else(|| {
                                 NetworkError::MissingCache(
                                     actor_id,
@@ -552,16 +563,25 @@ impl<'a> Parser<'a> {
                                 )
                             })?;
 
+                            // While there are more attributes to update for our actor:
                             while bits.read_bit()
                                 .ok_or_else(|| NetworkError::NotEnoughDataFor("Is prop present"))?
                             {
+                                // We've previously calculated the max the property id can be for a
+                                // given type and how many bits that it encompasses so use those
+                                // values now
                                 let prop_id = bits.read_bits_max(
                                     cache_info.prop_id_bits,
                                     cache_info.max_prop_id,
                                 ).map(|x| x as i32)
                                     .ok_or_else(|| NetworkError::NotEnoughDataFor("Prop id"))?;
+
                                 assert!(prop_id < cache_info.max_prop_id);
 
+                                // Look the property id up and find the corresponding attribute
+                                // decoding function. Experience has told me replays that fail to
+                                // parse, fail to do so here, so a large chunk is dedicated to
+                                // generating an error message with context
                                 let attr = cache_info.attributes.get(&prop_id).ok_or_else(|| {
                                     NetworkError::MissingAttribute(
                                         actor_id,
