@@ -320,6 +320,40 @@ impl<'a> Parser<'a> {
         })
     }
 
+    fn parse_new_actor(
+        mut bits: &mut BitGet,
+        header: &Header,
+        spawns: &Vec<SpawnTrajectory>,
+        actor_id: i32,
+    ) -> Result<NewActor, NetworkError> {
+        if_chain! {
+            if let Some(name_id) =
+                if header.major_version > 868 ||
+                    (header.major_version == 868 && header.minor_version >= 14) {
+                    bits.read_i32().map(Some)
+                } else {
+                    Some(None)
+                };
+
+            if let Some(_) = bits.read_bit();
+            if let Some(type_id) = bits.read_i32();
+
+            let spawn = spawns.get(type_id as usize)
+                .ok_or_else(|| NetworkError::TypeIdOutOfRange(type_id))?;
+
+            if let Some(traj) = Trajectory::from_spawn(&mut bits, *spawn);
+            then {
+                Ok(NewActor {
+                    actor_id: actor_id,
+                    object_ind: type_id,
+                    initial_trajectory: traj
+                })
+            } else {
+                Err(NetworkError::NotEnoughDataFor("New Actor"))
+            }
+        }
+    }
+
     fn parse_network(
         &mut self,
         header: &Header,
@@ -497,38 +531,10 @@ impl<'a> Parser<'a> {
                         if bits.read_bit()
                             .ok_or_else(|| NetworkError::NotEnoughDataFor("Is new actor"))?
                         {
-                            let new_act = if_chain! {
-                                if let Some(name_id) =
-                                    if header.major_version > 868 || (header.major_version == 868 && header.minor_version >= 14) {
-                                        bits.read_i32().map(Some)
-                                    } else {
-                                        Some(None)
-                                    };
-
-                                if let Some(_) = bits.read_bit();
-                                if let Some(type_id) = bits.read_i32();
-
-                                let spawn = spawns.get(type_id as usize)
-                                    .ok_or_else(|| NetworkError::TypeIdOutOfRange(type_id))?;
-
-                                if let Some(traj) = Trajectory::from_spawn(&mut bits, *spawn);
-                                then {
-                                    Some(NewActor {
-                                        actor_id: actor_id,
-                                        object_ind: type_id,
-                                        initial_trajectory: traj
-                                    })
-                                } else {
-                                    None
-                                }
-                            };
-
-                            if let Some(actor) = new_act {
-                                actors.insert(actor.actor_id, actor.object_ind);
-                                new_actors.push(actor);
-                            } else {
-                                return Err(NetworkError::NotEnoughDataFor("New Actor"))?;
-                            }
+                            let actor =
+                                Parser::parse_new_actor(&mut bits, header, &spawns, actor_id)?;
+                            actors.insert(actor.actor_id, actor.object_ind);
+                            new_actors.push(actor);
                         } else {
                             let type_id = actors
                                 .get(&actor_id)
