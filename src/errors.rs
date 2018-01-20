@@ -26,14 +26,11 @@ impl From<str::Utf8Error> for ParseError {
 
 #[derive(PartialEq, Debug, Clone, Fail)]
 pub enum AttributeError {
-    #[fail(display = "Not enough data to decode attribute {}", _0)]
-    NotEnoughDataFor(&'static str),
+    #[fail(display = "Not enough data to decode attribute {}", _0)] NotEnoughDataFor(&'static str),
 
-    #[fail(display = "Unrecognized remote id of {}", _0)]
-    UnrecognizedRemoteId(u8),
+    #[fail(display = "Unrecognized remote id of {}", _0)] UnrecognizedRemoteId(u8),
 
-    #[fail(display = "Does not have an attribute implementation")]
-    Unimplemented,
+    #[fail(display = "Does not have an attribute implementation")] Unimplemented,
 }
 
 #[derive(PartialEq, Debug, Clone, Fail)]
@@ -45,5 +42,32 @@ pub enum NetworkError {
     TimeOutOfRange(f32),
 
     #[fail(display = "Delta is out of range: {}", _0)]
-    DeltaOutOfRange(f32),  
+    DeltaOutOfRange(f32),
+
+    #[fail(display = "Too many prop ids ({}) for object index: {}", _0, _1)]
+    PropIdsTooLarge(i32, i32),
+
+    #[fail(display = "Number of channels exceeds maximum: {}", _0)]
+    ChannelsTooLarge(i32),
+
+    #[fail(display = "Type Id of {} exceeds range", _0)]
+    TypeIdOutOfRange(i32),
+
+    #[fail(display = "Stream id of {} references out of range object index: {}", _0, _1)]
+    StreamTooLargeIndex(i32, i32),
+
+    #[fail(display = "Replay contained object: {} but not the parent class: {}", _0, _1)]
+    MissingParentClass(String, String),
+
+    #[fail(display = "Parent index of {} for object index of {} was not recognized to have attributes", _0, _1)]
+    ParentIndexHasNoAttributes(i32, i32),
+
+    #[fail(display = "Actor id: {} was not found", _0)]
+    MissingActor(i32),
+
+    #[fail(display = "Actor id: {} of object index: {} ({}) but no attributes found", _0, _1, _2)]
+    MissingCache(i32, i32, String),
+
+    #[fail(display = "Actor id: {} of object index: {} ({}) but attribute cache id: {} not found in {}", _0, _1, _2, _3, _4)]
+    MissingAttribute(i32, i32, String, i32, String),
 }

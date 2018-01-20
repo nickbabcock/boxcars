@@ -125,28 +125,26 @@ impl Trajectory {
         match sp {
             SpawnTrajectory::None => Some(Trajectory {
                 location: None,
-                rotation: None
+                rotation: None,
             }),
 
-            SpawnTrajectory::Location =>
-                Vector::decode(bits).map(|v| Trajectory {
-                    location: Some(v),
-                    rotation: None,
-                }),
-            
-            SpawnTrajectory::LocationAndRotation => 
-                if_chain! {
-                    if let Some(v) = Vector::decode(bits);
-                    if let Some(r) = Rotation::decode(bits);
-                    then {
-                        Some(Trajectory {
-                            location: Some(v),
-                            rotation: Some(r),
-                        })
-                    } else {
-                        None
-                    }
+            SpawnTrajectory::Location => Vector::decode(bits).map(|v| Trajectory {
+                location: Some(v),
+                rotation: None,
+            }),
+
+            SpawnTrajectory::LocationAndRotation => if_chain! {
+                if let Some(v) = Vector::decode(bits);
+                if let Some(r) = Rotation::decode(bits);
+                then {
+                    Some(Trajectory {
+                        location: Some(v),
+                        rotation: Some(r),
+                    })
+                } else {
+                    None
                 }
+            },
         }
     }
 
@@ -154,20 +152,18 @@ impl Trajectory {
         match sp {
             SpawnTrajectory::None => Trajectory {
                 location: None,
-                rotation: None
+                rotation: None,
             },
 
-            SpawnTrajectory::Location =>
-                Trajectory {
-                    location: Some(Vector::decode_unchecked(bits)),
-                    rotation: None,
-                },
-            
-            SpawnTrajectory::LocationAndRotation => 
-                Trajectory {
-                    location: Some(Vector::decode_unchecked(bits)),
-                    rotation: Some(Rotation::decode_unchecked(bits)),
-                }
+            SpawnTrajectory::Location => Trajectory {
+                location: Some(Vector::decode_unchecked(bits)),
+                rotation: None,
+            },
+
+            SpawnTrajectory::LocationAndRotation => Trajectory {
+                location: Some(Vector::decode_unchecked(bits)),
+                rotation: Some(Rotation::decode_unchecked(bits)),
+            },
         }
     }
 }
@@ -201,45 +197,57 @@ mod tests {
     fn test_decode_vector() {
         let mut bitter = BitGet::new(&[0b0000_0110, 0b0000_1000, 0b1101_1000, 0b0000_1101]);
         let v = Vector::decode(&mut bitter).unwrap();
-        assert_eq!(v, Vector {
-            bias: 128,
-            dx: 128,
-            dy: 128,
-            dz: 221
-        });
+        assert_eq!(
+            v,
+            Vector {
+                bias: 128,
+                dx: 128,
+                dy: 128,
+                dz: 221,
+            }
+        );
     }
 
     #[test]
     fn test_decode_vector_unchecked() {
         let mut bitter = BitGet::new(&[0b0000_0110, 0b0000_1000, 0b1101_1000, 0b0000_1101]);
         let v = Vector::decode_unchecked(&mut bitter);
-        assert_eq!(v, Vector {
-            bias: 128,
-            dx: 128,
-            dy: 128,
-            dz: 221
-        });
+        assert_eq!(
+            v,
+            Vector {
+                bias: 128,
+                dx: 128,
+                dy: 128,
+                dz: 221,
+            }
+        );
     }
 
     #[test]
     fn test_decode_rotation() {
         let mut bitter = BitGet::new(&[0b0000_0101, 0b0000_0000]);
         let v = Rotation::decode(&mut bitter).unwrap();
-        assert_eq!(v, Rotation {
-            yaw: Some(2),
-            pitch: None,
-            roll: None
-        });
+        assert_eq!(
+            v,
+            Rotation {
+                yaw: Some(2),
+                pitch: None,
+                roll: None,
+            }
+        );
     }
 
     #[test]
     fn test_decode_rotation_unchecked() {
         let mut bitter = BitGet::new(&[0b0000_0101, 0b0000_0000]);
         let v = Rotation::decode_unchecked(&mut bitter);
-        assert_eq!(v, Rotation {
-            yaw: Some(2),
-            pitch: None,
-            roll: None
-        });
+        assert_eq!(
+            v,
+            Rotation {
+                yaw: Some(2),
+                pitch: None,
+                roll: None,
+            }
+        );
     }
 }

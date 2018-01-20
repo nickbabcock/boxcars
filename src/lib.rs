@@ -40,11 +40,11 @@ extern crate byteorder;
 extern crate encoding_rs;
 #[macro_use]
 extern crate failure;
-extern crate serde;
-extern crate phf;
+extern crate fnv;
 #[macro_use]
 extern crate if_chain;
-extern crate fnv;
+extern crate phf;
+extern crate serde;
 
 #[cfg(test)]
 extern crate serde_json;
