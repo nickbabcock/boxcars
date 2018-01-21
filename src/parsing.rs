@@ -62,7 +62,7 @@ use std::borrow::Cow;
 use failure::{Error, ResultExt};
 use byteorder::{ByteOrder, LittleEndian};
 use bitter::BitGet;
-use {ATTRIBUTES, OBJECT_CLASSES, PARENT_CLASSES, SPAWN_STATS};
+use hashes::{ATTRIBUTES, OBJECT_CLASSES, PARENT_CLASSES, SPAWN_STATS};
 use network::{normalize_object, Frame, NewActor, SpawnTrajectory, Trajectory, UpdatedAttribute};
 use attributes::{AttributeDecoder, AttributeDecodeFn};
 use std::collections::HashMap;

@@ -63,4 +63,6 @@ pub mod crc;
 mod errors;
 pub mod attributes;
 
-include!(concat!(env!("OUT_DIR"), "/generated.rs"));
+mod hashes {
+  include!(concat!(env!("OUT_DIR"), "/generated.rs"));
+}

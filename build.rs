@@ -10,8 +10,10 @@ fn main() {
     let mut file = BufWriter::new(File::create(&path).unwrap());
 
     write!(&mut file, "use attributes::{{AttributeDecoder, AttributeDecodeFn}};\n ").unwrap();
+    write!(&mut file, "use phf;\n ").unwrap();
+    write!(&mut file, "use network::SpawnTrajectory;\n ").unwrap();
 
-    write!(&mut file, "static SPAWN_STATS: phf::Map<&'static str, SpawnTrajectory> = ").unwrap();
+    write!(&mut file, "pub static SPAWN_STATS: phf::Map<&'static str, SpawnTrajectory> = ").unwrap();
     phf_codegen::Map::new()
         .entry("TAGame.Ball_Breakout_TA", "SpawnTrajectory::LocationAndRotation")
         .entry("Archetypes.Ball.Ball_Breakout", "SpawnTrajectory::LocationAndRotation")
@@ -100,7 +102,7 @@ fn main() {
     write!(&mut file, ";\n").unwrap();
 
 
-    write!(&mut file, "static ATTRIBUTES: phf::Map<&'static str, AttributeDecodeFn> = ").unwrap();
+    write!(&mut file, "pub static ATTRIBUTES: phf::Map<&'static str, AttributeDecodeFn> = ").unwrap();
     phf_codegen::Map::new()
         .entry("Engine.Actor:bBlockActors", "AttributeDecoder::decode_boolean")
         .entry("Engine.Actor:bCollideActors", "AttributeDecoder::decode_boolean")
@@ -253,7 +255,7 @@ fn main() {
     write!(&mut file, ";\n").unwrap();
 
 
-    write!(&mut file, "static OBJECT_CLASSES: phf::Map<&'static str, &'static str> = ").unwrap();
+    write!(&mut file, "pub static OBJECT_CLASSES: phf::Map<&'static str, &'static str> = ").unwrap();
 
     phf_codegen::Map::new()
         .entry("Archetypes.Ball.Ball_BasketBall_Mutator", "\"TAGame.Ball_TA\"")
@@ -314,7 +316,7 @@ fn main() {
     write!(&mut file, ";\n").unwrap();
 
 
-    write!(&mut file, "static PARENT_CLASSES: phf::Map<&'static str, &'static str> = ").unwrap();
+    write!(&mut file, "pub static PARENT_CLASSES: phf::Map<&'static str, &'static str> = ").unwrap();
 
     phf_codegen::Map::new()
         .entry("Engine.Actor", "\"Core.Object\"")
