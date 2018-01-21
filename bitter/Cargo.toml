@@ -10,5 +10,10 @@ byteorder = "1"
 name = "bitget"
 harness = false
 
+[[bench]]
+name = "bitreader"
+harness = false
+
 [dev-dependencies]
 criterion = "0.1.2"
+bitreader = "0.3.1"
