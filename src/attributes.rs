@@ -6,41 +6,6 @@ use std::borrow::Cow;
 
 pub type AttributeDecodeFn = fn(&AttributeDecoder, &mut BitGet) -> Result<Attribute, AttributeError>;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AttributeTag {
-    Boolean,
-    Byte,
-    AppliedDamage,
-    DamageState,
-    CamSettings,
-    ClubColors,
-    Demolish,
-    Enum,
-    Explosion,
-    ExtendedExplosion,
-    Flagged,
-    Float,
-    GameMode,
-    Int,
-    Loadout,
-    TeamLoadout,
-    Location,
-    MusicStinger,
-    Pickup,
-    QWord,
-    Welded,
-    RigidBody,
-    TeamPaint,
-    NotImplemented,
-    String,
-    UniqueId,
-    Reservation,
-    PartyLeader,
-    PrivateMatchSettings,
-    LoadoutOnline,
-    LoadoutsOnline,
-}
-
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum Attribute {
     Boolean(bool),

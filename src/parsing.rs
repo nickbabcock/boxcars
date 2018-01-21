@@ -98,13 +98,6 @@ pub enum NetworkParse {
     IgnoreOnError,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ActorAction {
-    Created,
-    Updated,
-    Destroyed,
-}
-
 /// Intermediate parsing structure for the header
 #[derive(Debug, PartialEq)]
 pub struct Header<'a> {
