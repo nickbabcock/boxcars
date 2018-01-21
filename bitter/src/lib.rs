@@ -241,7 +241,7 @@ impl<'a> BitGet<'a> {
 
     /// Reads a `f32` from the bitstream if available
     pub fn read_f32(&mut self) -> Option<f32> {
-        self.read_u32().map(|x| f32::from_bits(x))
+        self.read_u32().map(f32::from_bits)
     }
 
     /// Reads a `f32` from the bitstream
