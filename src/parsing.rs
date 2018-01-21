@@ -91,10 +91,18 @@ pub enum CrcCheck {
     OnError,
 }
 
+/// Determines how the parser should handle the network data, which is the most
+/// intensive and volatile section of the replay.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NetworkParse {
+    /// If the network data fails parse return an error
     Always,
+
+    /// Skip parsing the network data
     Never,
+
+    /// Attempt to parse the network data, but if unsuccessful ignore the error
+    /// and continue parsing
     IgnoreOnError,
 }
 
