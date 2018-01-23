@@ -368,8 +368,8 @@ fn main() {
         .entry("TAGame.Team_Soccar_TA", "\"TAGame.Team_TA\"")
         .entry("TAGame.Team_TA", "\"Engine.TeamInfo\"")
         .entry("TAGame.Vehicle_TA", "\"TAGame.RBActor_TA\"")
-        .entry("TAGame.VehiclePickup_Boost_TA", "\"TAGame.VehiclePickup_TA\"")
         .entry("TAGame.VehiclePickup_TA", "\"Engine.ReplicationInfo\"")
+        .entry("TAGame.VehiclePickup_Boost_TA", "\"TAGame.VehiclePickup_TA\"")
         .build(&mut file)
         .unwrap();
 

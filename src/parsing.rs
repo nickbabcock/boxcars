@@ -419,15 +419,18 @@ impl<'a> Parser<'a> {
 
             let mut all_props = all_props?;
 
-            // cache ids can occur multiple times
-            // If the class we are looking at appears in `PARENT_CLASSES` that has first priority
-            let object_name: &str = &*body.objects[cache.object_ind as usize];
-            if let Some(parent_name) = PARENT_CLASSES.get(object_name) {
+            // We are going to recursively resolve an object's name to find their direct parent.
+            // Parents have parents as well (etc), so we repeatedly walk up the chain picking up
+            // attributes on parent objects until we reach an object with no parent (`Core.Object`)
+            let mut object_name: &str = &*body.objects[cache.object_ind as usize];
+            while let Some(parent_name) = PARENT_CLASSES.get(object_name) {
                 if let Some(parent_ind) = name_obj_ind.get(parent_name) {
                     if let Some(parent_attrs) = object_ind_attrs.get(&(*parent_ind as i32)) {
                         all_props.extend(parent_attrs.iter());
                     }
                 }
+
+                object_name = parent_name;
             }
 
             object_ind_attrs.insert(cache.object_ind, all_props);
@@ -1399,6 +1402,16 @@ mod tests {
         let mut parser = Parser::new(&data[..], CrcCheck::Always, NetworkParse::Always);
         let replay = parser.parse().unwrap();
         assert_eq!(replay.network_frames.unwrap().frames.len(), 13320);
+    }
+
+    #[test]
+    fn test_3d07e_replay() {
+        let data = include_bytes!("../assets/3d07e.replay");
+        let mut parser = Parser::new(&data[..], CrcCheck::Always, NetworkParse::Always);
+        match parser.parse() {
+            Ok(replay) => assert_eq!(replay.network_frames.unwrap().frames.len(), 8727),
+            Err(ref e) => panic!(format!("{}", e)),
+        }
     }
 
     #[test]
