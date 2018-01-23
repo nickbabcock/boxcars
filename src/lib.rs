@@ -53,15 +53,14 @@ extern crate serde_json;
 extern crate serde_derive;
 
 pub use self::models::*;
-pub use self::parsing::*;
-pub use self::errors::*;
-pub use self::network::*;
+pub use self::network::{Frame, UpdatedAttribute, NewActor, Trajectory, Rotation, Vector};
+pub use self::parsing::{ParserBuilder, CrcCheck, NetworkParse};
 mod network;
 mod parsing;
 mod models;
-pub mod crc;
+mod crc;
 mod errors;
-pub mod attributes;
+mod attributes;
 
 mod hashes {
   include!(concat!(env!("OUT_DIR"), "/generated.rs"));
