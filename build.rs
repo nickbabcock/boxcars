@@ -174,7 +174,7 @@ fn main() {
         .entry("TAGame.CrowdActor_TA:ReplicatedOneShotSound", "AttributeTag::Flagged")
         .entry("TAGame.CrowdActor_TA:ReplicatedRoundCountDownNumber", "AttributeTag::Int")
         .entry("TAGame.CrowdManager_TA:GameEvent", "AttributeTag::Flagged")
-        .entry("TAGame.CrowdManager_TA:ReplicatedGlobalOneShotSound", "AttributeTag::Int")
+        .entry("TAGame.CrowdManager_TA:ReplicatedGlobalOneShotSound", "AttributeTag::Flagged")
         .entry("TAGame.GameEvent_Soccar_TA:bBallHasBeenHit", "AttributeTag::Boolean")
         .entry("TAGame.GameEvent_Soccar_TA:bOverTime", "AttributeTag::Boolean")
         .entry("TAGame.GameEvent_Soccar_TA:GameTime", "AttributeTag::Int")
