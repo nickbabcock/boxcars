@@ -28,6 +28,7 @@ pub enum AttributeTag {
     Location,
     MusicStinger,
     Pickup,
+    PlayerHistoryKey,
     QWord,
     Welded,
     RigidBody,
@@ -63,6 +64,7 @@ pub enum Attribute {
     TeamLoadout(TeamLoadout),
     Location(Vector),
     MusicStinger(MusicStinger),
+    PlayerHistoryKey(u16),
     Pickup(Pickup),
     QWord(u64),
     Welded(Welded),
@@ -271,6 +273,7 @@ impl AttributeDecoder {
             AttributeTag::Location => self.decode_location(bits),
             AttributeTag::MusicStinger => self.decode_music_stinger(bits),
             AttributeTag::Pickup => self.decode_pickup(bits),
+            AttributeTag::PlayerHistoryKey => self.decode_player_history_key(bits),
             AttributeTag::QWord => self.decode_qword(bits),
             AttributeTag::Welded => self.decode_welded(bits),
             AttributeTag::RigidBody => self.decode_rigid_body(bits),
@@ -290,6 +293,12 @@ impl AttributeDecoder {
         bits.read_u8()
             .map(Attribute::Byte)
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Byte"))
+    }
+
+    pub fn decode_player_history_key(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+        bits.read_u32_bits(14)
+            .map(|x| Attribute::PlayerHistoryKey(x as u16))
+            .ok_or_else(|| AttributeError::NotEnoughDataFor("PlayerHistoryKey"))
     }
 
     pub fn decode_flagged_byte(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {

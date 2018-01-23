@@ -221,6 +221,7 @@ fn main() {
         .entry("TAGame.PRI_TA:PartyLeader", "AttributeTag::PartyLeader")
         .entry("TAGame.PRI_TA:PawnType", "AttributeTag::Byte")
         .entry("TAGame.PRI_TA:PersistentCamera", "AttributeTag::Flagged")
+        .entry("TAGame.PRI_TA:PlayerHistoryKey", "AttributeTag::PlayerHistoryKey")
         .entry("TAGame.PRI_TA:PlayerHistoryValid", "AttributeTag::Boolean")
         .entry("TAGame.PRI_TA:ReplicatedGameEvent", "AttributeTag::Flagged")
         .entry("TAGame.PRI_TA:SteeringSensitivity", "AttributeTag::Float")
