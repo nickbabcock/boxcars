@@ -1,15 +1,34 @@
-/// Calculates the 32bit crc from a given set of data. It does not appear to
-/// be the typical crc calculation and may be specific to Rocket League and/or
-/// Unreal Engine. Implementation is close, but not the same as the crc create
+/// Calculates the crc-32 for rocket league replays. Not all CRC algorithms are the same. The crc
+/// algorithm can be generated with the following parameters (pycrc):
+///
+/// - Width = 32
+/// - Poly = 0x04c11db7
+/// - XorIn = 0x10340dfe
+/// - ReflectIn = False
+/// - XorOut = 0xffffffff
+/// - ReflectOut = False
+///
+/// It may be tempting to optimize this function to use slice by techniques, but I have not be able
+/// to achieve this. pycrc disables slice by for non-reflected algorithms, and I couldn't get the
+/// reversed model from reveng to pass the tests. I've wasted too much time trying to optimize this
+/// function. I thought it would be worthwhile as when one is only interested in parsing a replay's
+/// header and checking the crc, the crc computation is 100x more intensive than the header
+/// parsing.
+///
+/// I've even tried to lookup the slice by 8 tables of  `CRCTablesSB8` and
+/// `CRCTablesSB8_DEPRECATED` from the unreal engine to glean any information on derivation or
+/// usage. No such luck. This has been a teachable moment
 pub fn calc_crc(data: &[u8]) -> u32 {
     !data.iter().fold(!0xefcb_f201, |acc, &x| {
         (acc << 8) ^ (TABLE[((u32::from(x)) ^ (acc >> 24)) as usize])
     })
 }
 
-/// Precomputed crc table. It is extremely close to IEEE housed in the
-/// crc crate, but they are not interchangeable. Still need to determine
-/// the differences. Copied from the Octane project.
+/// This is equal to the `CRCTable_Deprecated` found in the unreal project
+/// ([link](https://docs.unrealengine.com/latest/INT/API/Runtime/Core/Misc/FCrc/CRCTable_DEPRECATED/index.html)). From the docs:
+///
+/// > These tables and functions are deprecated because they're using tables and implementations
+/// > which give values different from what a user of a typical CRC32 algorithm might expect.
 const TABLE: [u32; 256] = [
     0x0000_0000,
     0x04c1_1db7,
