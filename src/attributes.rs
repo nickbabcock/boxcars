@@ -4,9 +4,6 @@ use parsing::{Header, decode_utf16, decode_windows1252};
 use errors::AttributeError;
 use std::borrow::Cow;
 
-pub type AttributeDecodeFn =
-    fn(&AttributeDecoder, &mut BitGet) -> Result<Attribute, AttributeError>;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AttributeTag {
     Boolean,

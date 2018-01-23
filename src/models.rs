@@ -16,7 +16,7 @@ use std::borrow::Cow;
 use network::Frame;
 
 /// The structure that a rocket league replay is parsed into.
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Serialize, PartialEq, Debug, Clone)]
 pub struct Replay<'a> {
     pub header_size: i32,
     pub header_crc: i32,
@@ -43,7 +43,7 @@ pub struct Replay<'a> {
     pub net_cache: Vec<ClassNetCache>,
 }
 
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Serialize, PartialEq, Debug, Clone)]
 pub struct NetworkFrames {
     pub frames: Vec<Frame>,
 }
@@ -52,7 +52,7 @@ pub struct NetworkFrames {
 /// the game (eg. a goal). The tick mark is placed before the event happens so there is a ramp-up
 /// time. For instance, a tickmark could be at frame 396 for a goal at frame 441. At 30 fps, this
 /// would be 1.5 seconds of ramp up time.
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Serialize, PartialEq, Debug, Clone)]
 pub struct TickMark<'a> {
     pub description: Cow<'a, str>,
     pub frame: i32,
@@ -63,7 +63,7 @@ pub struct TickMark<'a> {
 /// network stream, this is more a nice-to-decode than a necessity
 ///
 /// [wikipedia]: https://en.wikipedia.org/wiki/Key_frame#Video_compression
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Serialize, PartialEq, Debug, Clone, Copy)]
 pub struct KeyFrame {
     pub time: f32,
     pub frame: i32,
@@ -76,7 +76,7 @@ pub struct KeyFrame {
 /// - Date and level played on
 /// A property can be a number, string, or a more complex object such as an array containing
 /// additional properties.
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum HeaderProp<'a> {
     Array(Vec<Vec<(&'a str, HeaderProp<'a>)>>),
     Bool(bool),
@@ -89,7 +89,7 @@ pub enum HeaderProp<'a> {
 }
 
 /// Debugging info stored in the replay if debugging is enabled.
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Serialize, PartialEq, Debug, Clone)]
 pub struct DebugInfo<'a> {
     pub frame: i32,
     pub user: Cow<'a, str>,
@@ -97,21 +97,21 @@ pub struct DebugInfo<'a> {
 }
 
 /// Contains useful information when decoding the network stream, which we aren't
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Serialize, PartialEq, Debug, Clone)]
 pub struct ClassIndex<'a> {
     pub class: &'a str,
     pub index: i32,
 }
 
 /// Contains useful information when decoding the network stream, which we aren't
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Serialize, PartialEq, Debug, Clone, Copy)]
 pub struct CacheProp {
     pub object_ind: i32,
     pub stream_id: i32,
 }
 
 /// Contains useful information when decoding the network stream, which we aren't
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Serialize, PartialEq, Debug, Clone)]
 pub struct ClassNetCache {
     pub object_ind: i32,
     pub parent_id: i32,
