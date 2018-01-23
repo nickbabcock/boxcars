@@ -4,7 +4,8 @@ use parsing::{Header, decode_utf16, decode_windows1252};
 use errors::AttributeError;
 use std::borrow::Cow;
 
-pub type AttributeDecodeFn = fn(&AttributeDecoder, &mut BitGet) -> Result<Attribute, AttributeError>;
+pub type AttributeDecodeFn =
+    fn(&AttributeDecoder, &mut BitGet) -> Result<Attribute, AttributeError>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AttributeTag {
@@ -251,7 +252,11 @@ impl AttributeDecoder {
         }
     }
 
-    pub fn decode(&self, tag: AttributeTag, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode(
+        &self,
+        tag: AttributeTag,
+        bits: &mut BitGet,
+    ) -> Result<Attribute, AttributeError> {
         match tag {
             AttributeTag::Boolean => self.decode_boolean(bits),
             AttributeTag::Byte => self.decode_byte(bits),
@@ -295,7 +300,10 @@ impl AttributeDecoder {
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Byte"))
     }
 
-    pub fn decode_player_history_key(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_player_history_key(
+        &self,
+        bits: &mut BitGet,
+    ) -> Result<Attribute, AttributeError> {
         bits.read_u32_bits(14)
             .map(|x| Attribute::PlayerHistoryKey(x as u16))
             .ok_or_else(|| AttributeError::NotEnoughDataFor("PlayerHistoryKey"))

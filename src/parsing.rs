@@ -57,7 +57,7 @@
 use encoding_rs::{UTF_16LE, WINDOWS_1252};
 use models::*;
 use crc::calc_crc;
-use errors::{NetworkError, ParseError, AttributeError};
+use errors::{AttributeError, NetworkError, ParseError};
 use std::borrow::Cow;
 use failure::{Error, ResultExt};
 use byteorder::{ByteOrder, LittleEndian};
@@ -237,6 +237,229 @@ struct CacheInfo {
     attributes: HashMap<i32, AttributeTag>,
 }
 
+struct FrameDecoder<'a, 'b: 'a> {
+    frames_len: usize,
+    color_ind: u32,
+    painted_ind: u32,
+    channel_bits: i32,
+    header: &'a Header<'b>,
+    body: &'a ReplayBody<'b>,
+    spawns: &'a Vec<SpawnTrajectory>,
+    object_ind_attributes: FnvHashMap<i32, CacheInfo>,
+    object_ind_attrs: HashMap<i32, HashMap<i32, ObjectAttribute>>,
+}
+
+impl<'a, 'b> FrameDecoder<'a, 'b> {
+    fn object_ind_to_string(&self, ind: i32) -> String {
+        String::from(
+            self.body
+                .objects
+                .get(ind as usize)
+                .map(Deref::deref)
+                .unwrap_or("Out of bounds"),
+        )
+    }
+
+    fn missing_attribute(
+        &self,
+        cache_info: &CacheInfo,
+        actor_id: i32,
+        type_id: i32,
+        prop_id: i32,
+    ) -> NetworkError {
+        NetworkError::MissingAttribute(
+            actor_id,
+            type_id,
+            self.object_ind_to_string(type_id),
+            prop_id,
+            cache_info
+                .attributes
+                .keys()
+                .map(|x| x.to_string())
+                .collect::<Vec<_>>()
+                .join(","),
+        )
+    }
+
+    fn unimplemented_attribute(&self, actor_id: i32, type_id: i32, prop_id: i32) -> NetworkError {
+        NetworkError::UnimplementedAttribute(
+            actor_id,
+            type_id,
+            self.object_ind_to_string(type_id),
+            prop_id,
+            self.object_ind_attrs
+                .get(&type_id)
+                .and_then(|x| x.get(&prop_id))
+                .map(|x| self.object_ind_to_string(x.object_index))
+                .unwrap_or("type id not recognized".to_string()),
+        )
+    }
+
+    fn parse_new_actor(
+        &self,
+        mut bits: &mut BitGet,
+        actor_id: i32,
+    ) -> Result<NewActor, NetworkError> {
+        if_chain! {
+            if let Some(name_id) =
+                if self.header.major_version > 868 ||
+                    (self.header.major_version == 868 && self.header.minor_version >= 14) {
+                    bits.read_i32().map(Some)
+                } else {
+                    Some(None)
+                };
+
+            if let Some(_) = bits.read_bit();
+            if let Some(type_id) = bits.read_i32();
+
+            let spawn = self.spawns.get(type_id as usize)
+                .ok_or_else(|| NetworkError::TypeIdOutOfRange(type_id))?;
+
+            if let Some(traj) = Trajectory::from_spawn(&mut bits, *spawn);
+            then {
+                Ok(NewActor {
+                    actor_id: actor_id,
+                    object_ind: type_id,
+                    initial_trajectory: traj
+                })
+            } else {
+                Err(NetworkError::NotEnoughDataFor("New Actor"))
+            }
+        }
+    }
+
+    fn decode_frame(
+        &self,
+        attr_decoder: &AttributeDecoder,
+        mut bits: &mut BitGet,
+        actors: &mut FnvHashMap<i32, i32>,
+        time: f32,
+        delta: f32,
+    ) -> Result<Frame, NetworkError> {
+        let mut new_actors = Vec::new();
+        let mut updated_actors = Vec::new();
+        let mut deleted_actors = Vec::new();
+
+        while bits.read_bit()
+            .ok_or_else(|| NetworkError::NotEnoughDataFor("Actor data"))?
+        {
+            let actor_id = bits.read_i32_bits(self.channel_bits)
+                .ok_or_else(|| NetworkError::NotEnoughDataFor("Actor Id"))?;
+
+            // alive
+            if bits.read_bit()
+                .ok_or_else(|| NetworkError::NotEnoughDataFor("Is actor alive"))?
+            {
+                // new
+                if bits.read_bit()
+                    .ok_or_else(|| NetworkError::NotEnoughDataFor("Is new actor"))?
+                {
+                    let actor = self.parse_new_actor(&mut bits, actor_id)?;
+
+                    // Insert the new actor so we can keep track of it for attribute
+                    // updates. It's common for an actor id to already exist, so we
+                    // overwrite it.
+                    actors.insert(actor.actor_id, actor.object_ind);
+                    new_actors.push(actor);
+                } else {
+                    // We'll be updating an existing actor with some attributes so we need
+                    // to track down what the actor's type is
+                    let type_id = actors
+                        .get(&actor_id)
+                        .ok_or_else(|| NetworkError::MissingActor(actor_id))?;
+
+                    // Once we have the type we need to look up what attributes are
+                    // available for said type
+                    let cache_info = self.object_ind_attributes.get(type_id).ok_or_else(|| {
+                        NetworkError::MissingCache(
+                            actor_id,
+                            *type_id,
+                            self.object_ind_to_string(*type_id),
+                        )
+                    })?;
+
+                    // While there are more attributes to update for our actor:
+                    while bits.read_bit()
+                        .ok_or_else(|| NetworkError::NotEnoughDataFor("Is prop present"))?
+                    {
+                        // We've previously calculated the max the property id can be for a
+                        // given type and how many bits that it encompasses so use those
+                        // values now
+                        let prop_id =
+                            bits.read_bits_max(cache_info.prop_id_bits, cache_info.max_prop_id)
+                                .map(|x| x as i32)
+                                .ok_or_else(|| NetworkError::NotEnoughDataFor("Prop id"))?;
+
+                        // Look the property id up and find the corresponding attribute
+                        // decoding function. Experience has told me replays that fail to
+                        // parse, fail to do so here, so a large chunk is dedicated to
+                        // generating an error message with context
+                        let attr = cache_info.attributes.get(&prop_id).ok_or_else(|| {
+                            self.missing_attribute(&cache_info, actor_id, *type_id, prop_id)
+                        })?;
+
+                        let attribute =
+                            attr_decoder.decode(*attr, &mut bits).map_err(|e| match e {
+                                AttributeError::Unimplemented => {
+                                    self.unimplemented_attribute(actor_id, *type_id, prop_id)
+                                }
+                                _ => NetworkError::AttributeError(e),
+                            })?;
+
+                        updated_actors.push(UpdatedAttribute {
+                            actor_id: actor_id,
+                            attribute_id: prop_id,
+                            attribute: attribute,
+                        });
+                    }
+                }
+            } else {
+                deleted_actors.push(actor_id);
+                actors.remove(&actor_id);
+            }
+        }
+
+        Ok(Frame {
+            time: time,
+            delta: delta,
+            new_actors: new_actors,
+            deleted_actors: deleted_actors,
+            updated_actors: updated_actors,
+        })
+    }
+
+    pub fn decode_frames(&self) -> Result<Vec<Frame>, Error> {
+        let attr_decoder = AttributeDecoder::new(self.header, self.color_ind, self.painted_ind);
+        let mut frames: Vec<Frame> = Vec::with_capacity(self.frames_len);
+        let mut actors = FnvHashMap::default();
+        let mut bits = BitGet::new(self.body.network_data);
+        while !bits.is_empty() && frames.len() < self.frames_len {
+            let time = bits.read_f32()
+                .ok_or_else(|| NetworkError::NotEnoughDataFor("Time"))?;
+
+            if time < 0.0 || (time > 0.0 && time < 1e-10) {
+                return Err(NetworkError::TimeOutOfRange(time))?;
+            }
+
+            let delta = bits.read_f32()
+                .ok_or_else(|| NetworkError::NotEnoughDataFor("Delta"))?;
+
+            if delta < 0.0 || (delta > 0.0 && delta < 1e-10) {
+                return Err(NetworkError::DeltaOutOfRange(time))?;
+            }
+
+            if time == 0.0 && delta == 0.0 {
+                break;
+            }
+
+            let frame = self.decode_frame(&attr_decoder, &mut bits, &mut actors, time, delta)?;
+            frames.push(frame);
+        }
+
+        Ok(frames)
+    }
+}
+
 /// Holds the current state of parsing a replay
 #[derive(Debug, Clone, PartialEq)]
 pub struct Parser<'a> {
@@ -326,39 +549,6 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_new_actor(
-        mut bits: &mut BitGet,
-        header: &Header,
-        spawns: &Vec<SpawnTrajectory>,
-        actor_id: i32,
-    ) -> Result<NewActor, NetworkError> {
-        if_chain! {
-            if let Some(name_id) =
-                if header.major_version > 868 ||
-                    (header.major_version == 868 && header.minor_version >= 14) {
-                    bits.read_i32().map(Some)
-                } else {
-                    Some(None)
-                };
-
-            if let Some(_) = bits.read_bit();
-            if let Some(type_id) = bits.read_i32();
-
-            let spawn = spawns.get(type_id as usize)
-                .ok_or_else(|| NetworkError::TypeIdOutOfRange(type_id))?;
-
-            if let Some(traj) = Trajectory::from_spawn(&mut bits, *spawn);
-            then {
-                Ok(NewActor {
-                    actor_id: actor_id,
-                    object_ind: type_id,
-                    initial_trajectory: traj
-                })
-            } else {
-                Err(NetworkError::NotEnoughDataFor("New Actor"))
-            }
-        }
-    }
 
     fn parse_network(
         &mut self,
@@ -419,10 +609,13 @@ impl<'a> Parser<'a> {
                     let attr = attrs.get(x.object_ind as usize).ok_or_else(|| {
                         NetworkError::StreamTooLargeIndex(x.stream_id, x.object_ind)
                     })?;
-                    Ok((x.stream_id, ObjectAttribute {
-                        attribute: *attr,
-                        object_index: x.object_ind,
-                    }))
+                    Ok((
+                        x.stream_id,
+                        ObjectAttribute {
+                            attribute: *attr,
+                            object_index: x.object_ind,
+                        },
+                    ))
                 })
                 .collect();
 
@@ -503,166 +696,20 @@ impl<'a> Parser<'a> {
         let num_frames = header.num_frames();
 
         if let Some(frame_len) = num_frames {
-            let attr_decoder = AttributeDecoder::new(header, color_ind, painted_ind);
-            let mut frames: Vec<Frame> = Vec::with_capacity(frame_len as usize);
-            let mut actors = FnvHashMap::default();
-            let mut bits = BitGet::new(body.network_data);
-            let upper = frame_len as usize;
-            while !bits.is_empty() && frames.len() < upper {
-                let time = bits.read_f32()
-                    .ok_or_else(|| NetworkError::NotEnoughDataFor("Time"))?;
-
-                if time < 0.0 || (time > 0.0 && time < 1e-10) {
-                    return Err(NetworkError::TimeOutOfRange(time))?;
-                }
-
-                let delta = bits.read_f32()
-                    .ok_or_else(|| NetworkError::NotEnoughDataFor("Delta"))?;
-
-                if delta < 0.0 || (delta > 0.0 && delta < 1e-10) {
-                    return Err(NetworkError::DeltaOutOfRange(time))?;
-                }
-
-                if time == 0.0 && delta == 0.0 {
-                    break;
-                }
-
-                let mut new_actors = Vec::new();
-                let mut updated_actors = Vec::new();
-                let mut deleted_actors = Vec::new();
-
-                while bits.read_bit()
-                    .ok_or_else(|| NetworkError::NotEnoughDataFor("Actor data"))?
-                {
-                    let actor_id = bits.read_i32_bits(channel_bits)
-                        .ok_or_else(|| NetworkError::NotEnoughDataFor("Actor Id"))?;
-
-                    // alive
-                    if bits.read_bit()
-                        .ok_or_else(|| NetworkError::NotEnoughDataFor("Is actor alive"))?
-                    {
-                        // new
-                        if bits.read_bit()
-                            .ok_or_else(|| NetworkError::NotEnoughDataFor("Is new actor"))?
-                        {
-                            let actor =
-                                Parser::parse_new_actor(&mut bits, header, &spawns, actor_id)?;
-
-                            // Insert the new actor so we can keep track of it for attribute
-                            // updates. It's common for an actor id to already exist, so we
-                            // overwrite it.
-                            actors.insert(actor.actor_id, actor.object_ind);
-                            new_actors.push(actor);
-                        } else {
-                            // We'll be updating an existing actor with some attributes so we need
-                            // to track down what the actor's type is
-                            let type_id = actors
-                                .get(&actor_id)
-                                .ok_or_else(|| NetworkError::MissingActor(actor_id))?;
-
-                            // Once we have the type we need to look up what attributes are
-                            // available for said type
-                            let cache_info = object_ind_attributes.get(type_id).ok_or_else(|| {
-                                NetworkError::MissingCache(
-                                    actor_id,
-                                    *type_id,
-                                    String::from(
-                                        body.objects
-                                            .get(*type_id as usize)
-                                            .map(Deref::deref)
-                                            .unwrap_or("Out of bounds"),
-                                    ),
-                                )
-                            })?;
-
-                            // While there are more attributes to update for our actor:
-                            while bits.read_bit()
-                                .ok_or_else(|| NetworkError::NotEnoughDataFor("Is prop present"))?
-                            {
-                                // We've previously calculated the max the property id can be for a
-                                // given type and how many bits that it encompasses so use those
-                                // values now
-                                let prop_id = bits.read_bits_max(
-                                    cache_info.prop_id_bits,
-                                    cache_info.max_prop_id,
-                                ).map(|x| x as i32)
-                                    .ok_or_else(|| NetworkError::NotEnoughDataFor("Prop id"))?;
-
-                                assert!(prop_id < cache_info.max_prop_id);
-
-                                // Look the property id up and find the corresponding attribute
-                                // decoding function. Experience has told me replays that fail to
-                                // parse, fail to do so here, so a large chunk is dedicated to
-                                // generating an error message with context
-                                let attr = cache_info.attributes.get(&prop_id).ok_or_else(|| {
-                                    NetworkError::MissingAttribute(
-                                        actor_id,
-                                        *type_id,
-                                        String::from(
-                                            body.objects
-                                                .get(*type_id as usize)
-                                                .map(Deref::deref)
-                                                .unwrap_or("Out of bounds"),
-                                        ),
-                                        prop_id,
-                                        cache_info
-                                            .attributes
-                                            .keys()
-                                            .map(|x| x.to_string())
-                                            .collect::<Vec<_>>()
-                                            .join(","),
-                                    )
-                                })?;
-
-                                let attribute = attr_decoder.decode(*attr, &mut bits)
-                                    .map_err(|e| {
-                                        match e {
-                                            AttributeError::Unimplemented => 
-                                                NetworkError::UnimplementedAttribute(
-                                                    actor_id,
-                                                    *type_id,
-                                                    String::from(
-                                                        body.objects
-                                                            .get(*type_id as usize)
-                                                            .map(Deref::deref)
-                                                            .unwrap_or("Out of bounds"),
-                                                    ),
-                                                    prop_id,
-                                                    String::from(
-                                                        object_ind_attrs
-                                                            .get(type_id)
-                                                            .and_then(|x| x.get(&prop_id))
-                                                            .and_then(|x| body.objects.get(x.object_index as usize))
-                                                            .map(Deref::deref)
-                                                            .unwrap_or("Out of bounds")
-                                                    )
-                                                ),
-                                            _ => NetworkError::AttributeError(e),
-                                        }
-                                    })?;
-                                updated_actors.push(UpdatedAttribute {
-                                    actor_id: actor_id,
-                                    attribute_id: prop_id,
-                                    attribute: attribute,
-                                });
-                            }
-                        }
-                    } else {
-                        deleted_actors.push(actor_id);
-                        actors.remove(&actor_id);
-                    }
-                }
-
-                frames.push(Frame {
-                    time: time,
-                    delta: delta,
-                    new_actors: new_actors,
-                    deleted_actors: deleted_actors,
-                    updated_actors: updated_actors,
-                });
-            }
-
-            Ok(NetworkFrames { frames: frames })
+            let frame_decoder = FrameDecoder {
+                frames_len: frame_len as usize,
+                color_ind: color_ind,
+                painted_ind: painted_ind,
+                channel_bits: channel_bits,
+                header: header,
+                body: body,
+                spawns: &spawns,
+                object_ind_attributes: object_ind_attributes,
+                object_ind_attrs: object_ind_attrs,
+            };
+            Ok(NetworkFrames {
+                frames: frame_decoder.decode_frames()?,
+            })
         } else {
             Ok(NetworkFrames { frames: Vec::new() })
         }
