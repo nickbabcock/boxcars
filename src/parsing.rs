@@ -498,8 +498,8 @@ impl<'a> Parser<'a> {
             let mut frames: Vec<Frame> = Vec::with_capacity(frame_len as usize);
             let mut actors = FnvHashMap::default();
             let mut bits = BitGet::new(body.network_data);
-
-            while !bits.is_empty() {
+            let upper = frame_len as usize;
+            while !bits.is_empty() && frames.len() < upper {
                 let time = bits.read_f32()
                     .ok_or_else(|| NetworkError::NotEnoughDataFor("Time"))?;
 
@@ -1420,6 +1420,16 @@ mod tests {
         let mut parser = Parser::new(&data[..], CrcCheck::Always, NetworkParse::Always);
         match parser.parse() {
             Ok(replay) => assert_eq!(replay.network_frames.unwrap().frames.len(), 8599),
+            Err(ref e) => panic!(format!("{}", e)),
+        }
+    }
+
+    #[test]
+    fn test_e7fb9_replay() {
+        let data = include_bytes!("../assets/e7fb9.replay");
+        let mut parser = Parser::new(&data[..], CrcCheck::Always, NetworkParse::Always);
+        match parser.parse() {
+            Ok(replay) => assert_eq!(replay.network_frames.unwrap().frames.len(), 7472),
             Err(ref e) => panic!(format!("{}", e)),
         }
     }
