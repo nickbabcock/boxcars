@@ -124,7 +124,7 @@ pub struct ClassNetCache {
 /// store it into an associative array, so it's stored as a normal sequence. Here we serialize as a
 /// map structure because most replay parser do this, so we should be compliant and the data format
 /// doesn't dictate that the keys in a sequence of key value pairs must be distinct. It's true,
-/// JSON doesn't need the keys to be unique: http://stackoverflow.com/q/21832701/433785
+/// JSON doesn't need the keys to be unique: <http://stackoverflow.com/q/21832701/433785>
 fn pair_vec<K, V, S>(inp: &[(K, V)], serializer: S) -> Result<S::Ok, S::Error>
 where
     K: Serialize,

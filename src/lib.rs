@@ -53,15 +53,16 @@ extern crate serde_json;
 extern crate serde_derive;
 
 pub use self::models::*;
-pub use self::network::{Frame, UpdatedAttribute, NewActor, Trajectory, Rotation, Vector};
-pub use self::parsing::{ParserBuilder, CrcCheck, NetworkParse};
+pub use self::network::{Frame, NewActor, Rotation, Trajectory, UpdatedAttribute, Vector};
+pub use self::parsing::{CrcCheck, NetworkParse, ParserBuilder};
 mod network;
 mod parsing;
 mod models;
-mod crc;
+pub mod crc;
 mod errors;
 mod attributes;
 
+#[cfg_attr(feature = "cargo-clippy", allow(clippy))]
 mod hashes {
-  include!(concat!(env!("OUT_DIR"), "/generated.rs"));
+    include!(concat!(env!("OUT_DIR"), "/generated.rs"));
 }

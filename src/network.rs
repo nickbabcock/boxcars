@@ -170,8 +170,8 @@ impl Trajectory {
 
 /// Oftentimes a replay contains many different objects of the same type. For instance, each rumble
 /// pickup item is of the same type but has a different name. The name of:
-/// stadium_foggy_p.TheWorld:PersistentLevel.VehiclePickup_Boost_TA_30 should be normalized to
-/// TheWorld:PersistentLevel.VehiclePickup_Boost_TA so that we don't have to work around each
+/// `stadium_foggy_p.TheWorld:PersistentLevel.VehiclePickup_Boost_TA_30` should be normalized to
+/// `TheWorld:PersistentLevel.VehiclePickup_Boost_TA` so that we don't have to work around each
 /// stadium and pickup that is released.
 pub fn normalize_object(name: &str) -> &str {
     if name.contains("TheWorld:PersistentLevel.CrowdActor_TA") {

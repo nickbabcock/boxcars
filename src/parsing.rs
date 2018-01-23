@@ -1067,14 +1067,14 @@ const MULTIPLY_DE_BRUIJN_BIT_POSITION2: [u32; 32] = [
 
 // https://graphics.stanford.edu/~seander/bithacks.html#IntegerLogDeBruijn
 fn log2(v: u32) -> u32 {
-    MULTIPLY_DE_BRUIJN_BIT_POSITION2[((v.wrapping_mul(0x077CB531)) >> 27) as usize]
+    MULTIPLY_DE_BRUIJN_BIT_POSITION2[((v.wrapping_mul(0x077C_B531)) >> 27) as usize]
 }
 
 /// Reads a string of a given size from the data. The size includes a null
 /// character as the last character, so we drop it in the returned string
 /// slice. It may seem redundant to store this information, but stackoverflow
 /// contains a nice reasoning for why it may have been done this way:
-/// http://stackoverflow.com/q/6293457/433785
+/// <http://stackoverflow.com/q/6293457/433785>
 fn decode_str(input: &[u8]) -> Result<&str, ParseError> {
     if input.is_empty() {
         Err(ParseError::ZeroSize)

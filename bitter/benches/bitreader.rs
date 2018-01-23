@@ -5,7 +5,7 @@ extern crate criterion;
 use criterion::{black_box, Criterion};
 use bitreader::BitReader;
 
-static DATA: [u8; 0x10000] = [0; 0x10000];
+static DATA: [u8; 0x10_000] = [0; 0x10_000];
 
 fn bench_bit_reader(c: &mut Criterion) {
     c.bench_function("bit_reader", |b| {
@@ -18,9 +18,6 @@ fn bench_bit_reader(c: &mut Criterion) {
     });
 }
 
-criterion_group!(
-    bitreader,
-    bench_bit_reader
-);
+criterion_group!(bitreader, bench_bit_reader);
 
 criterion_main!(bitreader);

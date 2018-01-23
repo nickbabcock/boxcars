@@ -5,7 +5,7 @@ extern crate criterion;
 use criterion::{black_box, Criterion};
 use bitter::BitGet;
 
-static DATA: [u8; 0x10000] = [0; 0x10000];
+static DATA: [u8; 0x10_000] = [0; 0x10_000];
 
 fn bench_read_u32_bits_unchecked(c: &mut Criterion) {
     c.bench_function("read_u32_bits_unchecked", |b| {
@@ -65,7 +65,7 @@ fn bench_read_f32_checked(c: &mut Criterion) {
 fn bench_read_f32_unchecked(c: &mut Criterion) {
     c.bench_function("read_f32_checked", |b| {
         b.iter(|| {
-            let mut bits = BitGet::new(&[0; 0x10000]);
+            let mut bits = BitGet::new(&DATA);
             for _ in 0..1000 {
                 black_box(bits.read_f32_unchecked());
             }
