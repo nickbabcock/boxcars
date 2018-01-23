@@ -18,6 +18,7 @@ pub enum AttributeTag {
     Enum,
     Explosion,
     ExtendedExplosion,
+    FlaggedByte,
     Flagged,
     Float,
     GameMode,
@@ -53,6 +54,7 @@ pub enum Attribute {
     Enum(u16),
     Explosion(Explosion),
     ExtendedExplosion(Explosion, bool, u32),
+    FlaggedByte(bool, u8),
     Flagged(bool, u32),
     Float(f32),
     GameMode(u8, u32),
@@ -260,6 +262,7 @@ impl AttributeDecoder {
             AttributeTag::Explosion => self.decode_explosion(bits),
             AttributeTag::ExtendedExplosion => self.decode_extended_explosion(bits),
             AttributeTag::Flagged => self.decode_flagged(bits),
+            AttributeTag::FlaggedByte => self.decode_flagged_byte(bits),
             AttributeTag::Float => self.decode_float(bits),
             AttributeTag::GameMode => self.decode_game_mode(bits),
             AttributeTag::Int => self.decode_int(bits),
@@ -287,6 +290,18 @@ impl AttributeDecoder {
         bits.read_u8()
             .map(Attribute::Byte)
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Byte"))
+    }
+
+    pub fn decode_flagged_byte(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+        if_chain! {
+            if let Some(b) = bits.read_bit();
+            if let Some(data) = bits.read_u8();
+            then {
+                Ok(Attribute::FlaggedByte(b, data))
+            } else {
+                Err(AttributeError::NotEnoughDataFor("FlaggedByte"))
+            }
+        }
     }
 
     pub fn decode_boolean(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {

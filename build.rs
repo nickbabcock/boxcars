@@ -224,6 +224,7 @@ fn main() {
         .entry("TAGame.PRI_TA:PlayerHistoryValid", "AttributeTag::Boolean")
         .entry("TAGame.PRI_TA:ReplicatedGameEvent", "AttributeTag::Flagged")
         .entry("TAGame.PRI_TA:SteeringSensitivity", "AttributeTag::Float")
+        .entry("TAGame.PRI_TA:SkillTier", "AttributeTag::FlaggedByte")
         .entry("TAGame.PRI_TA:TimeTillItem", "AttributeTag::Int")
         .entry("TAGame.PRI_TA:Title", "AttributeTag::Int")
         .entry("TAGame.PRI_TA:TotalXP", "AttributeTag::Int")
