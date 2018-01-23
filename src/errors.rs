@@ -70,4 +70,10 @@ pub enum NetworkError {
 
     #[fail(display = "Actor id: {} of object index: {} ({}) but attribute cache id: {} not found in {}", _0, _1, _2, _3, _4)]
     MissingAttribute(i32, i32, String, i32, String),
+
+    #[fail(display = "Actor id: {} of object index: {} ({}) but attribute cache id: {} ({}) was not implemented", _0, _1, _2, _3, _4)]
+    UnimplementedAttribute(i32, i32, String, i32, String),
+
+    #[fail(display = "Attribute error: {}", _0)]
+    AttributeError(#[cause] AttributeError),
 }

@@ -57,7 +57,7 @@
 use encoding_rs::{UTF_16LE, WINDOWS_1252};
 use models::*;
 use crc::calc_crc;
-use errors::{NetworkError, ParseError};
+use errors::{NetworkError, ParseError, AttributeError};
 use std::borrow::Cow;
 use failure::{Error, ResultExt};
 use byteorder::{ByteOrder, LittleEndian};
@@ -225,10 +225,16 @@ impl<'a> ParserBuilder<'a> {
     }
 }
 
-struct CacheInfo<'a> {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct ObjectAttribute {
+    attribute: AttributeTag,
+    object_index: i32,
+}
+
+struct CacheInfo {
     max_prop_id: i32,
     prop_id_bits: i32,
-    attributes: &'a HashMap<i32, AttributeTag>,
+    attributes: HashMap<i32, AttributeTag>,
 }
 
 /// Holds the current state of parsing a replay
@@ -404,16 +410,19 @@ impl<'a> Parser<'a> {
             .map(|(ind, name)| (name.deref(), ind))
             .collect();
 
-        let mut object_ind_attrs: HashMap<i32, HashMap<_, _>> = HashMap::new();
+        let mut object_ind_attrs: HashMap<i32, HashMap<i32, ObjectAttribute>> = HashMap::new();
         for cache in &body.net_cache {
-            let mut all_props: Result<HashMap<i32, _>, NetworkError> = cache
+            let mut all_props: Result<HashMap<i32, ObjectAttribute>, NetworkError> = cache
                 .properties
                 .iter()
                 .map(|x| {
                     let attr = attrs.get(x.object_ind as usize).ok_or_else(|| {
                         NetworkError::StreamTooLargeIndex(x.stream_id, x.object_ind)
                     })?;
-                    Ok((x.stream_id, *attr))
+                    Ok((x.stream_id, ObjectAttribute {
+                        attribute: *attr,
+                        object_index: x.object_ind,
+                    }))
                 })
                 .collect();
 
@@ -470,7 +479,7 @@ impl<'a> Parser<'a> {
                         CacheInfo {
                             max_prop_id: max,
                             prop_id_bits: log2(next_max) as i32,
-                            attributes: attrs,
+                            attributes: attrs.iter().map(|(k, o)| (*k, o.attribute)).collect(),
                         },
                     ))
                 })
@@ -605,7 +614,32 @@ impl<'a> Parser<'a> {
                                     )
                                 })?;
 
-                                let attribute = attr_decoder.decode(*attr, &mut bits)?;
+                                let attribute = attr_decoder.decode(*attr, &mut bits)
+                                    .map_err(|e| {
+                                        match e {
+                                            AttributeError::Unimplemented => 
+                                                NetworkError::UnimplementedAttribute(
+                                                    actor_id,
+                                                    *type_id,
+                                                    String::from(
+                                                        body.objects
+                                                            .get(*type_id as usize)
+                                                            .map(Deref::deref)
+                                                            .unwrap_or("Out of bounds"),
+                                                    ),
+                                                    prop_id,
+                                                    String::from(
+                                                        object_ind_attrs
+                                                            .get(type_id)
+                                                            .and_then(|x| x.get(&prop_id))
+                                                            .and_then(|x| body.objects.get(x.object_index as usize))
+                                                            .map(Deref::deref)
+                                                            .unwrap_or("Out of bounds")
+                                                    )
+                                                ),
+                                            _ => NetworkError::AttributeError(e),
+                                        }
+                                    })?;
                                 updated_actors.push(UpdatedAttribute {
                                     actor_id: actor_id,
                                     attribute_id: prop_id,
