@@ -6,6 +6,41 @@ use std::borrow::Cow;
 
 pub type AttributeDecodeFn = fn(&AttributeDecoder, &mut BitGet) -> Result<Attribute, AttributeError>;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AttributeTag {
+    Boolean,
+    Byte,
+    AppliedDamage,
+    DamageState,
+    CamSettings,
+    ClubColors,
+    Demolish,
+    Enum,
+    Explosion,
+    ExtendedExplosion,
+    Flagged,
+    Float,
+    GameMode,
+    Int,
+    Loadout,
+    TeamLoadout,
+    Location,
+    MusicStinger,
+    Pickup,
+    QWord,
+    Welded,
+    RigidBody,
+    TeamPaint,
+    NotImplemented,
+    String,
+    UniqueId,
+    Reservation,
+    PartyLeader,
+    PrivateMatchSettings,
+    LoadoutOnline,
+    LoadoutsOnline,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum Attribute {
     Boolean(bool),
@@ -209,6 +244,42 @@ impl AttributeDecoder {
             net_version: header.net_version.unwrap_or(0),
             color_ind: color_ind,
             painted_ind: painted_ind,
+        }
+    }
+
+    pub fn decode(&self, tag: AttributeTag, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+        match tag {
+            AttributeTag::Boolean => self.decode_boolean(bits),
+            AttributeTag::Byte => self.decode_byte(bits),
+            AttributeTag::AppliedDamage => self.decode_applied_damage(bits),
+            AttributeTag::DamageState => self.decode_damage_state(bits),
+            AttributeTag::CamSettings => self.decode_cam_settings(bits),
+            AttributeTag::ClubColors => self.decode_club_colors(bits),
+            AttributeTag::Demolish => self.decode_demolish(bits),
+            AttributeTag::Enum => self.decode_enum(bits),
+            AttributeTag::Explosion => self.decode_explosion(bits),
+            AttributeTag::ExtendedExplosion => self.decode_extended_explosion(bits),
+            AttributeTag::Flagged => self.decode_flagged(bits),
+            AttributeTag::Float => self.decode_float(bits),
+            AttributeTag::GameMode => self.decode_game_mode(bits),
+            AttributeTag::Int => self.decode_int(bits),
+            AttributeTag::Loadout => self.decode_loadout(bits),
+            AttributeTag::TeamLoadout => self.decode_team_loadout(bits),
+            AttributeTag::Location => self.decode_location(bits),
+            AttributeTag::MusicStinger => self.decode_music_stinger(bits),
+            AttributeTag::Pickup => self.decode_pickup(bits),
+            AttributeTag::QWord => self.decode_qword(bits),
+            AttributeTag::Welded => self.decode_welded(bits),
+            AttributeTag::RigidBody => self.decode_rigid_body(bits),
+            AttributeTag::TeamPaint => self.decode_team_paint(bits),
+            AttributeTag::NotImplemented => self.decode_not_implemented(bits),
+            AttributeTag::String => self.decode_string(bits),
+            AttributeTag::UniqueId => self.decode_unique_id(bits),
+            AttributeTag::Reservation => self.decode_reservation(bits),
+            AttributeTag::PartyLeader => self.decode_party_leader(bits),
+            AttributeTag::PrivateMatchSettings => self.decode_private_match_settings(bits),
+            AttributeTag::LoadoutOnline => self.decode_loadout_online(bits),
+            AttributeTag::LoadoutsOnline => self.decode_loadouts_online(bits),
         }
     }
 

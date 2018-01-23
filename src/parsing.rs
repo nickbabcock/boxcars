@@ -64,7 +64,7 @@ use byteorder::{ByteOrder, LittleEndian};
 use bitter::BitGet;
 use hashes::{ATTRIBUTES, OBJECT_CLASSES, PARENT_CLASSES, SPAWN_STATS};
 use network::{normalize_object, Frame, NewActor, SpawnTrajectory, Trajectory, UpdatedAttribute};
-use attributes::{AttributeDecoder, AttributeDecodeFn};
+use attributes::{AttributeDecoder, AttributeTag};
 use std::collections::HashMap;
 use fnv::FnvHashMap;
 use std::ops::Deref;
@@ -228,7 +228,7 @@ impl<'a> ParserBuilder<'a> {
 struct CacheInfo<'a> {
     max_prop_id: i32,
     prop_id_bits: i32,
-    attributes: &'a HashMap<i32, AttributeDecodeFn>,
+    attributes: &'a HashMap<i32, AttributeTag>,
 }
 
 /// Holds the current state of parsing a replay
@@ -383,7 +383,7 @@ impl<'a> Parser<'a> {
                 ATTRIBUTES
                     .get(x.deref())
                     .cloned()
-                    .unwrap_or(AttributeDecoder::decode_not_implemented)
+                    .unwrap_or(AttributeTag::NotImplemented)
             })
             .collect();
 
@@ -602,7 +602,7 @@ impl<'a> Parser<'a> {
                                     )
                                 })?;
 
-                                let attribute = attr(&attr_decoder, &mut bits)?;
+                                let attribute = attr_decoder.decode(*attr, &mut bits)?;
                                 updated_actors.push(UpdatedAttribute {
                                     actor_id: actor_id,
                                     attribute_id: prop_id,
