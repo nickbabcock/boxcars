@@ -1,3 +1,4 @@
+#![cfg_attr(rustfmt, rustfmt_skip)]
 extern crate phf_codegen;
 
 use std::env;
