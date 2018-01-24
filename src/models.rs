@@ -43,6 +43,7 @@ pub struct Replay<'a> {
     pub net_cache: Vec<ClassNetCache>,
 }
 
+/// The frames decoded from the network data
 #[derive(Serialize, PartialEq, Debug, Clone)]
 pub struct NetworkFrames {
     pub frames: Vec<Frame>,
@@ -59,8 +60,8 @@ pub struct TickMark<'a> {
 }
 
 /// Keyframes as defined by the video compression section in the [wikipedia][] article, are the
-/// main frames that are derived from in the following frame data. Since we are not decoding the
-/// network stream, this is more a nice-to-decode than a necessity
+/// main frames that are derived from in the following frame data. The key frames decoded will
+/// match up with the frames decoded from the network data.
 ///
 /// [wikipedia]: https://en.wikipedia.org/wiki/Key_frame#Video_compression
 #[derive(Serialize, PartialEq, Debug, Clone, Copy)]
@@ -71,9 +72,11 @@ pub struct KeyFrame {
 }
 
 /// All the interesting data are stored as properties in the header, properties such as:
+///
 /// - When and who scored a goal
 /// - Player stats (goals, assists, score, etc).
 /// - Date and level played on
+///
 /// A property can be a number, string, or a more complex object such as an array containing
 /// additional properties.
 #[derive(PartialEq, Debug, Clone)]
@@ -96,26 +99,41 @@ pub struct DebugInfo<'a> {
     pub text: Cow<'a, str>,
 }
 
-/// Contains useful information when decoding the network stream, which we aren't
+/// A mapping between an object's name and its index. Largely redundant
 #[derive(Serialize, PartialEq, Debug, Clone)]
 pub struct ClassIndex<'a> {
+    /// Should be equivalent to `Replay::objects(self.index)`
     pub class: &'a str,
+
+    /// The index that the object appears in the `Replay::objects`
     pub index: i32,
 }
 
-/// Contains useful information when decoding the network stream, which we aren't
+/// A mapping between an object (that's an attribute)'s index and what its id will be when encoded
+/// in the network data
 #[derive(Serialize, PartialEq, Debug, Clone, Copy)]
 pub struct CacheProp {
+    /// The index that the object appears in the `Replay::objects`
     pub object_ind: i32,
+
+    /// An attribute / property id that appears in the network data. Stream ids are often re-used
+    /// between multiple different properties
     pub stream_id: i32,
 }
 
 /// Contains useful information when decoding the network stream, which we aren't
 #[derive(Serialize, PartialEq, Debug, Clone)]
 pub struct ClassNetCache {
+    /// The index that the object appears in the `Replay::objects`
     pub object_ind: i32,
+
+    /// The cache id of the parent. The child class inherits all the parent's properties.
     pub parent_id: i32,
+
+    /// The cache id of the object
     pub cache_id: i32,
+
+    /// List of properties that is on the object.
     pub properties: Vec<CacheProp>,
 }
 

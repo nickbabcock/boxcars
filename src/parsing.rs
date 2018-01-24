@@ -159,6 +159,8 @@ struct ReplayBody<'a> {
     network_data: &'a [u8],
 }
 
+/// The main entry point to parsing replays in boxcars. Allows one to customize parsing options,
+/// such as only parsing the header and forgoing crc (corruption) checks.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ParserBuilder<'a> {
     data: &'a [u8],

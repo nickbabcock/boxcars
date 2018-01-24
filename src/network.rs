@@ -1,6 +1,7 @@
 use bitter::BitGet;
 use attributes::Attribute;
 
+/// An object's current vector
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct Vector {
     pub bias: i32,
@@ -47,6 +48,7 @@ impl Vector {
     }
 }
 
+/// An object's current rotation
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct Rotation {
     pub yaw: Option<i8>,
@@ -84,6 +86,8 @@ impl Rotation {
     }
 }
 
+/// When a new actor spawns in rocket league it will either have a location, location and rotation,
+/// or none of the above
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SpawnTrajectory {
     None,
@@ -91,34 +95,60 @@ pub enum SpawnTrajectory {
     LocationAndRotation,
 }
 
+/// Notifies that an actor has had one of their properties updated (most likely their rigid body
+/// state (location / rotation) has changed)
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct UpdatedAttribute {
+    /// The actor that had an attribute updated
     pub actor_id: i32,
+
+    /// The attribute / property id that was decoded
     pub attribute_id: i32,
+
+    /// The actual data from the decoded attribute
     pub attribute: Attribute,
 }
 
+/// Contains the time and any new information that occurred during a frame
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Frame {
+    /// The time in seconds that the frame is recorded at
     pub time: f32,
+
+    /// Time difference between previous frame
     pub delta: f32,
+
+    /// List of new actors seen during the frame
     pub new_actors: Vec<NewActor>,
+    
+    /// List of actor id's that are deleted / destroyed
     pub deleted_actors: Vec<i32>,
+
+    /// List of properties updated on the actors
     pub updated_actors: Vec<UpdatedAttribute>,
 }
 
+/// Information for a new actor that appears in the game
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct NewActor {
+    /// The id given to the new actor
     pub actor_id: i32,
+
+    /// An name id
     pub name_id: Option<i32>,
+
+    /// The actor's type. Is an index to to `Replay::objects`
     pub object_ind: i32,
+
+    /// The initial trajectory of the new actor
     pub initial_trajectory: Trajectory,
 }
 
+/// Contains the optional location and rotation of an object when it spawns
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct Trajectory {
-    location: Option<Vector>,
-    rotation: Option<Rotation>,
+    pub location: Option<Vector>,
+    pub rotation: Option<Rotation>,
 }
 
 impl Trajectory {
