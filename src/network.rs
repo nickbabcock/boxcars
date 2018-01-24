@@ -110,6 +110,7 @@ pub struct Frame {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct NewActor {
     pub actor_id: i32,
+    pub name_id: Option<i32>,
     pub object_ind: i32,
     pub initial_trajectory: Trajectory,
 }

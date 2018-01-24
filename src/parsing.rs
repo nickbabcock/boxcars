@@ -319,6 +319,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
             then {
                 Ok(NewActor {
                     actor_id: actor_id,
+                    name_id: name_id,
                     object_ind: type_id,
                     initial_trajectory: traj
                 })
