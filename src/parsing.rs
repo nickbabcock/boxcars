@@ -549,7 +549,6 @@ impl<'a> Parser<'a> {
         })
     }
 
-
     fn parse_network(
         &mut self,
         header: &Header,

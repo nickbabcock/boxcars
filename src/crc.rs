@@ -15,9 +15,10 @@
 /// header and checking the crc, the crc computation is 100x more intensive than the header
 /// parsing.
 ///
-/// I've even tried to lookup the slice by 8 tables of  `CRCTablesSB8` and
+/// I've even tried to lookup the slice by 8 tables of `CRCTablesSB8` and
 /// `CRCTablesSB8_DEPRECATED` from the unreal engine to glean any information on derivation or
-/// usage. No such luck. This has been a teachable moment
+/// usage. They can be found in the `AHRUnrealEngine` Github repo. I've copied them and the usage
+/// in `MemCrc_DEPRECATED` faithfully, but no luck. This has been a teachable moment
 pub fn calc_crc(data: &[u8]) -> u32 {
     !data.iter().fold(!0xefcb_f201, |acc, &x| {
         (acc << 8) ^ (TABLE[((u32::from(x)) ^ (acc >> 24)) as usize])
