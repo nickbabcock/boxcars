@@ -97,6 +97,7 @@ const BIT_MASKS: [u32; 33] = [
 
 macro_rules! gen_read_unchecked {
     ($name:ident, $t:ty, $bits:expr) => (
+    #[inline(always)]
     pub fn $name(&mut self) -> $t {
         if self.position <= 64 - $bits {
             let res = (self.current >> self.position) as $t;
@@ -120,6 +121,7 @@ macro_rules! gen_read_unchecked {
 
 macro_rules! gen_read {
     ($name:ident, $t:ty, $bits:expr) => (
+    #[inline(always)]
     pub fn $name(&mut self) -> Option<$t> {
         if self.position <= 64 - $bits {
             let res = (self.current >> self.position) as $t;
@@ -171,15 +173,18 @@ impl<'a> BitGet<'a> {
     gen_read_unchecked!(read_i64_unchecked, i64, 64);
     gen_read_unchecked!(read_u64_unchecked, u64, 64);
 
+    #[inline(always)]
     pub fn read_i32_bits_unchecked(&mut self, bits: i32) -> i32 {
         self.read_u32_bits_unchecked(bits) as i32
     }
 
+    #[inline(always)]
     pub fn read_i32_bits(&mut self, bits: i32) -> Option<i32> {
         self.read_u32_bits(bits).map(|x| x as i32)
     }
 
     /// Assumes that the number of bits are available in the bitstream and reads them into a u32
+    #[inline(always)]
     pub fn read_u32_bits_unchecked(&mut self, bits: i32) -> u32 {
         if self.position <= 64 - bits {
             let res = ((self.current >> self.position) as u32) & BIT_MASKS[bits as usize];
@@ -204,6 +209,7 @@ impl<'a> BitGet<'a> {
     }
 
     /// If the number of bits are available from the bitstream, read them into a u32
+    #[inline(always)]
     pub fn read_u32_bits(&mut self, bits: i32) -> Option<u32> {
         if self.position <= 64 - bits {
             let res = ((self.current >> self.position) as u32) & BIT_MASKS[bits as usize];
@@ -272,6 +278,7 @@ impl<'a> BitGet<'a> {
 
     /// Advances bitstream to the next section if availablet. Don't assume that `position` is zero
     /// after this method, as the tail of the stream is packed into the highest bits.
+    #[inline(always)]
     fn read(&mut self) -> Option<()> {
         if self.data.len() < 8 {
             if self.data.is_empty() {
@@ -297,6 +304,7 @@ impl<'a> BitGet<'a> {
     /// Advances bitstream to the next section. Will panic if no more data is present. Don't assume
     /// that `position` is zero after this method, as the tail of the stream is packed into the
     /// highest bits.
+    #[inline(always)]
     fn read_unchecked(&mut self) {
         if self.data.len() < 8 {
             if self.data.is_empty() {
@@ -324,6 +332,7 @@ impl<'a> BitGet<'a> {
     /// let mut bitter = BitGet::new(&[0b1010_1010, 0b0101_0101]);
     /// assert_eq!(bitter.read_bit(), Some(false));
     /// ```
+    #[inline(always)]
     pub fn read_bit(&mut self) -> Option<bool> {
         self.ensure_current().map(|_| {
             let res = self.current & (1 << self.position);
@@ -347,6 +356,7 @@ impl<'a> BitGet<'a> {
     /// let mut bitter = BitGet::new(&[0b1010_1010, 0b0101_0101]);
     /// assert_eq!(bitter.read_bit_unchecked(), false);
     /// ```
+    #[inline(always)]
     pub fn read_bit_unchecked(&mut self) -> bool {
         if self.position == 64 {
             self.read_unchecked();
@@ -358,11 +368,13 @@ impl<'a> BitGet<'a> {
     }
 
     /// Reads a `f32` from the bitstream if available
+    #[inline(always)]
     pub fn read_f32(&mut self) -> Option<f32> {
         self.read_u32().map(f32::from_bits)
     }
 
     /// Reads a `f32` from the bitstream
+    #[inline(always)]
     pub fn read_f32_unchecked(&mut self) -> f32 {
         f32::from_bits(self.read_u32_unchecked())
     }
@@ -379,6 +391,7 @@ impl<'a> BitGet<'a> {
     /// let mut bitter = BitGet::new(&[0b1111_1000]);
     /// assert_eq!(bitter.read_bits_max(5, 20), Some(8));
     /// ```
+    #[inline(always)]
     pub fn read_bits_max(&mut self, bits: i32, max: i32) -> Option<u32> {
         self.read_u32_bits(bits - 1).and_then(|data| {
             let max = max as u32;
@@ -403,6 +416,7 @@ impl<'a> BitGet<'a> {
     /// let mut bitter = BitGet::new(&[0b1111_1000]);
     /// assert_eq!(bitter.read_bits_max(5, 20), Some(8));
     /// ```
+    #[inline(always)]
     pub fn read_bits_max_unchecked(&mut self, bits: i32, max: i32) -> u32 {
         let data = self.read_u32_bits_unchecked(bits - 1);
         let max = max as u32;
