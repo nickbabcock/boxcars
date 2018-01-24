@@ -1,7 +1,58 @@
+//! Bitter takes a slice of byte data and reads little-endian bits platform agonistically. Bitter
+//! has been optimized to be fast for reading 64 or fewer bits at a time, though it can still
+//! extract an arbitrary number of bytes.
+//!
+//! There are two main APIs available: checked and unchecked functions. A checked function will
+//! return a `Option` that will be `None` if there is not enough bits left in the stream.
+//! Unchecked functions, which are denoted by having "unchecked" in their name, will panic if there
+//! is not enough data left, but happen to be ~10% faster (your numbers
+//! will vary depending on use case).
+//!
+//! Tips:
+//!
+//! - Prefer checked functions for all but the most performance critical code
+//! - Group all unchecked functions in a single block guarded by a `approx_bytes_remaining` or
+//!   `bits_remaining` call
+//! - Prefer `read_u8()` over `read_u32_bits_unchecked(8)` as the specialized functions have a
+//!   slight performance edge over the generic function
+//!
+//! ## Example
+//!
+//! ```rust
+//! use bitter::BitGet;
+//! let mut bitter = BitGet::new(&[0xff, 0x04]);
+//! assert_eq!(bitter.read_bit(), Some(true));
+//! assert_eq!(bitter.read_u8(), Some(0x7f));
+//! assert_eq!(bitter.read_u32_bits(7), Some(0x02));
+//! ```
+//!
+//! Below, is a demonstration of guarding against potential panics:
+//!
+//! ```rust
+//! # use bitter::BitGet;
+//! let mut bitter = BitGet::new(&[0xff, 0x04]);
+//! if bitter.approx_bytes_remaining() >= 2 {
+//!     assert_eq!(bitter.read_bit_unchecked(), true);
+//!     assert_eq!(bitter.read_u8_unchecked(), 0x7f);
+//!     assert_eq!(bitter.read_u32_bits_unchecked(7), 0x02);
+//! }
+//! # else {
+//! #   panic!("Expected bytes")
+//! # }
+//! ```
+//!
+//! ## Implementation
+//!
+//! Currently the implementation pre-fetches 64 bit chunks so that more operations can be performed
+//! on a single primitive type (`u64`). Pre-fetching like this allows for operations that request
+//! 4 bytes to be completed in, at best, a bit shift and mask instead of, at best, four bit
+//! shifts and masks.
+
 extern crate byteorder;
 
 use byteorder::{ByteOrder, LittleEndian};
 
+/// Yields consecutive bits as little endian primitive types
 pub struct BitGet<'a> {
     data: &'a [u8],
     current: u64,
@@ -93,6 +144,7 @@ macro_rules! gen_read {
 }
 
 impl<'a> BitGet<'a> {
+    /// Creates a bitstream from a byte slice
     pub fn new(data: &'a [u8]) -> BitGet<'a> {
         BitGet {
             data: data,
@@ -178,26 +230,44 @@ impl<'a> BitGet<'a> {
     }
 
     /// Returns if the bitstream has no more bits left
+    ///
+    /// ```rust
+    /// # use bitter::BitGet;
+    /// let mut bitter = BitGet::new(&[0b1010_1010, 0b0101_0101]);
+    /// assert_eq!(bitter.is_empty(), false);
+    /// assert_eq!(bitter.read_u16_unchecked(), 0b0101_0101_1010_1010);
+    /// assert_eq!(bitter.is_empty(), true);
+    /// ```
     pub fn is_empty(&self) -> bool {
         self.data.is_empty() && self.position == 64
     }
 
-    /// Approximately the number of bytes left (an underestimate)
-    pub fn byte_size_lower_bound(&self) -> usize {
+    /// Approximately the number of bytes left (an underestimate). This is the preferred method
+    /// when guarding against multiple unchecked reads. Currently the underestimate is capped at 4
+    /// bytes, though this may be subject to change
+    ///
+    /// ```rust
+    /// # use bitter::BitGet;
+    /// let mut bitter = BitGet::new(&[0b1010_1010, 0b0101_0101]);
+    /// assert_eq!(bitter.approx_bytes_remaining(), 2);
+    /// assert_eq!(bitter.read_bit_unchecked(), false);
+    /// assert_eq!(bitter.approx_bytes_remaining(), 0);
+    /// ```
+    pub fn approx_bytes_remaining(&self) -> usize {
         self.data.len()
     }
 
     /// Returns the number of bits left in the bitstream (exact)
-    pub fn bit_size(&self) -> usize {
+    ///
+    /// ```rust
+    /// # use bitter::BitGet;
+    /// let mut bitter = BitGet::new(&[0b1010_1010, 0b0101_0101]);
+    /// assert_eq!(bitter.bits_remaining(), 16);
+    /// assert_eq!(bitter.read_bit_unchecked(), false);
+    /// assert_eq!(bitter.bits_remaining(), 15);
+    /// ```
+    pub fn bits_remaining(&self) -> usize {
         (64 - self.position as usize) + self.data.len() * 8
-    }
-
-    fn ensure_current(&mut self) -> Option<()> {
-        if self.position == 64 {
-            self.read()
-        } else {
-            Some(())
-        }
     }
 
     /// Advances bitstream to the next section if availablet. Don't assume that `position` is zero
@@ -248,6 +318,12 @@ impl<'a> BitGet<'a> {
     }
 
     /// Reads a bit from the bitstream if available
+    ///
+    /// ```rust
+    /// # use bitter::BitGet;
+    /// let mut bitter = BitGet::new(&[0b1010_1010, 0b0101_0101]);
+    /// assert_eq!(bitter.read_bit(), Some(false));
+    /// ```
     pub fn read_bit(&mut self) -> Option<bool> {
         self.ensure_current().map(|_| {
             let res = self.current & (1 << self.position);
@@ -256,7 +332,21 @@ impl<'a> BitGet<'a> {
         })
     }
 
-    /// Reads a bit from the bitstream
+    fn ensure_current(&mut self) -> Option<()> {
+        if self.position == 64 {
+            self.read()
+        } else {
+            Some(())
+        }
+    }
+
+    /// *Assumes* there is at least one bit left in the stream.
+    ///
+    /// ```rust
+    /// # use bitter::BitGet;
+    /// let mut bitter = BitGet::new(&[0b1010_1010, 0b0101_0101]);
+    /// assert_eq!(bitter.read_bit_unchecked(), false);
+    /// ```
     pub fn read_bit_unchecked(&mut self) -> bool {
         if self.position == 64 {
             self.read_unchecked();
@@ -281,6 +371,14 @@ impl<'a> BitGet<'a> {
     /// *assumes* that `max` has the same bitwidth as `bits`. It doesn't make sense to call this
     /// function `bits = 8` and `max = 30`, you'd change your argument to `bits = 5`. If `bits` are
     /// not available return `None`
+    ///
+    /// ```rust
+    /// # use bitter::BitGet;
+    ///
+    /// // Reads 5 bits or stops if the 5th bit would send the accumulator over 20
+    /// let mut bitter = BitGet::new(&[0b1111_1000]);
+    /// assert_eq!(bitter.read_bits_max(5, 20), Some(8));
+    /// ```
     pub fn read_bits_max(&mut self, bits: i32, max: i32) -> Option<u32> {
         self.read_u32_bits(bits - 1).and_then(|data| {
             let max = max as u32;
@@ -297,6 +395,14 @@ impl<'a> BitGet<'a> {
     /// Reads a value that takes up at most `bits` bits and doesn't exceed `max`. This function
     /// *assumes* that `max` has the same bitwidth as `bits`. It doesn't make sense to call this
     /// function `bits = 8` and `max = 30`, you'd change your argument to `bits = 5`
+    ///
+    /// ```rust
+    /// # use bitter::BitGet;
+    ///
+    /// // Reads 5 bits or stops if the 5th bit would send the accumulator over 20
+    /// let mut bitter = BitGet::new(&[0b1111_1000]);
+    /// assert_eq!(bitter.read_bits_max(5, 20), Some(8));
+    /// ```
     pub fn read_bits_max_unchecked(&mut self, bits: i32, max: i32) -> u32 {
         let data = self.read_u32_bits_unchecked(bits - 1);
         let max = max as u32;
@@ -314,9 +420,19 @@ impl<'a> BitGet<'a> {
     }
 
     /// If the next bit is available and on, decode the next chunk of data (which can return None).
-    ///   - None: Not enough data was available
-    ///   - Some(None): Bit was off so data not decoded
-    ///   - Some(x): Bit was on and data was decoded
+    /// The return value can be one of the following:
+    ///
+    /// - None: Not enough data was available
+    /// - Some(None): Bit was off so data not decoded
+    /// - Some(x): Bit was on and data was decoded
+    ///
+    /// ```rust
+    /// # use bitter::BitGet;
+    /// let mut bitter = BitGet::new(&[0xff, 0x04]);
+    /// assert_eq!(bitter.if_get(BitGet::read_u8), Some(Some(0x7f)));
+    /// assert_eq!(bitter.if_get(BitGet::read_u8), Some(None));
+    /// assert_eq!(bitter.if_get(BitGet::read_u8), None);
+    /// ```
     pub fn if_get<T, F>(&mut self, mut f: F) -> Option<Option<T>>
     where
         F: FnMut(&mut Self) -> Option<T>,
@@ -325,9 +441,21 @@ impl<'a> BitGet<'a> {
             .and_then(|bit| if bit { f(self).map(Some) } else { Some(None) })
     }
 
-    /// If the next bit is available and on, decode the next chunk of data (which can return None).
-    ///   - Some(None): Bit was off so data not decoded
-    ///   - Some(x): Bit was on and data was decoded
+    /// If the next bit is available and on, decode the next chunk of data.  The return value can
+    /// be one of the following:
+    ///
+    /// - Some(None): Bit was off so data not decoded
+    /// - Some(x): Bit was on and data was decoded
+    ///
+    /// ```rust
+    /// # use bitter::BitGet;
+    /// let mut bitter = BitGet::new(&[0xff, 0x04]);
+    /// assert_eq!(bitter.if_get_unchecked(BitGet::read_u8_unchecked), Some(0x7f));
+    /// assert_eq!(bitter.if_get_unchecked(BitGet::read_u8_unchecked), None);
+    /// ```
+    /// # Panics
+    /// 
+    /// Will panic if no data is left for the bit or for the data to be decoded.
     pub fn if_get_unchecked<T, F>(&mut self, mut f: F) -> Option<T>
     where
         F: FnMut(&mut Self) -> T,
@@ -339,7 +467,16 @@ impl<'a> BitGet<'a> {
         }
     }
 
-    /// If the number of requested bytes are available return them to the client
+    /// If the number of requested bytes are available return them to the client. Since the current
+    /// bit position may not be byte aligned, return an owned vector of all the bits shifted
+    /// appropriately.
+    ///
+    /// ```rust
+    /// # use bitter::BitGet;
+    /// let mut bitter = BitGet::new(&[0b1010_1010, 0b0101_0101]);
+    /// assert_eq!(bitter.read_bit_unchecked(), false);
+    /// assert_eq!(bitter.read_bytes(1), Some(vec![0b1101_0101]));
+    /// ```
     pub fn read_bytes(&mut self, bytes: i32) -> Option<Vec<u8>> {
         let off = if self.position % 8 == 0 { 0 } else { 1 };
         let bytes_in_position = 8 - self.position / 8;
@@ -362,11 +499,11 @@ mod tests {
     #[test]
     fn test_bit_reads() {
         let mut bitter = BitGet::new(&[0b1010_1010, 0b0101_0101]);
-        assert_eq!(bitter.byte_size_lower_bound(), 2);
-        assert_eq!(bitter.bit_size(), 16);
+        assert_eq!(bitter.approx_bytes_remaining(), 2);
+        assert_eq!(bitter.bits_remaining(), 16);
         assert_eq!(bitter.read_bit().unwrap(), false);
-        assert_eq!(bitter.byte_size_lower_bound(), 0);
-        assert_eq!(bitter.bit_size(), 15);
+        assert_eq!(bitter.approx_bytes_remaining(), 0);
+        assert_eq!(bitter.bits_remaining(), 15);
         assert_eq!(bitter.read_bit().unwrap(), true);
         assert_eq!(bitter.read_bit().unwrap(), false);
         assert_eq!(bitter.read_bit().unwrap(), true);
@@ -619,8 +756,8 @@ mod tests {
     #[test]
     fn test_if_get() {
         let mut bitter = BitGet::new(&[0xff, 0x04]);
-        assert_eq!(bitter.if_get(|s| s.read_u8()), Some(Some(0x7f)));
-        assert_eq!(bitter.if_get(|s| s.read_u8()), Some(None));
-        assert_eq!(bitter.if_get(|s| s.read_u8()), None);
+        assert_eq!(bitter.if_get(BitGet::read_u8), Some(Some(0x7f)));
+        assert_eq!(bitter.if_get(BitGet::read_u8), Some(None));
+        assert_eq!(bitter.if_get(BitGet::read_u8), None);
     }
 }
