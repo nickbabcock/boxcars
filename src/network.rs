@@ -120,7 +120,7 @@ pub struct Frame {
 
     /// List of new actors seen during the frame
     pub new_actors: Vec<NewActor>,
-    
+
     /// List of actor id's that are deleted / destroyed
     pub deleted_actors: Vec<i32>,
 
