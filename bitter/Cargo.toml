@@ -2,6 +2,12 @@
 name = "bitter"
 version = "0.1.0"
 authors = ["Nick Babcock <nbabcock19@hotmail.com>"]
+description = "Swiftly extracts unaligned bit-level data from a byte slice"
+repository = "https://github.com/nickbabcock/boxcars"
+readme = "README.md"
+keywords = ["bitstream", "little-endian"]
+categories = ["Parsing"]
+license = "MIT"
 
 [dependencies]
 byteorder = "1"
