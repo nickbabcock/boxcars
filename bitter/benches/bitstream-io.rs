@@ -8,8 +8,8 @@ use bitstream_io::{LE, BitReader};
 
 static DATA: [u8; 0x10_000] = [0; 0x10_000];
 
-fn bench_bitstream_io(c: &mut Criterion) {
-    c.bench_function("bitstream_io", |b| {
+fn bench_bitstream_io_aligned(c: &mut Criterion) {
+    c.bench_function("bitstream_io_aligned", |b| {
         b.iter(|| {
             let mut cursor = Cursor::new(&DATA[..]);
             {
@@ -22,6 +22,20 @@ fn bench_bitstream_io(c: &mut Criterion) {
     });
 }
 
-criterion_group!(bitstream_io, bench_bitstream_io);
+fn bench_bitstream_io_unaligned(c: &mut Criterion) {
+    c.bench_function("bitstream_io_unaligned", |b| {
+        b.iter(|| {
+            let mut cursor = Cursor::new(&DATA[..]);
+            {
+                let mut bits = BitReader::<LE>::new(&mut cursor);
+                for _ in 0..1000 {
+                    black_box(bits.read::<u8>(7).unwrap());
+                }
+            }
+        })
+    });
+}
+
+criterion_group!(bitstream_io, bench_bitstream_io_aligned, bench_bitstream_io_unaligned);
 
 criterion_main!(bitstream_io);

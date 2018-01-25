@@ -18,6 +18,17 @@ fn bench_read_u32_bits_unchecked(c: &mut Criterion) {
     });
 }
 
+fn bench_read_u32_bits_unaligned(c: &mut Criterion) {
+    c.bench_function("read_u32_bits_unaligned", |b| {
+        b.iter(|| {
+            let mut bits = BitGet::new(&DATA);
+            for _ in 0..1000 {
+                black_box(bits.read_u32_bits(7));
+            }
+        })
+    });
+}
+
 fn bench_read_u32_bits_checked(c: &mut Criterion) {
     c.bench_function("read_u32_bits_checked", |b| {
         b.iter(|| {
@@ -76,6 +87,7 @@ fn bench_read_f32_unchecked(c: &mut Criterion) {
 criterion_group!(
     benches,
     bench_read_u32_bits_unchecked,
+    bench_read_u32_bits_unaligned,
     bench_read_u32_bits_checked,
     bench_read_u8_unchecked,
     bench_read_u8_checked,
