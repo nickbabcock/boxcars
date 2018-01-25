@@ -45,3 +45,13 @@ Currently the implementation pre-fetches 64 bit chunks so that more operations c
 on a single primitive type (`u64`). Pre-fetching like this allows for operations that request
 4 bytes to be completed in, at best, a bit shift and mask instead of, at best, four bit
 shifts and masks.
+
+## Comparison to other libraries
+
+Bitter is hardly the first Rust library for handling bits.
+[bitstream_io](https://crates.io/crates/bitstream-io) and
+[bitreader](https://crates.io/crates/bitreader) are both crates one should consider. The reason
+why someone would choose bitter over those two is speed. The other libraries lack a "trust me I
+know what I'm doing" API, which bitter can give you a 10x performance increase. Additionally,
+some libraries favor byte aligned reads (looking at you, bitstream_io), and since 7 out of 8
+bits aren't byte aligned, there is a performance hit.

@@ -41,12 +41,40 @@
 //! # }
 //! ```
 //!
+//! Another guard usage. `bits_remaining` is more accurate but involves a 3 operations to
+//! calculate.
+//!
+//! ```rust
+//! # use bitter::BitGet;
+//! let mut bitter = BitGet::new(&[0xff, 0x04]);
+//! let mut bitter = BitGet::new(&[0xff, 0x04]);
+//! if bitter.bits_remaining() >= 16 {
+//!     for _ in 0..8 {
+//!         assert_eq!(bitter.read_bit_unchecked(), true);
+//!     }
+//!     assert_eq!(bitter.read_u8_unchecked(), 0x04);
+//! }
+//! # else {
+//! #   panic!("Expected bytes")
+//! # }
+//! ```
+//!
 //! ## Implementation
 //!
 //! Currently the implementation pre-fetches 64 bit chunks so that more operations can be performed
 //! on a single primitive type (`u64`). Pre-fetching like this allows for operations that request
 //! 4 bytes to be completed in, at best, a bit shift and mask instead of, at best, four bit
 //! shifts and masks.
+//!
+//! ## Comparison to other libraries
+//!
+//! Bitter is hardly the first Rust library for handling bits.
+//! [bitstream_io](https://crates.io/crates/bitstream-io) and
+//! [bitreader](https://crates.io/crates/bitreader) are both crates one should consider. The reason
+//! why someone would choose bitter over those two is speed. The other libraries lack a "trust me I
+//! know what I'm doing" API, which bitter can give you a 10x performance increase. Additionally,
+//! some libraries favor byte aligned reads (looking at you, bitstream_io), and since 7 out of 8
+//! bits aren't byte aligned, there is a performance hit.
 
 extern crate byteorder;
 
@@ -386,7 +414,6 @@ impl<'a> BitGet<'a> {
     ///
     /// ```rust
     /// # use bitter::BitGet;
-    ///
     /// // Reads 5 bits or stops if the 5th bit would send the accumulator over 20
     /// let mut bitter = BitGet::new(&[0b1111_1000]);
     /// assert_eq!(bitter.read_bits_max(5, 20), Some(8));
@@ -411,7 +438,6 @@ impl<'a> BitGet<'a> {
     ///
     /// ```rust
     /// # use bitter::BitGet;
-    ///
     /// // Reads 5 bits or stops if the 5th bit would send the accumulator over 20
     /// let mut bitter = BitGet::new(&[0b1111_1000]);
     /// assert_eq!(bitter.read_bits_max(5, 20), Some(8));
@@ -468,7 +494,7 @@ impl<'a> BitGet<'a> {
     /// assert_eq!(bitter.if_get_unchecked(BitGet::read_u8_unchecked), None);
     /// ```
     /// # Panics
-    /// 
+    ///
     /// Will panic if no data is left for the bit or for the data to be decoded.
     pub fn if_get_unchecked<T, F>(&mut self, mut f: F) -> Option<T>
     where
