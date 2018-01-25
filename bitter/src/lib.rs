@@ -47,7 +47,6 @@
 //! ```rust
 //! # use bitter::BitGet;
 //! let mut bitter = BitGet::new(&[0xff, 0x04]);
-//! let mut bitter = BitGet::new(&[0xff, 0x04]);
 //! if bitter.bits_remaining() >= 16 {
 //!     for _ in 0..8 {
 //!         assert_eq!(bitter.read_bit_unchecked(), true);
