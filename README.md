@@ -1,16 +1,16 @@
 [![Build
 Status](https://travis-ci.org/nickbabcock/boxcars.svg?branch=master)](https://travis-ci.org/nickbabcock/boxcars)
 
-# boxcars
+# Boxcars
 
-boxcars is a [Rocket League](http://www.rocketleaguegame.com/) replay parser written in Rust
-using [serde](https://github.com/serde-rs/serde) for serialization. Currently, this library in
-no way competes with the other feature complete parsers such as
-[Octane](https://github.com/tfausak/octane) and
-[`RocketLeagueReplayParser`](https://github.com/jjbott/RocketLeagueReplayParser). Rather, let
-boxcars be a good example of Rust code.
-
-The code is well documented, give it a read!
+Boxcars is a [Rocket League](http://www.rocketleaguegame.com/) replay parser written in Rust
+with [serde](https://github.com/serde-rs/serde) support for serialization oftentimes into JSON.
+The focus is correctness and performance with boxcar users able to dictate what sections of the
+replay to parse. For instance, parsing just the header (where tidbits like goals and scores are
+stored) completes in under 50 microseconds. However, if you want to check against replay
+corruption and parse the network data, it would cost you 30 milliseconds (~1000x increase).
+While a 1000x increase in time sounds significant; keep in mind, 30ms is phenomenal compared to
+current state of the art Rocket League Replay parsers.
 
 Below is an example to output the replay structure to json:
 
