@@ -6,12 +6,8 @@ language: rust
 services: docker
 sudo: required
 
-# TODO Rust builds on stable by default, this can be
-# overridden on a case by case basis down below.
-
 env:
   global:
-    # TODO Update this to match the name of your project.
     - CRATE_NAME=rrrocket
 
 matrix:
@@ -31,6 +27,9 @@ matrix:
     # Other architectures
     - env: TARGET=aarch64-unknown-linux-gnu
     - env: TARGET=armv7-unknown-linux-gnueabihf
+
+    # The big endian platform
+    - env: TARGET=mips64-unknown-linux-gnuabi64
 
     # Testing other channels
     - env: TARGET=x86_64-unknown-linux-gnu
