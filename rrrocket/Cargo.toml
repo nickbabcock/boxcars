@@ -14,4 +14,4 @@ rayon = "0.9"
 
 [dependencies.boxcars]
 path = ".."
-version = "0.1"
+version = "0.2"
