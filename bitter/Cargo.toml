@@ -6,7 +6,7 @@ description = "Swiftly extracts unaligned bit-level data from a byte slice"
 repository = "https://github.com/nickbabcock/boxcars"
 readme = "README.md"
 keywords = ["bitstream", "little-endian"]
-categories = ["Parsing"]
+categories = ["parsing"]
 license = "MIT"
 
 [dependencies]
