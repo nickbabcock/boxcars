@@ -102,21 +102,16 @@ To have your graphs saved into your directory follow the below instructions:
 
 # Benchmarks
 
-The benchmarks several things:
+Since Boxcars allows you to pick and choose what to parse, below is a table with the following options and the estimated elapsed time.
 
-- How long to just parse the raw data
-- How long to parse the raw data and ensure that the replay is not corrupt using a crc check
-- How long to parse the data and output json data of the replay
-- How long to parse the data with crc check and output json of the replay
+| Header | Corruption Check | Body | Output JSON | Elapsed |
+| -      | -                | -    | -           | -       |
+| ✔      |                  |      |             | 45 µs   |
+| ✔      | ✔                | ✔    |             | 30ms    |
+| ✔      |                  | ✔    |             | 27ms    |
+| ✔      | ✔                | ✔    | ✔           | 50ms    |
+| ✔      |                  | ✔    | ✔           | 45ms    |
 
-The benchmark data is below. The most astounding number is that boxcars can
-parse nearly 30,000 replays per second per core. An eight core machine would
-process 240,000 replays a second. This benchmark represents data already in
-memory and doesn't include time to read from disk / network.
-
-```
-bench_parsing_data                    ... bench:      33,627 ns/iter (+/- 2,329)
-bench_parsing_data_crc_check          ... bench:   2,209,007 ns/iter (+/- 113,528)
-bench_parse_and_json                  ... bench:      62,557 ns/iter (+/- 16,224)
-bench_parse_and_json_crc_check        ... bench:   2,273,926 ns/iter (+/- 62,011)
-```
+The most astounding number is that boxcars can parse 20,000 replays per second
+per core. The best thing is that Boxcars will scale linearly as more cores are
+dedicated to parsing replays in parallel.
