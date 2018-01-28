@@ -896,7 +896,15 @@ impl<'a> Parser<'a> {
 
     /// Parses UTF-8 string from replay
     fn parse_str(&mut self) -> Result<&'a str, ParseError> {
-        let size = self.take(4, le_i32)? as usize;
+        let mut size = self.take(4, le_i32)? as usize;
+
+        // Replay 6688 has a property name that is listed as having a length of 0x5000000, but it's
+        // really the `\0\0\0None` property. I'm guess at some point in Rocket League, this was a
+        // bug that was fixed. What's interesting is that I couldn't find this constant in
+        // `RocketLeagueReplayParser`, only rattletrap.
+        if size == 0x5_000_000 {
+            size = 8;
+        }
         self.take_res(size, decode_str)
     }
 
@@ -935,11 +943,12 @@ impl<'a> Parser<'a> {
         let mut res: Vec<_> = Vec::new();
         loop {
             let key = self.parse_str()?;
-            if key == "None" {
+            if key == "None" || key == "\0\0\0None" {
                 break;
             }
 
-            let val = match self.parse_str()? {
+            let a = self.parse_str()?;
+            let val = match a {
                 "ArrayProperty" => self.array_property(),
                 "BoolProperty" => self.bool_property(),
                 "ByteProperty" => self.byte_property(),
@@ -966,8 +975,9 @@ impl<'a> Parser<'a> {
     fn byte_property(&mut self) -> Result<HeaderProp<'a>, ParseError> {
         // It's unknown (to me at least) why the byte property has two strings in it.
         self.take(8, |_d| ())?;
-        self.parse_str()?;
-        self.parse_str()?;
+        if self.parse_str()?.deref() != "OnlinePlatform_Steam" {
+            self.parse_str()?;
+        }
         Ok(HeaderProp::Byte)
     }
 
@@ -1543,6 +1553,16 @@ mod tests {
         let mut parser = Parser::new(&data[..], CrcCheck::Always, NetworkParse::Always);
         match parser.parse() {
             Ok(replay) => assert_eq!(replay.network_frames.unwrap().frames.len(), 8346),
+            Err(ref e) => panic!(format!("{}", e)),
+        }
+    }
+
+    #[test]
+    fn test_6688_replay() {
+        let data = include_bytes!("../assets/6688.replay");
+        let mut parser = Parser::new(&data[..], CrcCheck::Always, NetworkParse::Always);
+        match parser.parse() {
+            Ok(replay) => assert_eq!(replay.network_frames.unwrap().frames.len(), 0),
             Err(ref e) => panic!(format!("{}", e)),
         }
     }
