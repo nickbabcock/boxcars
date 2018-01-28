@@ -263,6 +263,7 @@ fn main() {
     phf_codegen::Map::new()
         .entry("Archetypes.Ball.Ball_BasketBall_Mutator", "\"TAGame.Ball_TA\"")
         .entry("Archetypes.Ball.Ball_Basketball", "\"TAGame.Ball_TA\"")
+        .entry("Archetypes.Ball.Ball_BasketBall", "\"TAGame.Ball_TA\"")
         .entry("Archetypes.Ball.Ball_Breakout", "\"TAGame.Ball_Breakout_TA\"")
         .entry("Archetypes.Ball.Ball_Default", "\"TAGame.Ball_TA\"")
         .entry("Archetypes.Ball.Ball_Puck", "\"TAGame.Ball_TA\"")
