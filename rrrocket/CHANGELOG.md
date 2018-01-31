@@ -1,3 +1,8 @@
+## v0.2.1 - February 1st, 2018
+
+* If a directory argument is provided, the top level is searched for any `*.replay` files. This works around issues when the shell
+  expands the glob to too many files and makes it easier to work with on Windows (which does not expand globs).
+
 ## v0.2.0 - January 31st, 2018
 
 * Process replays in parallel using the `-m` option
