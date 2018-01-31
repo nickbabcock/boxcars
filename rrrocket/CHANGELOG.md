@@ -1,4 +1,4 @@
-## v0.2.0 - Unreleased
+## v0.2.0 - January 31st, 2018
 
 * Process replays in parallel using the `-m` option
 * Add rudimentary network data parser. Since it's not surefire, it's not enabled by default.
