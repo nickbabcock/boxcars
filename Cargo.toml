@@ -8,6 +8,10 @@ description = "Rocket league replay parser"
 keywords = ["rocket-league"]
 categories = ["parsing"]
 version = "0.2.0"
+exclude = [
+    "assets/*",
+    "fuzz/target/*"
+]
 
 [dependencies]
 serde = "1"
