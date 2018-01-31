@@ -3,6 +3,7 @@ extern crate failure;
 extern crate rayon;
 extern crate serde_json;
 extern crate structopt;
+extern crate globset;
 #[macro_use]
 extern crate structopt_derive;
 
@@ -13,6 +14,8 @@ use std::io::{self, BufWriter};
 use std::io::prelude::*;
 use rayon::prelude::*;
 use boxcars::{CrcCheck, NetworkParse, ParserBuilder, Replay};
+use std::path::Path;
+use globset::Glob;
 
 #[derive(StructOpt, Debug, Clone, PartialEq)]
 #[structopt(name = "rrrocket",
@@ -55,7 +58,46 @@ fn parse_replay<'a>(opt: &Opt, data: &'a [u8]) -> Result<Replay<'a>, Error> {
 }
 
 fn parse_multiple_replays(opt: &Opt) -> Result<(), Error> {
-    let res: Result<Vec<()>, Error> = opt.input
+    let glob = Glob::new("*.replay")?.compile_matcher();
+    let v: Result<Vec<Vec<String>>, Error> = opt.input
+        .iter()
+        .map(|x| {
+            let p = Path::new(x);
+            if p.is_dir() {
+                // If the commandline argument is a directory we look for all files that match
+                // *.replay. A file that does not match the pattern because of an error reading the
+                // directory / file will not be filtered and will cause the error to bubble up. In
+                // the future, we could get smart and ignore directories / files we don't have
+                // permission that wouldn't match the pattern anyways
+                let files: Result<Vec<_>, _> = p.read_dir()?
+                    .filter_map(|entry| {
+                        match entry {
+                            Ok(y) => {
+                                if glob.is_match(y.path()) {
+                                    // Force UTF-8. There is a special place in the fourth circle
+                                    // of inferno for people who rename their rocket league replays
+                                    // to not contain UTF-8. We won't panic, but will cause an
+                                    // error when the file is attempted to be read.
+                                    Some(Ok(y.path().to_string_lossy().into_owned()))
+                                } else {
+                                    None
+                                }
+                            }
+                            Err(e) => Some(Err(e)),
+                        }
+                    })
+                    .collect();
+                Ok(files?)
+            } else {
+                Ok(vec![x.clone()])
+            }
+        })
+        .collect();
+
+     let res: Result<Vec<()>, Error> =  v?
+        .into_iter()
+        .flat_map(|x| x)
+        .collect::<Vec<_>>()
         .par_iter()
         .map(|file| {
             let outfile = format!("{}.json", file);
