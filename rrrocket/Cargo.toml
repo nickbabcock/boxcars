@@ -11,7 +11,4 @@ serde_json = "1.0.6"
 structopt = "0.1.5"
 structopt-derive = "0.1.5"
 rayon = "0.9"
-
-[dependencies.boxcars]
-path = ".."
-version = "0.2"
+boxcars = "0.2"
