@@ -115,3 +115,7 @@ Since Boxcars allows you to pick and choose what to parse, below is a table with
 The most astounding number is that boxcars can parse 20,000 replays per second
 per core. The best thing is that Boxcars will scale linearly as more cores are
 dedicated to parsing replays in parallel.
+
+# Special Thanks
+
+Special thanks needs to be given to everyone in the Rocket League community who figured out the replay format and all its intricacies. Boxcars wouldn't exist if it weren't for them. I heavily leaned on implementations in [rattletrap](https://github.com/tfausak/rattletrap) and [RocketLeagueReplayParser](https://github.com/jjbott/RocketLeagueReplayParser). One of those should be your go to Rocket League Replay tool, unless you need speed, as those implementations are more mature than boxcars.
