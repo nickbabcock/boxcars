@@ -21,6 +21,7 @@ fn main() {
         .entry("TAGame.Ball_TA", "SpawnTrajectory::LocationAndRotation")
         .entry("Archetypes.Ball.Ball_BasketBall_Mutator", "SpawnTrajectory::LocationAndRotation")
         .entry("Archetypes.Ball.Ball_BasketBall", "SpawnTrajectory::LocationAndRotation")
+        .entry("Archetypes.Ball.Ball_Basketball", "SpawnTrajectory::LocationAndRotation")
         .entry("Archetypes.Ball.Ball_Default", "SpawnTrajectory::LocationAndRotation")
         .entry("Archetypes.Ball.Ball_Puck", "SpawnTrajectory::LocationAndRotation")
         .entry("Archetypes.Ball.CubeBall", "SpawnTrajectory::LocationAndRotation")
