@@ -31,6 +31,8 @@ pub enum AttributeError {
     #[fail(display = "Unrecognized remote id of {}", _0)] UnrecognizedRemoteId(u8),
 
     #[fail(display = "Does not have an attribute implementation")] Unimplemented,
+
+    #[fail(display = "Unexpected size for string: {}", _0)] TooBigString(i32),
 }
 
 #[derive(PartialEq, Debug, Clone, Fail)]

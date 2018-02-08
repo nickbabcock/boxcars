@@ -639,9 +639,7 @@ impl AttributeDecoder {
     }
 
     pub fn decode_string(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
-        decode_text(bits)
-            .map(Attribute::String)
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("String"))
+        Ok(Attribute::String(decode_text(bits)?))
     }
 
     pub fn decode_unique_id(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
@@ -653,7 +651,7 @@ impl AttributeDecoder {
             if let Some(number) = bits.read_u32_bits(3);
             let unique = decode_unique_id(bits, self.net_version)?;
             if let Some(name) = if unique.system_id != 0 {
-                decode_text(bits).map(Some)
+                Some(Some(decode_text(bits)?))
             } else {
                 Some(None)
             };
@@ -699,12 +697,13 @@ impl AttributeDecoder {
         bits: &mut BitGet,
     ) -> Result<Attribute, AttributeError> {
         if_chain! {
-            if let Some(mutators) = decode_text(bits);
+            let mutators = decode_text(bits)?;
             if let Some(joinable_by) = bits.read_u32();
             if let Some(max_players) = bits.read_u32();
-            if let Some(game_name) = decode_text(bits);
-            if let Some(password) = decode_text(bits);
+            let game_name = decode_text(bits)?;
+            let password = decode_text(bits)?;
             if let Some(flag) = bits.read_bit();
+
             then {
                 Ok(Attribute::PrivateMatch(PrivateMatchSettings {
                     mutators: mutators,
@@ -823,17 +822,18 @@ fn decode_explosion(bits: &mut BitGet) -> Option<Explosion> {
     }
 }
 
-fn decode_text(bits: &mut BitGet) -> Option<String> {
-    if let Some(size) = bits.read_i32() {
-        if size < 0 {
-            bits.read_bytes(size * -2)
-                .and_then(|data| decode_utf16(&data[..]).map(Cow::into_owned).ok())
-        } else {
-            bits.read_bytes(size)
-                .and_then(|data| decode_windows1252(&data[..]).map(Cow::into_owned).ok())
-        }
+fn decode_text(bits: &mut BitGet) -> Result<String, AttributeError> {
+    let size = bits.read_i32().ok_or_else(|| AttributeError::NotEnoughDataFor("text string"))?;
+    if size == 0 {
+        Ok(String::from(""))
+    } else if size < 0 {
+        bits.read_bytes(size * -2)
+            .and_then(|data| decode_utf16(&data[..]).map(Cow::into_owned).ok())
+            .ok_or_else(|| AttributeError::TooBigString(size * -2))
     } else {
-        None
+        bits.read_bytes(size)
+            .and_then(|data| decode_windows1252(&data[..]).map(Cow::into_owned).ok())
+            .ok_or_else(|| AttributeError::TooBigString(size))
     }
 }
 
