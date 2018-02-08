@@ -621,12 +621,14 @@ impl<'a> Parser<'a> {
                 .collect();
 
             let mut all_props = all_props?;
+            let mut had_parent = false;
 
             // We are going to recursively resolve an object's name to find their direct parent.
             // Parents have parents as well (etc), so we repeatedly walk up the chain picking up
             // attributes on parent objects until we reach an object with no parent (`Core.Object`)
             let mut object_name: &str = &*body.objects[cache.object_ind as usize];
             while let Some(parent_name) = PARENT_CLASSES.get(object_name) {
+                had_parent = true;
                 if let Some(parent_ind) = name_obj_ind.get(parent_name) {
                     if let Some(parent_attrs) = object_ind_attrs.get(&(*parent_ind as i32)) {
                         all_props.extend(parent_attrs.iter());
@@ -634,6 +636,17 @@ impl<'a> Parser<'a> {
                 }
 
                 object_name = parent_name;
+            }
+
+            // Sometimes our hierarchy set up in build.rs isn't perfect so if we don't find a
+            // parent and a parent cache id is set, try and find this parent id and carry down
+            // their props.
+            if !had_parent && cache.parent_id != 0 {
+                if let Some(parent) = body.net_cache.iter().find(|ref x| x.cache_id == cache.parent_id) {
+                    if let Some(parent_attrs) = object_ind_attrs.get(&parent.object_ind) {
+                        all_props.extend(parent_attrs.iter());
+                    }
+                }
             }
 
             object_ind_attrs.insert(cache.object_ind, all_props);
@@ -1592,6 +1605,16 @@ mod tests {
         let mut parser = Parser::new(&data[..], CrcCheck::Always, NetworkParse::Always);
         match parser.parse() {
             Ok(replay) => assert_eq!(replay.network_frames.unwrap().frames.len(), 8247),
+            Err(ref e) => panic!(format!("{}", e)),
+        }
+    }
+
+    #[test]
+    fn test_2266_replay() {
+        let data = include_bytes!("../assets/2266.replay");
+        let mut parser = Parser::new(&data[..], CrcCheck::Always, NetworkParse::Always);
+        match parser.parse() {
+            Ok(replay) => assert_eq!(replay.network_frames.unwrap().frames.len(), 1594),
             Err(ref e) => panic!(format!("{}", e)),
         }
     }
