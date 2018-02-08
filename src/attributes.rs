@@ -839,14 +839,13 @@ fn decode_text(bits: &mut BitGet) -> Option<String> {
 
 fn decode_loadout_specials(
     bits: &mut BitGet,
-) -> Option<(Option<u32>, Option<u32>, Option<u32>, Option<u32>)> {
+) -> Option<(Option<u32>, Option<u32>, Option<u32>)> {
     if_chain! {
         if let Some(engine_audio) = bits.read_u32();
         if let Some(trail) = bits.read_u32();
         if let Some(goal_explosion) = bits.read_u32();
-        if let Some(banner) = bits.read_u32();
         then {
-            Some((Some(engine_audio), Some(trail), Some(goal_explosion), Some(banner)))
+            Some((Some(engine_audio), Some(trail), Some(goal_explosion)))
         } else {
             None
         }
@@ -869,10 +868,16 @@ fn decode_loadout(bits: &mut BitGet) -> Option<Loadout> {
             Some(None)
         };
 
-        if let Some((engine_audio, trail, goal_explosion, banner)) = if version >= 16 {
+        if let Some((engine_audio, trail, goal_explosion)) = if version >= 16 {
             decode_loadout_specials(bits)
         } else {
-            Some((None, None, None, None))
+            Some((None, None, None))
+        };
+
+        if let Some(banner) = if version >= 17 {
+            bits.read_u32().map(Some)
+        } else {
+            Some(None)
         };
 
         then {

@@ -1577,6 +1577,16 @@ mod tests {
     }
 
     #[test]
+    fn test_16d5_replay() {
+        let data = include_bytes!("../assets/16d5.replay");
+        let mut parser = Parser::new(&data[..], CrcCheck::Always, NetworkParse::Always);
+        match parser.parse() {
+            Ok(replay) => assert_eq!(replay.network_frames.unwrap().frames.len(), 405),
+            Err(ref e) => panic!(format!("{}", e)),
+        }
+    }
+
+    #[test]
     fn test_rumble_body() {
         let data = include_bytes!("../assets/rumble.replay");
         let mut parser = Parser::new(&data[..], CrcCheck::Always, NetworkParse::Always);
