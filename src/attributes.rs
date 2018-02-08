@@ -824,6 +824,9 @@ fn decode_explosion(bits: &mut BitGet) -> Option<Explosion> {
 
 fn decode_text(bits: &mut BitGet) -> Result<String, AttributeError> {
     let size = bits.read_i32().ok_or_else(|| AttributeError::NotEnoughDataFor("text string"))?;
+    
+    // A zero length string for attributes is fine (this differs from the replay header where we
+    // never see zero length strings)
     if size == 0 {
         Ok(String::from(""))
     } else if size < 0 {
