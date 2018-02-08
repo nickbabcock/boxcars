@@ -313,7 +313,6 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
 
             if let Some(_) = bits.read_bit();
             if let Some(type_id) = bits.read_i32();
-
             let spawn = self.spawns.get(type_id as usize)
                 .ok_or_else(|| NetworkError::TypeIdOutOfRange(type_id))?;
 
@@ -1563,6 +1562,16 @@ mod tests {
         let mut parser = Parser::new(&data[..], CrcCheck::Always, NetworkParse::Always);
         match parser.parse() {
             Ok(replay) => assert_eq!(replay.network_frames.unwrap().frames.len(), 0),
+            Err(ref e) => panic!(format!("{}", e)),
+        }
+    }
+
+    #[test]
+    fn test_07e9_replay() {
+        let data = include_bytes!("../assets/07e9.replay");
+        let mut parser = Parser::new(&data[..], CrcCheck::Always, NetworkParse::Always);
+        match parser.parse() {
+            Ok(replay) => assert_eq!(replay.network_frames.unwrap().frames.len(), 319),
             Err(ref e) => panic!(format!("{}", e)),
         }
     }

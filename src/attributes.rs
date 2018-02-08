@@ -56,7 +56,7 @@ pub enum Attribute {
     FlaggedByte(bool, u8),
     Flagged(bool, u32),
     Float(f32),
-    GameMode(u8, u32),
+    GameMode(u8, u8),
     Int(i32),
     Loadout(Loadout),
     TeamLoadout(TeamLoadout),
@@ -473,15 +473,15 @@ impl AttributeDecoder {
     }
 
     pub fn decode_game_mode(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
-        let init =
+        let init: u8 =
             if self.major_version < 868 || (self.major_version == 868 && self.minor_version < 12) {
                 2
             } else {
                 8
             };
 
-        bits.read_u32()
-            .map(|x| Attribute::GameMode(init, x))
+        bits.read_u32_bits(i32::from(init))
+            .map(|x| Attribute::GameMode(init, x as u8))
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Game Mode"))
     }
 
