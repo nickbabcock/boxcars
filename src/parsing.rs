@@ -447,7 +447,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                 .ok_or_else(|| NetworkError::NotEnoughDataFor("Delta"))?;
 
             if delta < 0.0 || (delta > 0.0 && delta < 1e-10) {
-                return Err(NetworkError::DeltaOutOfRange(time))?;
+                return Err(NetworkError::DeltaOutOfRange(delta))?;
             }
 
             if time == 0.0 && delta == 0.0 {
