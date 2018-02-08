@@ -1591,7 +1591,7 @@ mod tests {
         let data = include_bytes!("../assets/551c.replay");
         let mut parser = Parser::new(&data[..], CrcCheck::Always, NetworkParse::Always);
         match parser.parse() {
-            Ok(replay) => assert_eq!(replay.network_frames.unwrap().frames.len(), 1594),
+            Ok(replay) => assert_eq!(replay.network_frames.unwrap().frames.len(), 8247),
             Err(ref e) => panic!(format!("{}", e)),
         }
     }
