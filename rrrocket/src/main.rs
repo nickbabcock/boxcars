@@ -2,10 +2,9 @@ extern crate boxcars;
 extern crate failure;
 extern crate rayon;
 extern crate serde_json;
+#[macro_use]
 extern crate structopt;
 extern crate globset;
-#[macro_use]
-extern crate structopt_derive;
 
 use failure::{err_msg, Error, ResultExt};
 use structopt::StructOpt;
