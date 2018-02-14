@@ -1,3 +1,7 @@
+# v0.2.2 - February 14th, 2018
+
+* Fixed several bugs surrounding parsing of the network data. More replays are now parseable
+
 ## v0.2.1 - February 1st, 2018
 
 * If a directory argument is provided, the top level is searched for any `*.replay` files. This works around issues when the shell
