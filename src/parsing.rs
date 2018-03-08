@@ -642,7 +642,10 @@ impl<'a> Parser<'a> {
             // parent and a parent cache id is set, try and find this parent id and carry down
             // their props.
             if !had_parent && cache.parent_id != 0 {
-                if let Some(parent) = body.net_cache.iter().find(|ref x| x.cache_id == cache.parent_id) {
+                if let Some(parent) = body.net_cache
+                    .iter()
+                    .find(|ref x| x.cache_id == cache.parent_id)
+                {
                     if let Some(parent_attrs) = object_ind_attrs.get(&parent.object_ind) {
                         all_props.extend(parent_attrs.iter());
                     }

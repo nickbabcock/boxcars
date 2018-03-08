@@ -823,8 +823,9 @@ fn decode_explosion(bits: &mut BitGet) -> Option<Explosion> {
 }
 
 fn decode_text(bits: &mut BitGet) -> Result<String, AttributeError> {
-    let size = bits.read_i32().ok_or_else(|| AttributeError::NotEnoughDataFor("text string"))?;
-    
+    let size = bits.read_i32()
+        .ok_or_else(|| AttributeError::NotEnoughDataFor("text string"))?;
+
     // A zero length string for attributes is fine (this differs from the replay header where we
     // never see zero length strings)
     if size == 0 {
@@ -840,9 +841,7 @@ fn decode_text(bits: &mut BitGet) -> Result<String, AttributeError> {
     }
 }
 
-fn decode_loadout_specials(
-    bits: &mut BitGet,
-) -> Option<(Option<u32>, Option<u32>, Option<u32>)> {
+fn decode_loadout_specials(bits: &mut BitGet) -> Option<(Option<u32>, Option<u32>, Option<u32>)> {
     if_chain! {
         if let Some(engine_audio) = bits.read_u32();
         if let Some(trail) = bits.read_u32();

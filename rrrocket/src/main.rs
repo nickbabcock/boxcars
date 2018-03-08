@@ -1,10 +1,10 @@
 extern crate boxcars;
 extern crate failure;
+extern crate globset;
 extern crate rayon;
 extern crate serde_json;
 #[macro_use]
 extern crate structopt;
-extern crate globset;
 
 use failure::{err_msg, Error, ResultExt};
 use structopt::StructOpt;
@@ -62,44 +62,43 @@ fn expand_paths(files: &[String]) -> Result<Vec<Vec<String>>, Error> {
     let glob = Glob::new("*.replay")?.compile_matcher();
 
     files
-    .iter()
-    .map(|x| {
-        let p = Path::new(x);
-        if p.is_dir() {
-            // If the commandline argument is a directory we look for all files that match
-            // *.replay. A file that does not match the pattern because of an error reading the
-            // directory / file will not be filtered and will cause the error to bubble up. In
-            // the future, we could get smart and ignore directories / files we don't have
-            // permission that wouldn't match the pattern anyways
-            let files: Result<Vec<_>, _> = p.read_dir()?
-                .filter_map(|entry| {
-                    match entry {
-                        Ok(y) => {
-                            if glob.is_match(y.path()) {
-                                // Force UTF-8. There is a special place in the fourth circle
-                                // of inferno for people who rename their rocket league replays
-                                // to not contain UTF-8. We won't panic, but will cause an
-                                // error when the file is attempted to be read.
-                                Some(Ok(y.path().to_string_lossy().into_owned()))
-                            } else {
-                                None
+        .iter()
+        .map(|x| {
+            let p = Path::new(x);
+            if p.is_dir() {
+                // If the commandline argument is a directory we look for all files that match
+                // *.replay. A file that does not match the pattern because of an error reading the
+                // directory / file will not be filtered and will cause the error to bubble up. In
+                // the future, we could get smart and ignore directories / files we don't have
+                // permission that wouldn't match the pattern anyways
+                let files: Result<Vec<_>, _> = p.read_dir()?
+                    .filter_map(|entry| {
+                        match entry {
+                            Ok(y) => {
+                                if glob.is_match(y.path()) {
+                                    // Force UTF-8. There is a special place in the fourth circle
+                                    // of inferno for people who rename their rocket league replays
+                                    // to not contain UTF-8. We won't panic, but will cause an
+                                    // error when the file is attempted to be read.
+                                    Some(Ok(y.path().to_string_lossy().into_owned()))
+                                } else {
+                                    None
+                                }
                             }
+                            Err(e) => Some(Err(e)),
                         }
-                        Err(e) => Some(Err(e)),
-                    }
-                })
-                .collect();
-            Ok(files?)
-        } else {
-            Ok(vec![x.clone()])
-        }
-    })
-    .collect()
+                    })
+                    .collect();
+                Ok(files?)
+            } else {
+                Ok(vec![x.clone()])
+            }
+        })
+        .collect()
 }
 
 fn parse_multiple_replays(opt: &Opt) -> Result<(), Error> {
-    let res: Result<Vec<()>, Error> =
-        expand_paths(&opt.input)?
+    let res: Result<Vec<()>, Error> = expand_paths(&opt.input)?
         .into_iter()
         .flat_map(|x| x)
         .collect::<Vec<_>>()
