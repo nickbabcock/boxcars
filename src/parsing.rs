@@ -670,7 +670,7 @@ impl<'a> Parser<'a> {
                             NetworkError::ParentIndexHasNoAttributes(*parent_ind as i32, *i as i32)
                         })?
                         .clone();
-                    object_ind_attrs.insert((*i as i32), parent_attrs);
+                    object_ind_attrs.insert(*i as i32, parent_attrs);
                 }
             }
         }
