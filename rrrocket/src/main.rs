@@ -28,7 +28,10 @@ struct Opt {
 
     #[structopt(short = "m", long = "multiple", help = "parse multiple replays, instead of writing JSON to stdout, write to a sibling JSON file")]
     multiple: bool,
-    
+
+    #[structopt(long = "dry-run", help = "parses but does not write JSON output")]
+    dry_run: bool,
+
     #[structopt(help = "Rocket League replay files")] input: Vec<String>,
 }
 
@@ -104,25 +107,28 @@ fn parse_multiple_replays(opt: &Opt) -> Result<(), Error> {
         .collect::<Vec<_>>()
         .par_iter()
         .map(|file| {
-            let outfile = format!("{}.json", file);
-            let fout = OpenOptions::new()
-                .write(true)
-                .create(true)
-                .truncate(true)
-                .open(&outfile)
-                .with_context(|e| {
-                    format!(
-                        "Could not open json output file: {} with error: {}",
-                        outfile, e
-                    )
-                })?;
-            let mut writer = BufWriter::new(fout);
             let data = read_file(file)?;
             let replay = parse_replay(opt, &data[..])
                 .with_context(|e| format!("Could not parse: {} with error: {}", file, e))?;
-            serde_json::to_writer(&mut writer, &replay).with_context(|e| {
-                format!("Could not serialize replay {} to {}: {}", file, outfile, e)
-            })?;
+
+            if !opt.dry_run {
+                let outfile = format!("{}.json", file);
+                let fout = OpenOptions::new()
+                    .write(true)
+                    .create(true)
+                    .truncate(true)
+                    .open(&outfile)
+                    .with_context(|e| {
+                        format!(
+                            "Could not open json output file: {} with error: {}",
+                            outfile, e
+                        )
+                    })?;
+
+                let mut writer = BufWriter::new(fout);
+                serde_json::to_writer(&mut writer, &replay)
+                    .with_context(|e| format!("Could not serialize replay {}: {}", file, e))?;
+            }
             Ok(())
         })
         .collect();
@@ -142,7 +148,10 @@ fn run() -> Result<(), Error> {
         let file = &opt.input[0];
         let data = read_file(file)?;
         let replay = parse_replay(&opt, &data[..]).context("Could not parse replay")?;
-        serde_json::to_writer(&mut io::stdout(), &replay).context("Could not serialize replay")?;
+        if !opt.dry_run {
+            serde_json::to_writer(&mut io::stdout(), &replay)
+                .context("Could not serialize replay")?;
+        }
         Ok(())
     }
 }
