@@ -1,12 +1,12 @@
 /// Calculates the crc-32 for rocket league replays. Not all CRC algorithms are the same. The crc
 /// algorithm can be generated with the following parameters (pycrc):
 ///
-/// - Width = 32
-/// - Poly = 0x04c11db7
-/// - XorIn = 0x10340dfe
-/// - ReflectIn = False
-/// - XorOut = 0xffffffff
-/// - ReflectOut = False
+/// - `Width` = 32
+/// - `Poly` = 0x04c11db7
+/// - `XorIn` = 0x10340dfe
+/// - `ReflectIn` = False
+/// - `XorOut` = 0xffffffff
+/// - `ReflectOut` = False
 ///
 /// It may be tempting to optimize this function to use slice by techniques, but I have not be able
 /// to achieve this. pycrc disables slice by for non-reflected algorithms, and I couldn't get the

@@ -293,7 +293,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                 .get(&type_id)
                 .and_then(|x| x.get(&prop_id))
                 .map(|x| self.object_ind_to_string(x.object_index))
-                .unwrap_or("type id not recognized".to_string()),
+                .unwrap_or_else(|| "type id not recognized".to_string()),
         )
     }
 
@@ -397,7 +397,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                         // parse, fail to do so here, so a large chunk is dedicated to
                         // generating an error message with context
                         let attr = cache_info.attributes.get(&prop_id).ok_or_else(|| {
-                            self.missing_attribute(&cache_info, actor_id, *type_id, prop_id)
+                            self.missing_attribute(cache_info, actor_id, *type_id, prop_id)
                         })?;
 
                         let attribute =
@@ -644,7 +644,7 @@ impl<'a> Parser<'a> {
             if !had_parent && cache.parent_id != 0 {
                 if let Some(parent) = body.net_cache
                     .iter()
-                    .find(|ref x| x.cache_id == cache.parent_id)
+                    .find(|x| x.cache_id == cache.parent_id)
                 {
                     if let Some(parent_attrs) = object_ind_attrs.get(&parent.object_ind) {
                         all_props.extend(parent_attrs.iter());
