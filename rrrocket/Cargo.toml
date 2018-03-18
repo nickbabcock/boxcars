@@ -3,7 +3,7 @@ authors = ["Nick Babcock <nbabcock19@hotmail.com>"]
 license = "MIT"
 name = "rrrocket"
 repository = "https://github.com/nickbabcock/boxcars"
-version = "0.2.2"
+version = "0.2.3"
 
 [dependencies]
 failure = "0.1.1"
