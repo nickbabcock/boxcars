@@ -1,4 +1,8 @@
-# v0.2.2 - February 14th, 2018
+## Unreleased
+
+* Add a `--dry-run` option that won't output JSON
+
+## v0.2.2 - February 14th, 2018
 
 * Fixed several bugs surrounding parsing of the network data. More replays are now parseable
 
