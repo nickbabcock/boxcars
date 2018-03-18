@@ -1,4 +1,4 @@
-## Unreleased
+## v0.2.3 - March 18th, 2018
 
 * Add a `--dry-run` option that won't output JSON
 
