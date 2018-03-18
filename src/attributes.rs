@@ -244,8 +244,8 @@ impl AttributeDecoder {
             major_version: header.major_version,
             minor_version: header.minor_version,
             net_version: header.net_version.unwrap_or(0),
-            color_ind: color_ind,
-            painted_ind: painted_ind,
+            color_ind,
+            painted_ind,
         }
     }
 
@@ -370,13 +370,13 @@ impl AttributeDecoder {
 
             then {
                 Ok(Attribute::CamSettings(CamSettings {
-                    fov: fov,
-                    height: height,
-                    angle: angle,
-                    distance: distance,
-                    swiftness: swiftness,
-                    swivel: swivel,
-                    transition: transition,
+                    fov,
+                    height,
+                    angle,
+                    distance,
+                    swiftness,
+                    swivel,
+                    transition,
                 }))
             } else {
                 Err(AttributeError::NotEnoughDataFor("Cam Settings"))
@@ -392,10 +392,10 @@ impl AttributeDecoder {
             if let Some(orange_color) = bits.read_u8();
             then {
                 Ok(Attribute::ClubColors(ClubColors {
-                    blue_flag: blue_flag,
-                    blue_color: blue_color,
-                    orange_flag: orange_flag,
-                    orange_color: orange_color,
+                    blue_flag,
+                    blue_color,
+                    orange_flag,
+                    orange_color,
                 }))
             } else {
                 Err(AttributeError::NotEnoughDataFor("Club Colors"))
@@ -413,12 +413,12 @@ impl AttributeDecoder {
             if let Some(victim_velocity) = Vector::decode(bits);
             then {
                 Ok(Attribute::Demolish(Demolish {
-                    attacker_flag: attacker_flag,
-                    attacker_actor_id: attacker_actor_id,
-                    victim_flag: victim_flag,
-                    victim_actor_id: victim_actor_id,
-                    attack_velocity: attack_velocity,
-                    victim_velocity: victim_velocity,
+                    attacker_flag,
+                    attacker_actor_id,
+                    victim_flag,
+                    victim_actor_id,
+                    attack_velocity,
+                    victim_velocity,
                 }))
             } else {
                 Err(AttributeError::NotEnoughDataFor("Demolish"))
@@ -503,8 +503,8 @@ impl AttributeDecoder {
             if let Some(orange) = decode_loadout(bits);
             then {
                 Ok(Attribute::TeamLoadout(TeamLoadout {
-                    blue: blue,
-                    orange: orange,
+                    blue,
+                    orange,
                 }))
             } else {
                 Err(AttributeError::NotEnoughDataFor("Team Loadout"))
@@ -525,9 +525,9 @@ impl AttributeDecoder {
             if let Some(trigger) = bits.read_u8();
             then {
                 Ok(Attribute::MusicStinger(MusicStinger {
-                    flag: flag,
-                    cue: cue,
-                    trigger: trigger,
+                    flag,
+                    cue,
+                    trigger,
                 }))
             } else {
                 Err(AttributeError::NotEnoughDataFor("Music Stinger"))
@@ -541,8 +541,8 @@ impl AttributeDecoder {
             if let Some(picked_up) = bits.read_bit();
             then {
                 Ok(Attribute::Pickup(Pickup {
-                    instigator_id: instigator_id,
-                    picked_up: picked_up,
+                    instigator_id,
+                    picked_up,
                 }))
             } else {
                 Err(AttributeError::NotEnoughDataFor("Pickup"))
@@ -565,11 +565,11 @@ impl AttributeDecoder {
             if let Some(rotation) = Rotation::decode(bits);
             then {
                 Ok(Attribute::Welded(Welded {
-                    active: active,
-                    actor_id: actor_id,
-                    offset: offset,
-                    mass: mass,
-                    rotation: rotation,
+                    active,
+                    actor_id,
+                    offset,
+                    mass,
+                    rotation,
                 }))
             } else {
                 Err(AttributeError::NotEnoughDataFor("Welded"))
@@ -586,11 +586,11 @@ impl AttributeDecoder {
             if let Some(accent_finish) = bits.read_u32();
             then {
                 Ok(Attribute::TeamPaint(TeamPaint {
-                    team: team,
-                    primary_color: primary_color,
-                    accent_color: accent_color,
-                    primary_finish: primary_finish,
-                    accent_finish: accent_finish,
+                    team,
+                    primary_color,
+                    accent_color,
+                    primary_finish,
+                    accent_finish,
                 }))
             } else {
                 Err(AttributeError::NotEnoughDataFor("Team Paint"))
@@ -620,13 +620,13 @@ impl AttributeDecoder {
 
             then {
                 Ok(Attribute::RigidBody(RigidBody {
-                    sleeping: sleeping,
-                    location: location,
-                    x: x,
-                    y: y,
-                    z: z,
-                    linear_velocity: linear_velocity,
-                    angular_velocity: angular_velocity,
+                    sleeping,
+                    location,
+                    x,
+                    y,
+                    z,
+                    linear_velocity,
+                    angular_velocity,
                 }))
             } else {
                 Err(AttributeError::NotEnoughDataFor("Rigid Body"))
@@ -666,12 +666,12 @@ impl AttributeDecoder {
 
             then {
                 Ok(Attribute::Reservation(Reservation {
-                    number: number,
+                    number,
                     unique_id: unique,
-                    name: name,
-                    unknown1: unknown1,
-                    unknown2: unknown2,
-                    unknown3: unknown3
+                    name,
+                    unknown1,
+                    unknown2,
+                    unknown3
                 }))
             } else {
                 Err(AttributeError::NotEnoughDataFor("Reservation"))
@@ -706,12 +706,12 @@ impl AttributeDecoder {
 
             then {
                 Ok(Attribute::PrivateMatch(PrivateMatchSettings {
-                    mutators: mutators,
-                    joinable_by: joinable_by,
-                    max_players: max_players,
-                    game_name: game_name,
-                    password: password,
-                    flag: flag,
+                    mutators,
+                    joinable_by,
+                    max_players,
+                    game_name,
+                    password,
+                    flag,
                 }))
             } else {
                 Err(AttributeError::NotEnoughDataFor("Private Match"))
@@ -733,10 +733,10 @@ impl AttributeDecoder {
             if let Some(unknown2) = bits.read_bit();
             then {
                 Ok(Attribute::LoadoutsOnline(LoadoutsOnline {
-                    blue: blue,
-                    orange: orange,
-                    unknown1: unknown1,
-                    unknown2: unknown2,
+                    blue,
+                    orange,
+                    unknown1,
+                    unknown2,
                 }))
             } else {
                 Err(AttributeError::NotEnoughDataFor("Loadouts online"))
@@ -770,7 +770,7 @@ impl AttributeDecoder {
 
             then {
                 Some(Product {
-                    unknown: unknown,
+                    unknown,
                     object_ind: obj_ind,
                     value: val,
                 })
@@ -812,9 +812,9 @@ fn decode_explosion(bits: &mut BitGet) -> Option<Explosion> {
         if let Some(location) = Vector::decode(bits);
         then {
             Some(Explosion {
-                flag: flag,
-                actor_id: actor_id,
-                location: location,
+                flag,
+                actor_id,
+                location,
             })
         } else {
             None
@@ -884,19 +884,19 @@ fn decode_loadout(bits: &mut BitGet) -> Option<Loadout> {
 
         then {
             Some(Loadout {
-                version: version,
-                body: body,
-                decal: decal,
-                wheels: wheels,
-                rocket_trail: rocket_trail,
-                antenna: antenna,
-                topper: topper,
-                unknown1: unknown1,
-                unknown2: unknown2,
-                engine_audio: engine_audio,
-                trail: trail,
-                goal_explosion: goal_explosion,
-                banner: banner,
+                version,
+                body,
+                decal,
+                wheels,
+                rocket_trail,
+                antenna,
+                topper,
+                unknown1,
+                unknown2,
+                engine_audio,
+                trail,
+                goal_explosion,
+                banner,
             })
         } else {
             None
@@ -941,8 +941,8 @@ fn decode_unique_id_with_system_id(
     let local_id = bits.read_u8()
         .ok_or_else(|| AttributeError::NotEnoughDataFor("UniqueId local_id"))?;
     Ok(UniqueId {
-        system_id: system_id,
-        remote_id: remote_id,
-        local_id: local_id,
+        system_id,
+        remote_id,
+        local_id,
     })
 }

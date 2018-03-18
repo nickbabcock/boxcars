@@ -171,7 +171,7 @@ pub struct ParserBuilder<'a> {
 impl<'a> ParserBuilder<'a> {
     pub fn new(data: &'a [u8]) -> Self {
         ParserBuilder {
-            data: data,
+            data,
             crc_check: None,
             network_parse: None,
         }
@@ -319,8 +319,8 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
             if let Some(traj) = Trajectory::from_spawn(&mut bits, *spawn);
             then {
                 Ok(NewActor {
-                    actor_id: actor_id,
-                    name_id: name_id,
+                    actor_id,
+                    name_id,
                     object_ind: type_id,
                     initial_trajectory: traj
                 })
@@ -409,9 +409,9 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                             })?;
 
                         updated_actors.push(UpdatedAttribute {
-                            actor_id: actor_id,
+                            actor_id,
                             attribute_id: prop_id,
-                            attribute: attribute,
+                            attribute,
                         });
                     }
                 }
@@ -422,11 +422,11 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
         }
 
         Ok(Frame {
-            time: time,
-            delta: delta,
-            new_actors: new_actors,
-            deleted_actors: deleted_actors,
-            updated_actors: updated_actors,
+            time,
+            delta,
+            new_actors,
+            deleted_actors,
+            updated_actors,
         })
     }
 
@@ -477,10 +477,10 @@ pub struct Parser<'a> {
 impl<'a> Parser<'a> {
     fn new(data: &'a [u8], crc_check: CrcCheck, network_parse: NetworkParse) -> Self {
         Parser {
-            data: data,
+            data,
             col: 0,
-            crc_check: crc_check,
-            network_parse: network_parse,
+            crc_check,
+            network_parse,
         }
     }
 
@@ -529,15 +529,15 @@ impl<'a> Parser<'a> {
         }
 
         Ok(Replay {
-            header_size: header_size,
-            header_crc: header_crc,
+            header_size,
+            header_crc,
             major_version: header.major_version,
             minor_version: header.minor_version,
             net_version: header.net_version,
             game_type: header.game_type,
             properties: header.properties,
-            content_size: content_size,
-            content_crc: content_crc,
+            content_size,
+            content_crc,
             network_frames: network,
             levels: body.levels,
             keyframes: body.keyframes,
@@ -715,14 +715,14 @@ impl<'a> Parser<'a> {
         if let Some(frame_len) = num_frames {
             let frame_decoder = FrameDecoder {
                 frames_len: frame_len as usize,
-                color_ind: color_ind,
-                painted_ind: painted_ind,
-                channel_bits: channel_bits,
-                header: header,
-                body: body,
+                color_ind,
+                painted_ind,
+                channel_bits,
+                header,
+                body,
                 spawns: &spawns,
-                object_ind_attributes: object_ind_attributes,
-                object_ind_attrs: object_ind_attrs,
+                object_ind_attributes,
+                object_ind_attrs,
             };
             Ok(NetworkFrames {
                 frames: frame_decoder.decode_frames()?,
@@ -753,11 +753,11 @@ impl<'a> Parser<'a> {
             .with_context(|e| self.err_str("header properties", e))?;
 
         Ok(Header {
-            major_version: major_version,
-            minor_version: minor_version,
-            net_version: net_version,
-            game_type: game_type,
-            properties: properties,
+            major_version,
+            minor_version,
+            net_version,
+            game_type,
+            properties,
         })
     }
 
@@ -829,16 +829,16 @@ impl<'a> Parser<'a> {
             .with_context(|e| self.err_str("net cache", e))?;
 
         Ok(ReplayBody {
-            levels: levels,
-            keyframes: keyframes,
+            levels,
+            keyframes,
             debug_info: debug_infos,
             tick_marks: tickmarks,
-            packages: packages,
-            objects: objects,
-            names: names,
+            packages,
+            objects,
+            names,
             class_indices: class_index,
-            net_cache: net_cache,
-            network_data: network_data,
+            net_cache,
+            network_data,
         })
     }
 

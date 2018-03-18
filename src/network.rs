@@ -64,9 +64,9 @@ impl Rotation {
             if let Some(roll) = bits.if_get(|b| b.read_i8());
             then {
                 Some(Rotation {
-                    yaw: yaw,
-                    pitch: pitch,
-                    roll: roll,
+                    yaw,
+                    pitch,
+                    roll,
                 })
             } else {
                 None
@@ -78,11 +78,7 @@ impl Rotation {
         let yaw = bits.if_get_unchecked(|b| b.read_i8_unchecked());
         let pitch = bits.if_get_unchecked(|b| b.read_i8_unchecked());
         let roll = bits.if_get_unchecked(|b| b.read_i8_unchecked());
-        Rotation {
-            yaw: yaw,
-            pitch: pitch,
-            roll: roll,
-        }
+        Rotation { yaw, pitch, roll }
     }
 }
 
