@@ -30,6 +30,7 @@ pub enum AttributeTag {
     QWord,
     Welded,
     RigidBody,
+    Title,
     TeamPaint,
     NotImplemented,
     String,
@@ -66,6 +67,7 @@ pub enum Attribute {
     Pickup(Pickup),
     QWord(u64),
     Welded(Welded),
+    Title(bool, bool, u32, u32, u32, u32, u32, bool),
     TeamPaint(TeamPaint),
     RigidBody(RigidBody),
     String(String),
@@ -279,6 +281,7 @@ impl AttributeDecoder {
             AttributeTag::QWord => self.decode_qword(bits),
             AttributeTag::Welded => self.decode_welded(bits),
             AttributeTag::RigidBody => self.decode_rigid_body(bits),
+            AttributeTag::Title => self.decode_title(bits),
             AttributeTag::TeamPaint => self.decode_team_paint(bits),
             AttributeTag::NotImplemented => self.decode_not_implemented(bits),
             AttributeTag::String => self.decode_string(bits),
@@ -573,6 +576,33 @@ impl AttributeDecoder {
                 }))
             } else {
                 Err(AttributeError::NotEnoughDataFor("Welded"))
+            }
+        }
+    }
+
+    pub fn decode_title(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+        if_chain! {
+            if let Some(unknown1) = bits.read_bit();
+            if let Some(unknown2) = bits.read_bit();
+            if let Some(unknown3) = bits.read_u32();
+            if let Some(unknown4) = bits.read_u32();
+            if let Some(unknown5) = bits.read_u32();
+            if let Some(unknown6) = bits.read_u32();
+            if let Some(unknown7) = bits.read_u32();
+            if let Some(unknown8) = bits.read_bit();
+            then {
+                Ok(Attribute::Title(
+                    unknown1,
+                    unknown2,
+                    unknown3,
+                    unknown4,
+                    unknown5,
+                    unknown6,
+                    unknown7,
+                    unknown8,
+                ))
+            } else {
+                Err(AttributeError::NotEnoughDataFor("Title"))
             }
         }
     }

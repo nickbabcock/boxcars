@@ -231,6 +231,8 @@ fn main() {
         .entry("TAGame.PRI_TA:TimeTillItem", "AttributeTag::Int")
         .entry("TAGame.PRI_TA:Title", "AttributeTag::Int")
         .entry("TAGame.PRI_TA:TotalXP", "AttributeTag::Int")
+        .entry("TAGame.PRI_TA:PrimaryTitle", "AttributeTag::Title")
+        .entry("TAGame.PRI_TA:SecondaryTitle", "AttributeTag::Title")
         .entry("TAGame.RBActor_TA:bFrozen", "AttributeTag::Boolean")
         .entry("TAGame.RBActor_TA:bIgnoreSyncing", "AttributeTag::Boolean")
         .entry("TAGame.RBActor_TA:bReplayActor", "AttributeTag::Boolean")

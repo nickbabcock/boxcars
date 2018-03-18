@@ -35,3 +35,4 @@ frame_len_test!(test_2266_replay, "../assets/2266.replay", 8136);
 frame_len_test!(test_rumble_body, "../assets/rumble.replay", 7744);
 frame_len_test!(test_no_frames, "../assets/no-frames.replay", 0);
 frame_len_test!(test_net_version, "../assets/netversion.replay", 7901);
+frame_len_test!(test_159a4_replay, "../assets/159a4.replay", 7104);
