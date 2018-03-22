@@ -237,7 +237,7 @@ struct ObjectAttribute {
 struct CacheInfo {
     max_prop_id: i32,
     prop_id_bits: i32,
-    attributes: HashMap<i32, AttributeTag>,
+    attributes: FnvHashMap<i32, AttributeTag>,
 }
 
 struct FrameDecoder<'a, 'b: 'a> {
