@@ -106,15 +106,15 @@ Since Boxcars allows you to pick and choose what to parse, below is a table with
 
 | Header | Corruption Check | Body | Output JSON | Elapsed |
 | -      | -                | -    | -           | -       |
-| ✔      |                  |      |             | 45 µs   |
-| ✔      | ✔                | ✔    |             | 30ms    |
-| ✔      |                  | ✔    |             | 27ms    |
-| ✔      | ✔                | ✔    | ✔           | 50ms    |
-| ✔      |                  | ✔    | ✔           | 45ms    |
+| ✔      |                  |      |             | 40 µs   |
+| ✔      | ✔                | ✔    |             | 24ms    |
+| ✔      |                  | ✔    |             | 20ms    |
+| ✔      | ✔                | ✔    | ✔           | 38ms    |
+| ✔      |                  | ✔    | ✔           | 35ms    |
 
-The most astounding number is that boxcars can parse 20,000 replays per second
-per core. The best thing is that Boxcars will scale linearly as more cores are
-dedicated to parsing replays in parallel.
+The most astounding number is that boxcars can parse 25,000 replay headers per
+second per core, and Boxcars will scale linearly as more cores are dedicated to
+parsing replays in parallel.
 
 # Special Thanks
 
