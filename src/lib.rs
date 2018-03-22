@@ -46,6 +46,7 @@ extern crate fnv;
 extern crate if_chain;
 extern crate phf;
 extern crate serde;
+extern crate multimap;
 
 #[cfg(test)]
 extern crate serde_json;

@@ -68,6 +68,7 @@ use attributes::{AttributeDecoder, AttributeTag};
 use std::collections::HashMap;
 use fnv::FnvHashMap;
 use std::ops::Deref;
+use multimap::MultiMap;
 
 /// Determines under what circumstances the parser should perform the crc check for replay
 /// corruption. Since the crc check is the most time consuming check for parsing (causing
@@ -586,13 +587,12 @@ impl<'a> Parser<'a> {
 
         // Create a map of an object's normalized name to a list of indices in the object
         // vector that have that same normalized name
-        let mut normalized_name_obj_ind: HashMap<&str, Vec<usize>> = HashMap::new();
-        for (i, x) in normalized_objects.iter().enumerate() {
-            normalized_name_obj_ind
-                .entry(x)
-                .or_insert_with(Vec::new)
-                .push(i);
-        }
+        let normalized_name_obj_ind: MultiMap<&str, usize> =
+            normalized_objects
+                .iter()
+                .enumerate()
+                .map(|(i, x)| (*x, i))
+                .collect();
 
         // Map each object's name to it's index
         let name_obj_ind: HashMap<&str, usize> = body.objects
@@ -657,7 +657,7 @@ impl<'a> Parser<'a> {
         for (obj, parent) in OBJECT_CLASSES.entries() {
             // It's ok if an object class doesn't appear in our replay. For instance, basketball
             // objects don't appear in a soccer replay.
-            if let Some(indices) = normalized_name_obj_ind.get(obj) {
+            if let Some(indices) = normalized_name_obj_ind.get_vec(obj) {
                 let parent_ind = name_obj_ind.get(parent).ok_or_else(|| {
                     NetworkError::MissingParentClass(String::from(*obj), String::from(*parent))
                 })?;
