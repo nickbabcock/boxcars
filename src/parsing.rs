@@ -603,7 +603,7 @@ impl<'a> Parser<'a> {
 
         let mut object_ind_attrs: HashMap<i32, HashMap<i32, ObjectAttribute>> = HashMap::new();
         for cache in &body.net_cache {
-            let mut all_props: Result<HashMap<i32, ObjectAttribute>, NetworkError> = cache
+            let mut all_props: HashMap<i32, ObjectAttribute> = cache
                 .properties
                 .iter()
                 .map(|x| {
@@ -618,9 +618,8 @@ impl<'a> Parser<'a> {
                         },
                     ))
                 })
-                .collect();
+                .collect::<Result<HashMap<_, _>, NetworkError>>()?;
 
-            let mut all_props = all_props?;
             let mut had_parent = false;
 
             // We are going to recursively resolve an object's name to find their direct parent.
@@ -675,7 +674,7 @@ impl<'a> Parser<'a> {
             }
         }
 
-        let object_ind_attributes: Result<FnvHashMap<i32, CacheInfo>, NetworkError> =
+        let object_ind_attributes: FnvHashMap<i32, CacheInfo> =
             object_ind_attrs
                 .iter()
                 .map(|(obj_ind, attrs)| {
@@ -693,9 +692,7 @@ impl<'a> Parser<'a> {
                         },
                     ))
                 })
-                .collect();
-
-        let object_ind_attributes = object_ind_attributes?;
+                .collect::<Result<FnvHashMap<_, _>, NetworkError>>()?;
 
         let color_ind = *name_obj_ind
             .get("TAGame.ProductAttribute_UserColor_TA")
