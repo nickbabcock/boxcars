@@ -63,7 +63,7 @@ use failure::{Error, ResultExt};
 use byteorder::{ByteOrder, LittleEndian};
 use bitter::BitGet;
 use hashes::{ATTRIBUTES, OBJECT_CLASSES, PARENT_CLASSES, SPAWN_STATS};
-use network::{normalize_object, Frame, NewActor, ActorId, StreamId, SpawnTrajectory, Trajectory, UpdatedAttribute};
+use network::{normalize_object, Frame, NewActor, ActorId, StreamId, ObjectId, SpawnTrajectory, Trajectory, UpdatedAttribute};
 use attributes::{AttributeDecoder, AttributeTag};
 use std::collections::HashMap;
 use fnv::FnvHashMap;
@@ -231,7 +231,7 @@ impl<'a> ParserBuilder<'a> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct ObjectAttribute {
     attribute: AttributeTag,
-    object_index: i32,
+    object_id: ObjectId,
 }
 
 struct CacheInfo {
@@ -248,16 +248,16 @@ struct FrameDecoder<'a, 'b: 'a> {
     header: &'a Header<'b>,
     body: &'a ReplayBody<'b>,
     spawns: &'a Vec<SpawnTrajectory>,
-    object_ind_attributes: FnvHashMap<i32, CacheInfo>,
-    object_ind_attrs: HashMap<i32, HashMap<StreamId, ObjectAttribute>>,
+    object_ind_attributes: FnvHashMap<ObjectId, CacheInfo>,
+    object_ind_attrs: HashMap<ObjectId, HashMap<StreamId, ObjectAttribute>>,
 }
 
 impl<'a, 'b> FrameDecoder<'a, 'b> {
-    fn object_ind_to_string(&self, ind: i32) -> String {
+    fn object_ind_to_string(&self, object_id: ObjectId) -> String {
         String::from(
             self.body
                 .objects
-                .get(ind as usize)
+                .get(usize::from(object_id))
                 .map(Deref::deref)
                 .unwrap_or("Out of bounds"),
         )
@@ -267,13 +267,13 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
         &self,
         cache_info: &CacheInfo,
         actor_id: ActorId,
-        type_id: i32,
+        object_id: ObjectId,
         stream_id: StreamId,
     ) -> NetworkError {
         NetworkError::MissingAttribute(
             actor_id,
-            type_id,
-            self.object_ind_to_string(type_id),
+            object_id,
+            self.object_ind_to_string(object_id),
             stream_id,
             cache_info
                 .attributes
@@ -284,16 +284,16 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
         )
     }
 
-    fn unimplemented_attribute(&self, actor_id: ActorId, type_id: i32, stream_id: StreamId) -> NetworkError {
+    fn unimplemented_attribute(&self, actor_id: ActorId, object_id: ObjectId, stream_id: StreamId) -> NetworkError {
         NetworkError::UnimplementedAttribute(
             actor_id,
-            type_id,
-            self.object_ind_to_string(type_id),
+            object_id,
+            self.object_ind_to_string(object_id),
             stream_id,
             self.object_ind_attrs
-                .get(&type_id)
+                .get(&object_id)
                 .and_then(|x| x.get(&stream_id))
-                .map(|x| self.object_ind_to_string(x.object_index))
+                .map(|x| self.object_ind_to_string(x.object_id))
                 .unwrap_or_else(|| "type id not recognized".to_string()),
         )
     }
@@ -313,16 +313,16 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                 };
 
             if let Some(_) = bits.read_bit();
-            if let Some(type_id) = bits.read_i32();
-            let spawn = self.spawns.get(type_id as usize)
-                .ok_or_else(|| NetworkError::TypeIdOutOfRange(type_id))?;
+            if let Some(object_id) = bits.read_i32().map(ObjectId);
+            let spawn = self.spawns.get(usize::from(object_id))
+                .ok_or_else(|| NetworkError::ObjectIdOutOfRange(object_id))?;
 
             if let Some(traj) = Trajectory::from_spawn(&mut bits, *spawn);
             then {
                 Ok(NewActor {
                     actor_id,
                     name_id,
-                    object_ind: type_id,
+                    object_id,
                     initial_trajectory: traj
                 })
             } else {
@@ -335,7 +335,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
         &self,
         attr_decoder: &AttributeDecoder,
         mut bits: &mut BitGet,
-        actors: &mut FnvHashMap<ActorId, i32>,
+        actors: &mut FnvHashMap<ActorId, ObjectId>,
         time: f32,
         delta: f32,
     ) -> Result<Frame, NetworkError> {
@@ -363,22 +363,22 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                     // Insert the new actor so we can keep track of it for attribute
                     // updates. It's common for an actor id to already exist, so we
                     // overwrite it.
-                    actors.insert(actor.actor_id, actor.object_ind);
+                    actors.insert(actor.actor_id, actor.object_id);
                     new_actors.push(actor);
                 } else {
                     // We'll be updating an existing actor with some attributes so we need
                     // to track down what the actor's type is
-                    let type_id = actors
+                    let object_id = actors
                         .get(&actor_id)
                         .ok_or_else(|| NetworkError::MissingActor(actor_id))?;
 
                     // Once we have the type we need to look up what attributes are
                     // available for said type
-                    let cache_info = self.object_ind_attributes.get(type_id).ok_or_else(|| {
+                    let cache_info = self.object_ind_attributes.get(object_id).ok_or_else(|| {
                         NetworkError::MissingCache(
                             actor_id,
-                            *type_id,
-                            self.object_ind_to_string(*type_id),
+                            *object_id,
+                            self.object_ind_to_string(*object_id),
                         )
                     })?;
 
@@ -399,13 +399,13 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                         // parse, fail to do so here, so a large chunk is dedicated to
                         // generating an error message with context
                         let attr = cache_info.attributes.get(&stream_id).ok_or_else(|| {
-                            self.missing_attribute(cache_info, actor_id, *type_id, stream_id)
+                            self.missing_attribute(cache_info, actor_id, *object_id, stream_id)
                         })?;
 
                         let attribute =
                             attr_decoder.decode(*attr, &mut bits).map_err(|e| match e {
                                 AttributeError::Unimplemented => {
-                                    self.unimplemented_attribute(actor_id, *type_id, stream_id)
+                                    self.unimplemented_attribute(actor_id, *object_id, stream_id)
                                 }
                                 _ => NetworkError::AttributeError(e),
                             })?;
@@ -588,21 +588,21 @@ impl<'a> Parser<'a> {
 
         // Create a map of an object's normalized name to a list of indices in the object
         // vector that have that same normalized name
-        let normalized_name_obj_ind: MultiMap<&str, usize> =
+        let normalized_name_obj_ind: MultiMap<&str, ObjectId> =
             normalized_objects
                 .iter()
                 .enumerate()
-                .map(|(i, x)| (*x, i))
+                .map(|(i, name)| (*name, ObjectId(i as i32)))
                 .collect();
 
         // Map each object's name to it's index
-        let name_obj_ind: HashMap<&str, usize> = body.objects
+        let name_obj_ind: HashMap<&str, ObjectId> = body.objects
             .iter()
             .enumerate()
-            .map(|(ind, name)| (name.deref(), ind))
+            .map(|(i, name)| (name.deref(), ObjectId(i as i32)))
             .collect();
 
-        let mut object_ind_attrs: HashMap<i32, HashMap<StreamId, ObjectAttribute>> = HashMap::new();
+        let mut object_ind_attrs: HashMap<ObjectId, HashMap<StreamId, ObjectAttribute>> = HashMap::new();
         for cache in &body.net_cache {
             let mut all_props: HashMap<StreamId, ObjectAttribute> = cache
                 .properties
@@ -615,7 +615,7 @@ impl<'a> Parser<'a> {
                         StreamId(x.stream_id),
                         ObjectAttribute {
                             attribute: *attr,
-                            object_index: x.object_ind,
+                            object_id: ObjectId(x.object_ind),
                         },
                     ))
                 })
@@ -630,7 +630,7 @@ impl<'a> Parser<'a> {
             while let Some(parent_name) = PARENT_CLASSES.get(object_name) {
                 had_parent = true;
                 if let Some(parent_ind) = name_obj_ind.get(parent_name) {
-                    if let Some(parent_attrs) = object_ind_attrs.get(&(*parent_ind as i32)) {
+                    if let Some(parent_attrs) = object_ind_attrs.get(&parent_ind) {
                         all_props.extend(parent_attrs.iter());
                     }
                 }
@@ -646,46 +646,46 @@ impl<'a> Parser<'a> {
                     .iter()
                     .find(|x| x.cache_id == cache.parent_id)
                 {
-                    if let Some(parent_attrs) = object_ind_attrs.get(&parent.object_ind) {
+                    if let Some(parent_attrs) = object_ind_attrs.get(&ObjectId(parent.object_ind)) {
                         all_props.extend(parent_attrs.iter());
                     }
                 }
             }
 
-            object_ind_attrs.insert(cache.object_ind, all_props);
+            object_ind_attrs.insert(ObjectId(cache.object_ind), all_props);
         }
 
         for (obj, parent) in OBJECT_CLASSES.entries() {
             // It's ok if an object class doesn't appear in our replay. For instance, basketball
             // objects don't appear in a soccer replay.
-            if let Some(indices) = normalized_name_obj_ind.get_vec(obj) {
-                let parent_ind = name_obj_ind.get(parent).ok_or_else(|| {
+            if let Some(object_ids) = normalized_name_obj_ind.get_vec(obj) {
+                let parent_id = name_obj_ind.get(parent).ok_or_else(|| {
                     NetworkError::MissingParentClass(String::from(*obj), String::from(*parent))
                 })?;
 
-                for i in indices {
+                for i in object_ids {
                     let parent_attrs: HashMap<_, _> = object_ind_attrs
-                        .get(&(*parent_ind as i32))
+                        .get(&parent_id)
                         .ok_or_else(|| {
-                            NetworkError::ParentIndexHasNoAttributes(*parent_ind as i32, *i as i32)
+                            NetworkError::ParentHasNoAttributes(*parent_id, *i)
                         })?
                         .clone();
-                    object_ind_attrs.insert(*i as i32, parent_attrs);
+                    object_ind_attrs.insert(*i, parent_attrs);
                 }
             }
         }
 
-        let object_ind_attributes: FnvHashMap<i32, CacheInfo> =
+        let object_ind_attributes: FnvHashMap<ObjectId, CacheInfo> =
             object_ind_attrs
                 .iter()
-                .map(|(obj_ind, attrs)| {
-                    let key = *obj_ind;
+                .map(|(obj_id, attrs)| {
+                    let id = *obj_id;
                     let max = attrs.keys().map(|&x| i32::from(x)).max().unwrap_or(2) + 1;
                     let next_max = (max as u32)
                         .checked_next_power_of_two()
-                        .ok_or_else(|| NetworkError::PropIdsTooLarge(max, key))?;
+                        .ok_or_else(|| NetworkError::MaxStreamIdTooLarge(max, id))?;
                     Ok((
-                        key,
+                        id,
                         CacheInfo {
                             max_prop_id: max,
                             prop_id_bits: log2(next_max) as i32,
@@ -695,12 +695,14 @@ impl<'a> Parser<'a> {
                 })
                 .collect::<Result<FnvHashMap<_, _>, NetworkError>>()?;
 
-        let color_ind = *name_obj_ind
+        let color_ind = name_obj_ind
             .get("TAGame.ProductAttribute_UserColor_TA")
-            .unwrap_or(&0) as u32;
-        let painted_ind = *name_obj_ind
+            .map(|&x| i32::from(x))
+            .unwrap_or(0) as u32;
+        let painted_ind = name_obj_ind
             .get("TAGame.ProductAttribute_Painted_TA")
-            .unwrap_or(&0) as u32;
+            .map(|&x| i32::from(x))
+            .unwrap_or(0) as u32;
 
         // 1023 stolen from rattletrap
         let channels = header.max_channels().unwrap_or(1023);

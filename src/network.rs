@@ -125,6 +125,30 @@ pub struct Frame {
     pub updated_actors: Vec<UpdatedAttribute>,
 }
 
+/// A replay encodes a list of objects that appear in the network data. The index of an object in
+/// this list is used as a key in many places: reconstructing the attribute hierarchy and new
+/// actors in the network data.
+#[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Debug, Hash, Serialize)]
+pub struct ObjectId(pub i32);
+
+impl From<ObjectId> for i32 {
+    fn from(x: ObjectId) -> i32 {
+        x.0
+    }
+}
+
+impl From<ObjectId> for usize {
+    fn from(x: ObjectId) -> usize {
+        x.0 as usize
+    }
+}
+
+impl fmt::Display for ObjectId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 /// A `StreamId` is an attribute's object id in the network data. It is a more compressed form of
 /// the object id. Whereas the an object id might need to take up 9 bits, a stream id may only take
 /// up 6 bits.
@@ -169,8 +193,8 @@ pub struct NewActor {
     /// An name id
     pub name_id: Option<i32>,
 
-    /// The actor's type. Is an index to to `Replay::objects`
-    pub object_ind: i32,
+    /// The actor's object id.
+    pub object_id: ObjectId,
 
     /// The initial trajectory of the new actor
     pub initial_trajectory: Trajectory,

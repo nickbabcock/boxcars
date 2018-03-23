@@ -1,5 +1,5 @@
 use std::str;
-use network::{ActorId, StreamId};
+use network::{ActorId, StreamId, ObjectId};
 
 #[derive(PartialEq, Debug, Clone, Fail)]
 pub enum ParseError {
@@ -47,14 +47,14 @@ pub enum NetworkError {
     #[fail(display = "Delta is out of range: {}", _0)]
     DeltaOutOfRange(f32),
 
-    #[fail(display = "Too many prop ids ({}) for object index: {}", _0, _1)]
-    PropIdsTooLarge(i32, i32),
+    #[fail(display = "Too many stream ids ({}) for object id: {}", _0, _1)]
+    MaxStreamIdTooLarge(i32, ObjectId),
 
     #[fail(display = "Number of channels exceeds maximum: {}", _0)]
     ChannelsTooLarge(i32),
 
-    #[fail(display = "Type Id of {} exceeds range", _0)]
-    TypeIdOutOfRange(i32),
+    #[fail(display = "Object Id of {} exceeds range", _0)]
+    ObjectIdOutOfRange(ObjectId),
 
     #[fail(display = "Stream id of {} references out of range object index: {}", _0, _1)]
     StreamTooLargeIndex(i32, i32),
@@ -62,20 +62,20 @@ pub enum NetworkError {
     #[fail(display = "Replay contained object: {} but not the parent class: {}", _0, _1)]
     MissingParentClass(String, String),
 
-    #[fail(display = "Parent index of {} for object index of {} was not recognized to have attributes", _0, _1)]
-    ParentIndexHasNoAttributes(i32, i32),
+    #[fail(display = "Parent id of {} for object id of {} was not recognized to have attributes", _0, _1)]
+    ParentHasNoAttributes(ObjectId, ObjectId),
 
     #[fail(display = "Actor id: {} was not found", _0)]
     MissingActor(ActorId),
 
-    #[fail(display = "Actor id: {} of object index: {} ({}) but no attributes found", _0, _1, _2)]
-    MissingCache(ActorId, i32, String),
+    #[fail(display = "Actor id: {} of object id: {} ({}) but no attributes found", _0, _1, _2)]
+    MissingCache(ActorId, ObjectId, String),
 
-    #[fail(display = "Actor id: {} of object index: {} ({}) but attribute cache id: {} not found in {}", _0, _1, _2, _3, _4)]
-    MissingAttribute(ActorId, i32, String, StreamId, String),
+    #[fail(display = "Actor id: {} of object id: {} ({}) but attribute cache id: {} not found in {}", _0, _1, _2, _3, _4)]
+    MissingAttribute(ActorId, ObjectId, String, StreamId, String),
 
-    #[fail(display = "Actor id: {} of object index: {} ({}) but attribute cache id: {} ({}) was not implemented", _0, _1, _2, _3, _4)]
-    UnimplementedAttribute(ActorId, i32, String, StreamId, String),
+    #[fail(display = "Actor id: {} of object id: {} ({}) but attribute cache id: {} ({}) was not implemented", _0, _1, _2, _3, _4)]
+    UnimplementedAttribute(ActorId, ObjectId, String, StreamId, String),
 
     #[fail(display = "Attribute error: {}", _0)]
     AttributeError(#[cause] AttributeError),
