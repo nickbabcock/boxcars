@@ -131,6 +131,12 @@ pub struct Frame {
 #[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Debug, Hash, Serialize)]
 pub struct StreamId(pub i32);
 
+impl From<StreamId> for i32 {
+    fn from(x: StreamId) -> i32 {
+        x.0
+    }
+}
+
 impl fmt::Display for StreamId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.0)

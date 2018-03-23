@@ -249,7 +249,7 @@ struct FrameDecoder<'a, 'b: 'a> {
     body: &'a ReplayBody<'b>,
     spawns: &'a Vec<SpawnTrajectory>,
     object_ind_attributes: FnvHashMap<i32, CacheInfo>,
-    object_ind_attrs: HashMap<i32, HashMap<i32, ObjectAttribute>>,
+    object_ind_attrs: HashMap<i32, HashMap<StreamId, ObjectAttribute>>,
 }
 
 impl<'a, 'b> FrameDecoder<'a, 'b> {
@@ -268,13 +268,13 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
         cache_info: &CacheInfo,
         actor_id: ActorId,
         type_id: i32,
-        prop_id: StreamId,
+        stream_id: StreamId,
     ) -> NetworkError {
         NetworkError::MissingAttribute(
             actor_id,
             type_id,
             self.object_ind_to_string(type_id),
-            prop_id,
+            stream_id,
             cache_info
                 .attributes
                 .keys()
@@ -284,15 +284,15 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
         )
     }
 
-    fn unimplemented_attribute(&self, actor_id: ActorId, type_id: i32, prop_id: StreamId) -> NetworkError {
+    fn unimplemented_attribute(&self, actor_id: ActorId, type_id: i32, stream_id: StreamId) -> NetworkError {
         NetworkError::UnimplementedAttribute(
             actor_id,
             type_id,
             self.object_ind_to_string(type_id),
-            prop_id,
+            stream_id,
             self.object_ind_attrs
                 .get(&type_id)
-                .and_then(|x| x.get(&prop_id.0))
+                .and_then(|x| x.get(&stream_id))
                 .map(|x| self.object_ind_to_string(x.object_index))
                 .unwrap_or_else(|| "type id not recognized".to_string()),
         )
@@ -386,33 +386,33 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                     while bits.read_bit()
                         .ok_or_else(|| NetworkError::NotEnoughDataFor("Is prop present"))?
                     {
-                        // We've previously calculated the max the property id can be for a
+                        // We've previously calculated the max the stream id can be for a
                         // given type and how many bits that it encompasses so use those
                         // values now
-                        let prop_id =
+                        let stream_id =
                             bits.read_bits_max(cache_info.prop_id_bits, cache_info.max_prop_id)
                                 .map(|x| StreamId(x as i32))
                                 .ok_or_else(|| NetworkError::NotEnoughDataFor("Prop id"))?;
 
-                        // Look the property id up and find the corresponding attribute
+                        // Look the stream id up and find the corresponding attribute
                         // decoding function. Experience has told me replays that fail to
                         // parse, fail to do so here, so a large chunk is dedicated to
                         // generating an error message with context
-                        let attr = cache_info.attributes.get(&prop_id).ok_or_else(|| {
-                            self.missing_attribute(cache_info, actor_id, *type_id, prop_id)
+                        let attr = cache_info.attributes.get(&stream_id).ok_or_else(|| {
+                            self.missing_attribute(cache_info, actor_id, *type_id, stream_id)
                         })?;
 
                         let attribute =
                             attr_decoder.decode(*attr, &mut bits).map_err(|e| match e {
                                 AttributeError::Unimplemented => {
-                                    self.unimplemented_attribute(actor_id, *type_id, prop_id)
+                                    self.unimplemented_attribute(actor_id, *type_id, stream_id)
                                 }
                                 _ => NetworkError::AttributeError(e),
                             })?;
 
                         updated_actors.push(UpdatedAttribute {
                             actor_id,
-                            attribute_id: prop_id,
+                            attribute_id: stream_id,
                             attribute,
                         });
                     }
@@ -602,9 +602,9 @@ impl<'a> Parser<'a> {
             .map(|(ind, name)| (name.deref(), ind))
             .collect();
 
-        let mut object_ind_attrs: HashMap<i32, HashMap<i32, ObjectAttribute>> = HashMap::new();
+        let mut object_ind_attrs: HashMap<i32, HashMap<StreamId, ObjectAttribute>> = HashMap::new();
         for cache in &body.net_cache {
-            let mut all_props: HashMap<i32, ObjectAttribute> = cache
+            let mut all_props: HashMap<StreamId, ObjectAttribute> = cache
                 .properties
                 .iter()
                 .map(|x| {
@@ -612,7 +612,7 @@ impl<'a> Parser<'a> {
                         NetworkError::StreamTooLargeIndex(x.stream_id, x.object_ind)
                     })?;
                     Ok((
-                        x.stream_id,
+                        StreamId(x.stream_id),
                         ObjectAttribute {
                             attribute: *attr,
                             object_index: x.object_ind,
@@ -680,7 +680,7 @@ impl<'a> Parser<'a> {
                 .iter()
                 .map(|(obj_ind, attrs)| {
                     let key = *obj_ind;
-                    let max = *attrs.keys().max().unwrap_or(&2) + 1;
+                    let max = attrs.keys().map(|&x| i32::from(x)).max().unwrap_or(2) + 1;
                     let next_max = (max as u32)
                         .checked_next_power_of_two()
                         .ok_or_else(|| NetworkError::PropIdsTooLarge(max, key))?;
@@ -689,7 +689,7 @@ impl<'a> Parser<'a> {
                         CacheInfo {
                             max_prop_id: max,
                             prop_id_bits: log2(next_max) as i32,
-                            attributes: attrs.iter().map(|(k, o)| (StreamId(*k), o.attribute)).collect(),
+                            attributes: attrs.iter().map(|(k, o)| (*k, o.attribute)).collect(),
                         },
                     ))
                 })
