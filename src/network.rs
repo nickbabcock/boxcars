@@ -100,7 +100,7 @@ pub struct UpdatedAttribute {
     pub actor_id: ActorId,
 
     /// The attribute / property id that was decoded
-    pub attribute_id: i32,
+    pub attribute_id: StreamId,
 
     /// The actual data from the decoded attribute
     pub attribute: Attribute,
@@ -123,6 +123,18 @@ pub struct Frame {
 
     /// List of properties updated on the actors
     pub updated_actors: Vec<UpdatedAttribute>,
+}
+
+/// A `StreamId` is an attribute's object id in the network data. It is a more compressed form of
+/// the object id. Whereas the an object id might need to take up 9 bits, a stream id may only take
+/// up 6 bits.
+#[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Debug, Hash, Serialize)]
+pub struct StreamId(pub i32);
+
+impl fmt::Display for StreamId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
 }
 
 /// An actor in the network data stream. Could identify a ball, car, etc. Ids are not unique

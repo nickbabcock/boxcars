@@ -1,5 +1,5 @@
 use std::str;
-use network::ActorId;
+use network::{ActorId, StreamId};
 
 #[derive(PartialEq, Debug, Clone, Fail)]
 pub enum ParseError {
@@ -72,10 +72,10 @@ pub enum NetworkError {
     MissingCache(ActorId, i32, String),
 
     #[fail(display = "Actor id: {} of object index: {} ({}) but attribute cache id: {} not found in {}", _0, _1, _2, _3, _4)]
-    MissingAttribute(ActorId, i32, String, i32, String),
+    MissingAttribute(ActorId, i32, String, StreamId, String),
 
     #[fail(display = "Actor id: {} of object index: {} ({}) but attribute cache id: {} ({}) was not implemented", _0, _1, _2, _3, _4)]
-    UnimplementedAttribute(ActorId, i32, String, i32, String),
+    UnimplementedAttribute(ActorId, i32, String, StreamId, String),
 
     #[fail(display = "Attribute error: {}", _0)]
     AttributeError(#[cause] AttributeError),

@@ -63,7 +63,7 @@ use failure::{Error, ResultExt};
 use byteorder::{ByteOrder, LittleEndian};
 use bitter::BitGet;
 use hashes::{ATTRIBUTES, OBJECT_CLASSES, PARENT_CLASSES, SPAWN_STATS};
-use network::{normalize_object, Frame, NewActor, ActorId, SpawnTrajectory, Trajectory, UpdatedAttribute};
+use network::{normalize_object, Frame, NewActor, ActorId, StreamId, SpawnTrajectory, Trajectory, UpdatedAttribute};
 use attributes::{AttributeDecoder, AttributeTag};
 use std::collections::HashMap;
 use fnv::FnvHashMap;
@@ -237,7 +237,7 @@ struct ObjectAttribute {
 struct CacheInfo {
     max_prop_id: i32,
     prop_id_bits: i32,
-    attributes: FnvHashMap<i32, AttributeTag>,
+    attributes: FnvHashMap<StreamId, AttributeTag>,
 }
 
 struct FrameDecoder<'a, 'b: 'a> {
@@ -268,7 +268,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
         cache_info: &CacheInfo,
         actor_id: ActorId,
         type_id: i32,
-        prop_id: i32,
+        prop_id: StreamId,
     ) -> NetworkError {
         NetworkError::MissingAttribute(
             actor_id,
@@ -284,7 +284,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
         )
     }
 
-    fn unimplemented_attribute(&self, actor_id: ActorId, type_id: i32, prop_id: i32) -> NetworkError {
+    fn unimplemented_attribute(&self, actor_id: ActorId, type_id: i32, prop_id: StreamId) -> NetworkError {
         NetworkError::UnimplementedAttribute(
             actor_id,
             type_id,
@@ -292,7 +292,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
             prop_id,
             self.object_ind_attrs
                 .get(&type_id)
-                .and_then(|x| x.get(&prop_id))
+                .and_then(|x| x.get(&prop_id.0))
                 .map(|x| self.object_ind_to_string(x.object_index))
                 .unwrap_or_else(|| "type id not recognized".to_string()),
         )
@@ -391,7 +391,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                         // values now
                         let prop_id =
                             bits.read_bits_max(cache_info.prop_id_bits, cache_info.max_prop_id)
-                                .map(|x| x as i32)
+                                .map(|x| StreamId(x as i32))
                                 .ok_or_else(|| NetworkError::NotEnoughDataFor("Prop id"))?;
 
                         // Look the property id up and find the corresponding attribute
@@ -689,7 +689,7 @@ impl<'a> Parser<'a> {
                         CacheInfo {
                             max_prop_id: max,
                             prop_id_bits: log2(next_max) as i32,
-                            attributes: attrs.iter().map(|(k, o)| (*k, o.attribute)).collect(),
+                            attributes: attrs.iter().map(|(k, o)| (StreamId(*k), o.attribute)).collect(),
                         },
                     ))
                 })
