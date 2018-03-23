@@ -1,4 +1,5 @@
 use std::str;
+use network::ActorId;
 
 #[derive(PartialEq, Debug, Clone, Fail)]
 pub enum ParseError {
@@ -65,16 +66,16 @@ pub enum NetworkError {
     ParentIndexHasNoAttributes(i32, i32),
 
     #[fail(display = "Actor id: {} was not found", _0)]
-    MissingActor(i32),
+    MissingActor(ActorId),
 
     #[fail(display = "Actor id: {} of object index: {} ({}) but no attributes found", _0, _1, _2)]
-    MissingCache(i32, i32, String),
+    MissingCache(ActorId, i32, String),
 
     #[fail(display = "Actor id: {} of object index: {} ({}) but attribute cache id: {} not found in {}", _0, _1, _2, _3, _4)]
-    MissingAttribute(i32, i32, String, i32, String),
+    MissingAttribute(ActorId, i32, String, i32, String),
 
     #[fail(display = "Actor id: {} of object index: {} ({}) but attribute cache id: {} ({}) was not implemented", _0, _1, _2, _3, _4)]
-    UnimplementedAttribute(i32, i32, String, i32, String),
+    UnimplementedAttribute(ActorId, i32, String, i32, String),
 
     #[fail(display = "Attribute error: {}", _0)]
     AttributeError(#[cause] AttributeError),

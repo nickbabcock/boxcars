@@ -63,7 +63,7 @@ use failure::{Error, ResultExt};
 use byteorder::{ByteOrder, LittleEndian};
 use bitter::BitGet;
 use hashes::{ATTRIBUTES, OBJECT_CLASSES, PARENT_CLASSES, SPAWN_STATS};
-use network::{normalize_object, Frame, NewActor, SpawnTrajectory, Trajectory, UpdatedAttribute};
+use network::{normalize_object, Frame, NewActor, ActorId, SpawnTrajectory, Trajectory, UpdatedAttribute};
 use attributes::{AttributeDecoder, AttributeTag};
 use std::collections::HashMap;
 use fnv::FnvHashMap;
@@ -266,7 +266,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
     fn missing_attribute(
         &self,
         cache_info: &CacheInfo,
-        actor_id: i32,
+        actor_id: ActorId,
         type_id: i32,
         prop_id: i32,
     ) -> NetworkError {
@@ -284,7 +284,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
         )
     }
 
-    fn unimplemented_attribute(&self, actor_id: i32, type_id: i32, prop_id: i32) -> NetworkError {
+    fn unimplemented_attribute(&self, actor_id: ActorId, type_id: i32, prop_id: i32) -> NetworkError {
         NetworkError::UnimplementedAttribute(
             actor_id,
             type_id,
@@ -301,7 +301,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
     fn parse_new_actor(
         &self,
         mut bits: &mut BitGet,
-        actor_id: i32,
+        actor_id: ActorId,
     ) -> Result<NewActor, NetworkError> {
         if_chain! {
             if let Some(name_id) =
@@ -335,7 +335,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
         &self,
         attr_decoder: &AttributeDecoder,
         mut bits: &mut BitGet,
-        actors: &mut FnvHashMap<i32, i32>,
+        actors: &mut FnvHashMap<ActorId, i32>,
         time: f32,
         delta: f32,
     ) -> Result<Frame, NetworkError> {
@@ -347,6 +347,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
             .ok_or_else(|| NetworkError::NotEnoughDataFor("Actor data"))?
         {
             let actor_id = bits.read_i32_bits(self.channel_bits)
+                .map(ActorId)
                 .ok_or_else(|| NetworkError::NotEnoughDataFor("Actor Id"))?;
 
             // alive

@@ -1,5 +1,6 @@
 use bitter::BitGet;
 use attributes::Attribute;
+use std::fmt;
 
 /// An object's current vector
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -96,7 +97,7 @@ pub enum SpawnTrajectory {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct UpdatedAttribute {
     /// The actor that had an attribute updated
-    pub actor_id: i32,
+    pub actor_id: ActorId,
 
     /// The attribute / property id that was decoded
     pub attribute_id: i32,
@@ -118,17 +119,34 @@ pub struct Frame {
     pub new_actors: Vec<NewActor>,
 
     /// List of actor id's that are deleted / destroyed
-    pub deleted_actors: Vec<i32>,
+    pub deleted_actors: Vec<ActorId>,
 
     /// List of properties updated on the actors
     pub updated_actors: Vec<UpdatedAttribute>,
+}
+
+/// An actor in the network data stream. Could identify a ball, car, etc. Ids are not unique
+/// across a replay (eg. an actor that is destroyed may have its id repurposed).
+#[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Debug, Hash, Serialize)]
+pub struct ActorId(pub i32);
+
+impl From<ActorId> for i32 {
+    fn from(x: ActorId) -> i32 {
+        x.0
+    }
+}
+
+impl fmt::Display for ActorId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
 }
 
 /// Information for a new actor that appears in the game
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct NewActor {
     /// The id given to the new actor
-    pub actor_id: i32,
+    pub actor_id: ActorId,
 
     /// An name id
     pub name_id: Option<i32>,
