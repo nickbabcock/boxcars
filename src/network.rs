@@ -99,8 +99,8 @@ pub struct UpdatedAttribute {
     /// The actor that had an attribute updated
     pub actor_id: ActorId,
 
-    /// The attribute / property id that was decoded
-    pub attribute_id: StreamId,
+    /// The attribute stream id that was decoded
+    pub stream_id: StreamId,
 
     /// The actual data from the decoded attribute
     pub attribute: Attribute,

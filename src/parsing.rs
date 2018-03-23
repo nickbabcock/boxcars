@@ -412,7 +412,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
 
                         updated_actors.push(UpdatedAttribute {
                             actor_id,
-                            attribute_id: stream_id,
+                            stream_id,
                             attribute,
                         });
                     }
