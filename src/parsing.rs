@@ -63,7 +63,8 @@ use failure::{Error, ResultExt};
 use byteorder::{ByteOrder, LittleEndian};
 use bitter::BitGet;
 use hashes::{ATTRIBUTES, OBJECT_CLASSES, PARENT_CLASSES, SPAWN_STATS};
-use network::{normalize_object, Frame, NewActor, ActorId, StreamId, ObjectId, SpawnTrajectory, Trajectory, UpdatedAttribute};
+use network::{normalize_object, ActorId, Frame, NewActor, ObjectId, SpawnTrajectory, StreamId,
+              Trajectory, UpdatedAttribute};
 use attributes::{AttributeDecoder, AttributeTag};
 use std::collections::HashMap;
 use fnv::FnvHashMap;
@@ -229,7 +230,7 @@ impl<'a> ParserBuilder<'a> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct VersionTriplet(pub i32, pub i32, pub i32); 
+pub struct VersionTriplet(pub i32, pub i32, pub i32);
 
 impl VersionTriplet {
     pub fn net_version(&self) -> i32 {
@@ -293,7 +294,12 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
         )
     }
 
-    fn unimplemented_attribute(&self, actor_id: ActorId, object_id: ObjectId, stream_id: StreamId) -> NetworkError {
+    fn unimplemented_attribute(
+        &self,
+        actor_id: ActorId,
+        object_id: ObjectId,
+        stream_id: StreamId,
+    ) -> NetworkError {
         NetworkError::UnimplementedAttribute(
             actor_id,
             object_id,
@@ -566,7 +572,11 @@ impl<'a> Parser<'a> {
         header: &Header,
         body: &ReplayBody,
     ) -> Result<NetworkFrames, Error> {
-        let version = VersionTriplet(header.major_version, header.minor_version, header.net_version.unwrap_or(0));
+        let version = VersionTriplet(
+            header.major_version,
+            header.minor_version,
+            header.net_version.unwrap_or(0),
+        );
 
         // Create a parallel vector where each object has it's name normalized
         let normalized_objects: Vec<&str> = body.objects
@@ -598,12 +608,11 @@ impl<'a> Parser<'a> {
 
         // Create a map of an object's normalized name to a list of indices in the object
         // vector that have that same normalized name
-        let normalized_name_obj_ind: MultiMap<&str, ObjectId> =
-            normalized_objects
-                .iter()
-                .enumerate()
-                .map(|(i, name)| (*name, ObjectId(i as i32)))
-                .collect();
+        let normalized_name_obj_ind: MultiMap<&str, ObjectId> = normalized_objects
+            .iter()
+            .enumerate()
+            .map(|(i, name)| (*name, ObjectId(i as i32)))
+            .collect();
 
         // Map each object's name to it's index
         let name_obj_ind: HashMap<&str, ObjectId> = body.objects
@@ -612,7 +621,8 @@ impl<'a> Parser<'a> {
             .map(|(i, name)| (name.deref(), ObjectId(i as i32)))
             .collect();
 
-        let mut object_ind_attrs: HashMap<ObjectId, HashMap<StreamId, ObjectAttribute>> = HashMap::new();
+        let mut object_ind_attrs: HashMap<ObjectId, HashMap<StreamId, ObjectAttribute>> =
+            HashMap::new();
         for cache in &body.net_cache {
             let mut all_props: HashMap<StreamId, ObjectAttribute> = cache
                 .properties
@@ -640,7 +650,7 @@ impl<'a> Parser<'a> {
             while let Some(parent_name) = PARENT_CLASSES.get(object_name) {
                 had_parent = true;
                 if let Some(parent_ind) = name_obj_ind.get(parent_name) {
-                    if let Some(parent_attrs) = object_ind_attrs.get(&parent_ind) {
+                    if let Some(parent_attrs) = object_ind_attrs.get(parent_ind) {
                         all_props.extend(parent_attrs.iter());
                     }
                 }
@@ -675,35 +685,32 @@ impl<'a> Parser<'a> {
 
                 for i in object_ids {
                     let parent_attrs: HashMap<_, _> = object_ind_attrs
-                        .get(&parent_id)
-                        .ok_or_else(|| {
-                            NetworkError::ParentHasNoAttributes(*parent_id, *i)
-                        })?
+                        .get(parent_id)
+                        .ok_or_else(|| NetworkError::ParentHasNoAttributes(*parent_id, *i))?
                         .clone();
                     object_ind_attrs.insert(*i, parent_attrs);
                 }
             }
         }
 
-        let object_ind_attributes: FnvHashMap<ObjectId, CacheInfo> =
-            object_ind_attrs
-                .iter()
-                .map(|(obj_id, attrs)| {
-                    let id = *obj_id;
-                    let max = attrs.keys().map(|&x| i32::from(x)).max().unwrap_or(2) + 1;
-                    let next_max = (max as u32)
-                        .checked_next_power_of_two()
-                        .ok_or_else(|| NetworkError::MaxStreamIdTooLarge(max, id))?;
-                    Ok((
-                        id,
-                        CacheInfo {
-                            max_prop_id: max,
-                            prop_id_bits: log2(next_max) as i32,
-                            attributes: attrs.iter().map(|(k, o)| (*k, o.attribute)).collect(),
-                        },
-                    ))
-                })
-                .collect::<Result<FnvHashMap<_, _>, NetworkError>>()?;
+        let object_ind_attributes: FnvHashMap<ObjectId, CacheInfo> = object_ind_attrs
+            .iter()
+            .map(|(obj_id, attrs)| {
+                let id = *obj_id;
+                let max = attrs.keys().map(|&x| i32::from(x)).max().unwrap_or(2) + 1;
+                let next_max = (max as u32)
+                    .checked_next_power_of_two()
+                    .ok_or_else(|| NetworkError::MaxStreamIdTooLarge(max, id))?;
+                Ok((
+                    id,
+                    CacheInfo {
+                        max_prop_id: max,
+                        prop_id_bits: log2(next_max) as i32,
+                        attributes: attrs.iter().map(|(k, o)| (*k, o.attribute)).collect(),
+                    },
+                ))
+            })
+            .collect::<Result<FnvHashMap<_, _>, NetworkError>>()?;
 
         let color_ind = name_obj_ind
             .get("TAGame.ProductAttribute_UserColor_TA")

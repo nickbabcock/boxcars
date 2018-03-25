@@ -44,9 +44,9 @@ extern crate failure;
 extern crate fnv;
 #[macro_use]
 extern crate if_chain;
+extern crate multimap;
 extern crate phf;
 extern crate serde;
-extern crate multimap;
 
 #[cfg(test)]
 extern crate serde_json;

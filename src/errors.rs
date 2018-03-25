@@ -1,5 +1,5 @@
 use std::str;
-use network::{ActorId, StreamId, ObjectId};
+use network::{ActorId, ObjectId, StreamId};
 
 #[derive(PartialEq, Debug, Clone, Fail)]
 pub enum ParseError {

@@ -1,6 +1,6 @@
 use bitter::BitGet;
 use network::{Rotation, Vector};
-use parsing::{decode_utf16, decode_windows1252, VersionTriplet};
+use parsing::{VersionTriplet, decode_utf16, decode_windows1252};
 use errors::AttributeError;
 use std::borrow::Cow;
 
@@ -472,12 +472,11 @@ impl AttributeDecoder {
     }
 
     pub fn decode_game_mode(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
-        let init: u8 =
-            if self.version < VersionTriplet(868, 12, 0) {
-                2
-            } else {
-                8
-            };
+        let init: u8 = if self.version < VersionTriplet(868, 12, 0) {
+            2
+        } else {
+            8
+        };
 
         bits.read_u32_bits(i32::from(init))
             .map(|x| Attribute::GameMode(init, x as u8))
@@ -708,7 +707,8 @@ impl AttributeDecoder {
     pub fn decode_party_leader(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
         if let Some(system_id) = bits.read_u8() {
             if system_id != 0 {
-                let id = decode_unique_id_with_system_id(bits, self.version.net_version(), system_id)?;
+                let id =
+                    decode_unique_id_with_system_id(bits, self.version.net_version(), system_id)?;
                 Ok(Attribute::PartyLeader(Some(id)))
             } else {
                 Ok(Attribute::PartyLeader(None))
