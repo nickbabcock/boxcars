@@ -1,6 +1,6 @@
 use bitter::BitGet;
 use network::{Rotation, Vector};
-use parsing::{Header, decode_utf16, decode_windows1252};
+use parsing::{decode_utf16, decode_windows1252, VersionTriplet};
 use errors::AttributeError;
 use std::borrow::Cow;
 
@@ -231,21 +231,17 @@ pub struct LoadoutsOnline {
     unknown2: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct AttributeDecoder {
-    major_version: i32,
-    minor_version: i32,
-    net_version: i32,
+    version: VersionTriplet,
     color_ind: u32,
     painted_ind: u32,
 }
 
 impl AttributeDecoder {
-    pub fn new(header: &Header, color_ind: u32, painted_ind: u32) -> Self {
+    pub fn new(version: VersionTriplet, color_ind: u32, painted_ind: u32) -> Self {
         AttributeDecoder {
-            major_version: header.major_version,
-            minor_version: header.minor_version,
-            net_version: header.net_version.unwrap_or(0),
+            version,
             color_ind,
             painted_ind,
         }
@@ -365,7 +361,7 @@ impl AttributeDecoder {
             if let Some(distance) = bits.read_f32();
             if let Some(swiftness) = bits.read_f32();
             if let Some(swivel) = bits.read_f32();
-            if let Some(transition) = if self.major_version >= 868 && self.minor_version >= 20 {
+            if let Some(transition) = if self.version >= VersionTriplet(868, 20, 0) {
                 bits.read_f32().map(Some)
             } else {
                 Some(None)
@@ -477,7 +473,7 @@ impl AttributeDecoder {
 
     pub fn decode_game_mode(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
         let init: u8 =
-            if self.major_version < 868 || (self.major_version == 868 && self.minor_version < 12) {
+            if self.version < VersionTriplet(868, 12, 0) {
                 2
             } else {
                 8
@@ -673,13 +669,13 @@ impl AttributeDecoder {
     }
 
     pub fn decode_unique_id(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
-        decode_unique_id(bits, self.net_version).map(Attribute::UniqueId)
+        decode_unique_id(bits, self.version.net_version()).map(Attribute::UniqueId)
     }
 
     pub fn decode_reservation(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
         if_chain! {
             if let Some(number) = bits.read_u32_bits(3);
-            let unique = decode_unique_id(bits, self.net_version)?;
+            let unique = decode_unique_id(bits, self.version.net_version())?;
             if let Some(name) = if unique.system_id != 0 {
                 Some(Some(decode_text(bits)?))
             } else {
@@ -688,7 +684,7 @@ impl AttributeDecoder {
 
             if let Some(unknown1) = bits.read_bit();
             if let Some(unknown2) = bits.read_bit();
-            if let Some(unknown3) = if self.major_version > 868 || (self.major_version == 868 && self.minor_version >= 12) {
+            if let Some(unknown3) = if self.version >= VersionTriplet(868, 12, 0) {
                 bits.read_u32_bits(6).map(|x| Some(x as u8))
             } else {
                 Some(None)
@@ -712,7 +708,7 @@ impl AttributeDecoder {
     pub fn decode_party_leader(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
         if let Some(system_id) = bits.read_u8() {
             if system_id != 0 {
-                let id = decode_unique_id_with_system_id(bits, self.net_version, system_id)?;
+                let id = decode_unique_id_with_system_id(bits, self.version.net_version(), system_id)?;
                 Ok(Attribute::PartyLeader(Some(id)))
             } else {
                 Ok(Attribute::PartyLeader(None))
@@ -789,7 +785,7 @@ impl AttributeDecoder {
                     None
                 }
             } else if obj_ind == self.painted_ind {
-                if self.major_version >= 868 && self.minor_version >= 18 {
+                if self.version >= VersionTriplet(868, 18, 0) {
                     bits.read_u32_bits(31).map(Some)
                 } else {
                     bits.read_bits_max(4, 14).map(Some)

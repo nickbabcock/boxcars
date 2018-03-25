@@ -228,6 +228,15 @@ impl<'a> ParserBuilder<'a> {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct VersionTriplet(pub i32, pub i32, pub i32); 
+
+impl VersionTriplet {
+    pub fn net_version(&self) -> i32 {
+        self.2
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct ObjectAttribute {
     attribute: AttributeTag,
@@ -245,11 +254,11 @@ struct FrameDecoder<'a, 'b: 'a> {
     color_ind: u32,
     painted_ind: u32,
     channel_bits: i32,
-    header: &'a Header<'b>,
     body: &'a ReplayBody<'b>,
     spawns: &'a Vec<SpawnTrajectory>,
     object_ind_attributes: FnvHashMap<ObjectId, CacheInfo>,
     object_ind_attrs: HashMap<ObjectId, HashMap<StreamId, ObjectAttribute>>,
+    version: VersionTriplet,
 }
 
 impl<'a, 'b> FrameDecoder<'a, 'b> {
@@ -305,8 +314,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
     ) -> Result<NewActor, NetworkError> {
         if_chain! {
             if let Some(name_id) =
-                if self.header.major_version > 868 ||
-                    (self.header.major_version == 868 && self.header.minor_version >= 14) {
+                if self.version >= VersionTriplet(868, 14, 0) {
                     bits.read_i32().map(Some)
                 } else {
                     Some(None)
@@ -433,7 +441,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
     }
 
     pub fn decode_frames(&self) -> Result<Vec<Frame>, Error> {
-        let attr_decoder = AttributeDecoder::new(self.header, self.color_ind, self.painted_ind);
+        let attr_decoder = AttributeDecoder::new(self.version, self.color_ind, self.painted_ind);
         let mut frames: Vec<Frame> = Vec::with_capacity(self.frames_len);
         let mut actors = FnvHashMap::default();
         let mut bits = BitGet::new(self.body.network_data);
@@ -558,6 +566,8 @@ impl<'a> Parser<'a> {
         header: &Header,
         body: &ReplayBody,
     ) -> Result<NetworkFrames, Error> {
+        let version = VersionTriplet(header.major_version, header.minor_version, header.net_version.unwrap_or(0));
+
         // Create a parallel vector where each object has it's name normalized
         let normalized_objects: Vec<&str> = body.objects
             .iter()
@@ -718,11 +728,11 @@ impl<'a> Parser<'a> {
                 color_ind,
                 painted_ind,
                 channel_bits,
-                header,
                 body,
                 spawns: &spawns,
                 object_ind_attributes,
                 object_ind_attrs,
+                version,
             };
             Ok(NetworkFrames {
                 frames: frame_decoder.decode_frames()?,
@@ -1145,7 +1155,7 @@ fn le_i64(d: &[u8]) -> i64 {
 
 #[cfg(test)]
 mod tests {
-    use super::{CrcCheck, NetworkParse, Parser};
+    use super::*;
     use errors::ParseError;
     use models::{HeaderProp, TickMark};
     use std::borrow::Cow;
@@ -1480,5 +1490,19 @@ mod tests {
 
         parser = Parser::new(&data[..], CrcCheck::OnError, NetworkParse::Never);
         assert!(parser.parse().is_ok());
+    }
+
+    #[test]
+    fn test_version_triplets() {
+        let version = VersionTriplet(18, 27, 1);
+        assert_eq!(version.net_version(), 1);
+
+        assert!(version < VersionTriplet(19, 27, 1));
+        assert!(version < VersionTriplet(18, 28, 1));
+        assert!(version < VersionTriplet(18, 27, 2));
+        assert_eq!(version, VersionTriplet(18, 27, 1));
+        assert!(version > VersionTriplet(17, 27, 1));
+        assert!(version > VersionTriplet(18, 26, 1));
+        assert!(version > VersionTriplet(18, 27, 0));
     }
 }
