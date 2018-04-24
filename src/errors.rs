@@ -75,10 +75,10 @@ pub enum NetworkError {
     #[fail(display = "Actor id: {} of object id: {} ({}) but no attributes found", _0, _1, _2)]
     MissingCache(ActorId, ObjectId, String),
 
-    #[fail(display = "Actor id: {} of object id: {} ({}) but attribute cache id: {} not found in {}", _0, _1, _2, _3, _4)]
+    #[fail(display = "Actor id: {} of object id: {} ({}) but stream id: {} not found in {}", _0, _1, _2, _3, _4)]
     MissingAttribute(ActorId, ObjectId, String, StreamId, String),
 
-    #[fail(display = "Actor id: {} of object id: {} ({}) but attribute cache id: {} ({}) was not implemented", _0, _1, _2, _3, _4)]
+    #[fail(display = "Actor id: {} of object id: {} ({}) but stream id: {} ({}) was not implemented", _0, _1, _2, _3, _4)]
     UnimplementedAttribute(ActorId, ObjectId, String, StreamId, String),
 
     #[fail(display = "Attribute error: {}", _0)]
