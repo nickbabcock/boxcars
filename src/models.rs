@@ -149,10 +149,10 @@ where
     V: Serialize,
     S: Serializer,
 {
-    let mut state = try!(serializer.serialize_map(Some(inp.len())));
+    let mut state = serializer.serialize_map(Some(inp.len()))?;
     for &(ref key, ref val) in inp.iter() {
-        try!(state.serialize_key(key));
-        try!(state.serialize_value(val));
+        state.serialize_key(key)?;
+        state.serialize_value(val)?;
     }
     state.end()
 }
@@ -168,14 +168,14 @@ impl<'a> Serialize for HeaderProp<'a> {
     {
         match *self {
             HeaderProp::Array(ref x) => {
-                let mut state = try!(serializer.serialize_seq(Some(x.len())));
+                let mut state = serializer.serialize_seq(Some(x.len()))?;
                 for inner in x {
                     // Look for a better way to do this instead of allocating the intermediate map
                     let mut els = HashMap::new();
                     for &(key, ref val) in inner.iter() {
                         els.insert(key, val);
                     }
-                    try!(state.serialize_element(&els));
+                    state.serialize_element(&els)?;
                 }
                 state.end()
             }
