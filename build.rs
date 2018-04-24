@@ -182,6 +182,8 @@ fn main() {
         .entry("TAGame.GameEvent_Soccar_TA:GameTime", "AttributeTag::Int")
         .entry("TAGame.GameEvent_Soccar_TA:ReplicatedMusicStinger", "AttributeTag::MusicStinger")
         .entry("TAGame.GameEvent_Soccar_TA:ReplicatedScoredOnTeam", "AttributeTag::Byte")
+        .entry("TAGame.GameEvent_Soccar_TA:ReplicatedServerPerformanceState", "AttributeTag::Byte")
+        .entry("TAGame.GameEvent_Soccar_TA:ReplicatedStatEvent", "AttributeTag::StatEvent")
         .entry("TAGame.GameEvent_Soccar_TA:RoundNum", "AttributeTag::Int")
         .entry("TAGame.GameEvent_Soccar_TA:SecondsRemaining", "AttributeTag::Int")
         .entry("TAGame.GameEvent_Soccar_TA:SubRulesArchetype", "AttributeTag::Flagged")

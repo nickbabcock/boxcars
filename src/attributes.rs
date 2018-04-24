@@ -40,6 +40,7 @@ pub enum AttributeTag {
     PrivateMatchSettings,
     LoadoutOnline,
     LoadoutsOnline,
+    StatEvent,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -77,6 +78,7 @@ pub enum Attribute {
     PrivateMatch(PrivateMatchSettings),
     LoadoutOnline(Vec<Vec<Product>>),
     LoadoutsOnline(LoadoutsOnline),
+    StatEvent(bool, u32),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
@@ -288,6 +290,7 @@ impl AttributeDecoder {
             AttributeTag::PrivateMatchSettings => self.decode_private_match_settings(bits),
             AttributeTag::LoadoutOnline => self.decode_loadout_online(bits),
             AttributeTag::LoadoutsOnline => self.decode_loadouts_online(bits),
+            AttributeTag::StatEvent => self.decode_stat_event(bits),
         }
     }
 
@@ -436,6 +439,18 @@ impl AttributeDecoder {
         decode_explosion(bits)
             .map(Attribute::Explosion)
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Explosion"))
+    }
+
+    pub fn decode_stat_event(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+        if_chain! {
+            if let Some(u1) = bits.read_bit();
+            if let Some(id) = bits.read_u32();
+            then {
+                Ok(Attribute::StatEvent(u1, id))
+            } else {
+                Err(AttributeError::NotEnoughDataFor("Stat Event"))
+            }
+        }
     }
 
     pub fn decode_extended_explosion(
