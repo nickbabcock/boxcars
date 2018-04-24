@@ -192,6 +192,7 @@ fn main() {
         .entry("TAGame.GameEvent_TA:GameMode", "AttributeTag::GameMode")
         .entry("TAGame.GameEvent_TA:MatchTypeClass", "AttributeTag::Flagged")
         .entry("TAGame.GameEvent_TA:ReplicatedGameStateTimeRemaining", "AttributeTag::Int")
+        .entry("TAGame.GameEvent_TA:ReplicatedRoundCountDownNumber", "AttributeTag::Int")
         .entry("TAGame.GameEvent_TA:ReplicatedStateIndex", "AttributeTag::Byte")
         .entry("TAGame.GameEvent_TA:ReplicatedStateName", "AttributeTag::Int")
         .entry("TAGame.GameEvent_Team_TA:bForfeit", "AttributeTag::Boolean")
