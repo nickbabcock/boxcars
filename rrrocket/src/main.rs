@@ -1,3 +1,5 @@
+#[cfg(test)]
+extern crate assert_cli;
 extern crate boxcars;
 extern crate failure;
 extern crate globset;
@@ -37,10 +39,10 @@ struct Opt {
 
 fn read_file(input: &str) -> Result<Vec<u8>, Error> {
     let mut f = File::open(input)
-        .with_context(|e| format!("Could not open rocket league file: {} -- {}", input, e))?;
+        .with_context(|_e| format!("Could not open rocket league file: {}", input))?;
     let mut buffer = vec![];
     f.read_to_end(&mut buffer)
-        .with_context(|e| format!("Could not read rocket league file: {} -- {}", input, e))?;
+        .with_context(|_e| format!("Could not read rocket league file: {}", input))?;
     Ok(buffer)
 }
 
@@ -109,7 +111,7 @@ fn parse_multiple_replays(opt: &Opt) -> Result<(), Error> {
         .map(|file| {
             let data = read_file(file)?;
             let replay = parse_replay(opt, &data[..])
-                .with_context(|e| format!("Could not parse: {} with error: {}", file, e))?;
+                .with_context(|_e| format!("Could not parse: {}", file))?;
 
             if !opt.dry_run {
                 let outfile = format!("{}.json", file);
@@ -118,16 +120,11 @@ fn parse_multiple_replays(opt: &Opt) -> Result<(), Error> {
                     .create(true)
                     .truncate(true)
                     .open(&outfile)
-                    .with_context(|e| {
-                        format!(
-                            "Could not open json output file: {} with error: {}",
-                            outfile, e
-                        )
-                    })?;
+                    .with_context(|_e| format!("Could not open json output file: {}", outfile))?;
 
                 let mut writer = BufWriter::new(fout);
                 serde_json::to_writer(&mut writer, &replay)
-                    .with_context(|e| format!("Could not serialize replay {}: {}", file, e))?;
+                    .with_context(|_e| format!("Could not serialize replay {}", file))?;
             }
             Ok(())
         })
@@ -164,5 +161,59 @@ fn main() {
         }
 
         ::std::process::exit(1);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use assert_cli::Assert;
+    use std::io::Write;
+
+    #[test]
+    fn test_error_output() {
+        let mut w = Vec::new();
+        writeln!(
+            &mut w,
+            "Could not open rocket league file: assets/fuzz-string-too-long.replay"
+        ).unwrap();
+        writeln!(&mut w, "No such file or directory (os error 2)").unwrap();
+
+        Assert::cargo_binary("rrrocket")
+            .with_args(&[
+                "-n",
+                "-c",
+                "--dry-run",
+                "assets/fuzz-string-too-long.replay",
+            ])
+            .fails_with(1)
+            .stderr()
+            .contains(String::from_utf8(w).unwrap())
+            .unwrap();
+    }
+
+    #[test]
+    fn test_error_output2() {
+        let mut w = Vec::new();
+        writeln!(
+            &mut w,
+            "Could not parse: ../assets/fuzz-string-too-long.replay"
+        ).unwrap();
+        writeln!(
+            &mut w,
+            "Crc mismatch. Expected 3765941959 but received 1825689991"
+        ).unwrap();
+
+        Assert::cargo_binary("rrrocket")
+            .with_args(&[
+                "-n",
+                "-c",
+                "--dry-run",
+                "-m",
+                "../assets/fuzz-string-too-long.replay",
+            ])
+            .fails_with(1)
+            .stderr()
+            .contains(String::from_utf8(w).unwrap())
+            .unwrap();
     }
 }

@@ -12,3 +12,6 @@ structopt = "0.2"
 rayon = "0.9"
 boxcars = "0.2.2"
 globset = "0.2"
+
+[dev-dependencies]
+assert_cli = "0.5"
