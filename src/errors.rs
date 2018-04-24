@@ -1,5 +1,6 @@
 use std::str;
 use network::{ActorId, ObjectId, StreamId};
+use attributes::Attribute;
 
 #[derive(PartialEq, Debug, Clone, Fail)]
 pub enum ParseError {
@@ -43,6 +44,9 @@ pub enum NetworkError {
 
     #[fail(display = "Time is out of range: {}", _0)]
     TimeOutOfRange(f32),
+
+    #[fail(display = "Backtracking from frame: {} to {}, the last actor ({}) had a stream id of {}. This may mean that a new update of Rocket League updated this attribute. Decoded into {:?}", _0, _1, _2, _3, _4)]
+    TimeOutOfRangeUpdate(usize, usize, ActorId, StreamId, Attribute),
 
     #[fail(display = "Delta is out of range: {}", _0)]
     DeltaOutOfRange(f32),
