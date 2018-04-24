@@ -78,8 +78,8 @@ pub enum NetworkError {
     #[fail(display = "Actor id: {} of object id: {} ({}) but stream id: {} not found in {}", _0, _1, _2, _3, _4)]
     MissingAttribute(ActorId, ObjectId, String, StreamId, String),
 
-    #[fail(display = "Actor id: {} of object id: {} ({}) but stream id: {} ({}) was not implemented", _0, _1, _2, _3, _4)]
-    UnimplementedAttribute(ActorId, ObjectId, String, StreamId, String),
+    #[fail(display = "Actor id: {} of object id: {} ({}) but stream id: {} ({}) was not implemented. Possible missing implementations for stream id {}\n{}", _0, _1, _2, _3, _4, _3, _5)]
+    UnimplementedAttribute(ActorId, ObjectId, String, StreamId, String, String),
 
     #[fail(display = "Attribute error: {}", _0)]
     AttributeError(#[cause] AttributeError),

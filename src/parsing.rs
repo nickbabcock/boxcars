@@ -262,6 +262,14 @@ struct FrameDecoder<'a, 'b: 'a> {
     version: VersionTriplet,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ContextObjectAttribute {
+    obj_id: ObjectId,
+    obj_name: String,
+    prop_id: ObjectId,
+    prop_name: String,
+}
+
 impl<'a, 'b> FrameDecoder<'a, 'b> {
     fn object_ind_to_string(&self, object_id: ObjectId) -> String {
         String::from(
@@ -294,12 +302,39 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
         )
     }
 
+    fn properties_with_stream_id(&self, stream_id: StreamId) -> Vec<ContextObjectAttribute> {
+        self.body.net_cache.iter().map(|x| {
+            x.properties.iter().map(|prop| (x.object_ind, prop.object_ind, prop.stream_id)).collect::<Vec<(i32, i32, i32)>>()
+        })
+        .flat_map(|x| x)
+        .filter(|&(_obj_id, _prop_id, prop_stream_id)| StreamId(prop_stream_id) == stream_id)
+        .map(|(obj_id, prop_id, _prop_stream_id)| {
+            let obj_id = ObjectId(obj_id);
+            let prop_id = ObjectId(prop_id);
+            ContextObjectAttribute {
+                obj_id,
+                prop_id,
+                obj_name: self.object_ind_to_string(obj_id),
+                prop_name: self.object_ind_to_string(prop_id),
+            }
+        })
+        .filter(|x| !ATTRIBUTES.contains_key(x.prop_name.as_str()))
+        .collect()
+    }
+
     fn unimplemented_attribute(
         &self,
         actor_id: ActorId,
         object_id: ObjectId,
         stream_id: StreamId,
     ) -> NetworkError {
+        let fm = self.properties_with_stream_id(stream_id)
+            .into_iter()
+            .map(|x| format!("\tobject {} ({}) has property {} ({})",
+                x.obj_id, x.obj_name, x.prop_id, x.prop_name))
+            .collect::<Vec<String>>()
+            .join("\n");
+
         NetworkError::UnimplementedAttribute(
             actor_id,
             object_id,
@@ -310,6 +345,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                 .and_then(|x| x.get(&stream_id))
                 .map(|x| self.object_ind_to_string(x.object_id))
                 .unwrap_or_else(|| "type id not recognized".to_string()),
+            fm,
         )
     }
 
