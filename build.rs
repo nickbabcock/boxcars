@@ -186,6 +186,7 @@ fn main() {
         .entry("TAGame.GameEvent_Soccar_TA:ReplicatedStatEvent", "AttributeTag::StatEvent")
         .entry("TAGame.GameEvent_Soccar_TA:RoundNum", "AttributeTag::Int")
         .entry("TAGame.GameEvent_Soccar_TA:SecondsRemaining", "AttributeTag::Int")
+        .entry("TAGame.GameEvent_Soccar_TA:SeriesLength", "AttributeTag::Int")
         .entry("TAGame.GameEvent_Soccar_TA:SubRulesArchetype", "AttributeTag::Flagged")
         .entry("TAGame.GameEvent_SoccarPrivate_TA:MatchSettings", "AttributeTag::PrivateMatchSettings")
         .entry("TAGame.GameEvent_TA:bCanVoteToForfeit", "AttributeTag::Boolean")
