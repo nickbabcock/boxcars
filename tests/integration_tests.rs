@@ -37,3 +37,4 @@ frame_len_test!(test_no_frames, "../assets/no-frames.replay", 0);
 frame_len_test!(test_net_version, "../assets/netversion.replay", 7901);
 frame_len_test!(test_159a4_replay, "../assets/159a4.replay", 7104);
 frame_len_test!(test_c0bca_replay, "../assets/c0bca.replay", 7290);
+frame_len_test!(test_db70_replay, "../assets/db70.replay", 9781);

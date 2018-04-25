@@ -230,6 +230,7 @@ fn main() {
         .entry("TAGame.PRI_TA:PlayerHistoryKey", "AttributeTag::PlayerHistoryKey")
         .entry("TAGame.PRI_TA:PlayerHistoryValid", "AttributeTag::Boolean")
         .entry("TAGame.PRI_TA:ReplicatedGameEvent", "AttributeTag::Flagged")
+        .entry("TAGame.PRI_TA:ReplicatedWorstNetQualityBeyondLatency", "AttributeTag::Byte")
         .entry("TAGame.PRI_TA:SteeringSensitivity", "AttributeTag::Float")
         .entry("TAGame.PRI_TA:SkillTier", "AttributeTag::FlaggedByte")
         .entry("TAGame.PRI_TA:TimeTillItem", "AttributeTag::Int")
