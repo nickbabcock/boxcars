@@ -8,10 +8,7 @@ description = "Rocket league replay parser"
 keywords = ["rocket-league"]
 categories = ["parsing"]
 version = "0.2.3"
-exclude = [
-    "assets/*",
-    "fuzz/target/*"
-]
+include = ["src/**/*.rs", "Cargo.toml", "build.rs"]
 
 [dependencies]
 serde = "1"
