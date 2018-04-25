@@ -1,3 +1,7 @@
+## v0.2.4 - April 25th, 2018
+
+* Update replay parser to support current replays
+
 ## v0.2.3 - March 18th, 2018
 
 * Add a `--dry-run` option that won't output JSON
