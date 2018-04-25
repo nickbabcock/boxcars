@@ -176,7 +176,6 @@ mod tests {
             &mut w,
             "Could not open rocket league file: assets/fuzz-string-too-long.replay"
         ).unwrap();
-        writeln!(&mut w, "No such file or directory (os error 2)").unwrap();
 
         Assert::cargo_binary("rrrocket")
             .with_args(&[
