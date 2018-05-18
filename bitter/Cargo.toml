@@ -24,7 +24,12 @@ harness = false
 name = "bitstream-io"
 harness = false
 
+[[bench]]
+name = "nom"
+harness = false
+
 [dev-dependencies]
 criterion = "0.2"
 bitreader = "0.3.1"
 bitstream-io = "0.6"
+nom = "4"
