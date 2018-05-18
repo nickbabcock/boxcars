@@ -176,7 +176,7 @@ impl<'a> BitGet<'a> {
     /// Creates a bitstream from a byte slice
     pub fn new(data: &'a [u8]) -> BitGet<'a> {
         BitGet {
-            data: data,
+            data,
             current: 0,
             position: 64,
         }
@@ -472,6 +472,7 @@ impl<'a> BitGet<'a> {
     /// assert_eq!(bitter.if_get(BitGet::read_u8), Some(None));
     /// assert_eq!(bitter.if_get(BitGet::read_u8), None);
     /// ```
+    #[allow(option_option)] 
     pub fn if_get<T, F>(&mut self, mut f: F) -> Option<Option<T>>
     where
         F: FnMut(&mut Self) -> Option<T>,
