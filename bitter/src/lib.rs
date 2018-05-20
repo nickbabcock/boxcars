@@ -83,7 +83,7 @@ use byteorder::{ByteOrder, LittleEndian};
 pub struct BitGet<'a> {
     data: &'a [u8],
     current: u64,
-    position: i32,
+    position: usize,
 }
 
 const BIT_MASKS: [u32; 33] = [
@@ -126,17 +126,17 @@ macro_rules! gen_read_unchecked {
     ($name:ident, $t:ty) => (
     #[inline(always)]
     pub fn $name(&mut self) -> $t {
-        let bits = (::std::mem::size_of::<$t>() * 8) as i32;
-        if self.position <= 64 - bits {
+        let bits = ::std::mem::size_of::<$t>() * 8;
+        if self.position <= BIT_WIDTH - bits {
             let res = (self.current >> self.position) as $t;
             self.position += bits;
             res
-        } else if self.position < 64 {
+        } else if self.position < BIT_WIDTH {
             let shifted = self.position;
             let little = (self.current >> shifted) as $t;
             self.read_unchecked();
-            let big = self.current >> self.position << (64 - shifted);
-            self.position += bits - (64 - shifted);
+            let big = self.current >> self.position << (BIT_WIDTH - shifted);
+            self.position += bits - (BIT_WIDTH - shifted);
             (big as $t) + little
         } else {
             self.read_unchecked();
@@ -151,17 +151,17 @@ macro_rules! gen_read {
     ($name:ident, $t:ty) => (
     #[inline(always)]
     pub fn $name(&mut self) -> Option<$t> {
-        let bits = (::std::mem::size_of::<$t>() * 8) as i32;
-        if self.position <= 64 - bits {
+        let bits = ::std::mem::size_of::<$t>() * 8;
+        if self.position <= BIT_WIDTH - bits {
             let res = (self.current >> self.position) as $t;
             self.position += bits;
             Some(res)
-        } else if self.position < 64 {
+        } else if self.position < BIT_WIDTH {
             let shifted = self.position;
             let little = (self.current >> shifted) as $t;
             self.read().map(|_| {
-                let big = self.current >> self.position << (64 - shifted);
-                self.position += bits - (64 - shifted);
+                let big = self.current >> self.position << (BIT_WIDTH - shifted);
+                self.position += bits - (BIT_WIDTH - shifted);
                 (big as $t) + little
             })
         } else {
@@ -174,13 +174,16 @@ macro_rules! gen_read {
     });
 }
 
+const BYTE_WIDTH: usize = ::std::mem::size_of::<u64>();
+const BIT_WIDTH: usize = BYTE_WIDTH * 8;
+
 impl<'a> BitGet<'a> {
     /// Creates a bitstream from a byte slice
     pub fn new(data: &'a [u8]) -> BitGet<'a> {
         BitGet {
             data,
             current: 0,
-            position: 64,
+            position: BIT_WIDTH,
         }
     }
 
@@ -215,24 +218,25 @@ impl<'a> BitGet<'a> {
     /// Assumes that the number of bits are available in the bitstream and reads them into a u32
     #[inline(always)]
     pub fn read_u32_bits_unchecked(&mut self, bits: i32) -> u32 {
-        if self.position <= 64 - bits {
-            let res = ((self.current >> self.position) as u32) & BIT_MASKS[bits as usize];
-            self.position += bits;
+        let bts = bits as usize;
+        if self.position <= BIT_WIDTH - bts {
+            let res = ((self.current >> self.position) as u32) & BIT_MASKS[bts];
+            self.position += bts;
             res
-        } else if self.position < 64 {
+        } else if self.position < BIT_WIDTH {
             let shifted = self.position;
             let little = (self.current >> shifted) as u32;
             self.read_unchecked();
-            let had_read = 64 - shifted;
-            let to_read = bits - had_read;
+            let had_read = BIT_WIDTH - shifted;
+            let to_read = bts - had_read;
             let big =
-                ((self.current >> self.position << had_read) as u32) & BIT_MASKS[bits as usize];
+                ((self.current >> self.position << had_read) as u32) & BIT_MASKS[bts];
             self.position += to_read;
             big + little
         } else {
             self.read_unchecked();
-            let res = ((self.current >> self.position) as u32) & BIT_MASKS[bits as usize];
-            self.position += bits;
+            let res = ((self.current >> self.position) as u32) & BIT_MASKS[bts];
+            self.position += bts;
             res
         }
     }
@@ -240,25 +244,26 @@ impl<'a> BitGet<'a> {
     /// If the number of bits are available from the bitstream, read them into a u32
     #[inline(always)]
     pub fn read_u32_bits(&mut self, bits: i32) -> Option<u32> {
-        if self.position <= 64 - bits {
-            let res = ((self.current >> self.position) as u32) & BIT_MASKS[bits as usize];
-            self.position += bits;
+        let bts = bits as usize;
+        if self.position <= BIT_WIDTH - bts {
+            let res = ((self.current >> self.position) as u32) & BIT_MASKS[bts];
+            self.position += bts;
             Some(res)
-        } else if self.position < 64 {
+        } else if self.position < BIT_WIDTH {
             let shifted = self.position;
             let little = (self.current >> shifted) as u32;
             self.read().map(|_| {
-                let had_read = 64 - shifted;
-                let to_read = bits - had_read;
+                let had_read = BIT_WIDTH - shifted;
+                let to_read = bts - had_read;
                 let big =
-                    ((self.current >> self.position << had_read) as u32) & BIT_MASKS[bits as usize];
+                    ((self.current >> self.position << had_read) as u32) & BIT_MASKS[bts];
                 self.position += to_read;
                 big + little
             })
         } else {
             self.read().map(|_| {
-                let res = ((self.current >> self.position) as u32) & BIT_MASKS[bits as usize];
-                self.position += bits;
+                let res = ((self.current >> self.position) as u32) & BIT_MASKS[bts];
+                self.position += bts;
                 res
             })
         }
@@ -274,7 +279,7 @@ impl<'a> BitGet<'a> {
     /// assert_eq!(bitter.is_empty(), true);
     /// ```
     pub fn is_empty(&self) -> bool {
-        self.data.is_empty() && self.position == 64
+        self.data.is_empty() && self.position == BIT_WIDTH
     }
 
     /// Approximately the number of bytes left (an underestimate). This is the preferred method
@@ -302,30 +307,30 @@ impl<'a> BitGet<'a> {
     /// assert_eq!(bitter.bits_remaining(), 15);
     /// ```
     pub fn bits_remaining(&self) -> usize {
-        (64 - self.position as usize) + self.data.len() * 8
+        (BIT_WIDTH - self.position) + self.data.len() * 8
     }
 
     /// Advances bitstream to the next section if availablet. Don't assume that `position` is zero
     /// after this method, as the tail of the stream is packed into the highest bits.
     #[inline(always)]
     fn read(&mut self) -> Option<()> {
-        if self.data.len() < 8 {
+        if self.data.len() < BYTE_WIDTH {
             if self.data.is_empty() {
                 None
             } else {
-                self.position = 64 - (self.data.len() * 8) as i32;
+                self.position = BIT_WIDTH - (self.data.len() * 8);
                 self.current = 0;
                 for i in 0..self.data.len() {
                     self.current += u64::from(self.data[i]) << (i * 8)
                 }
-                self.current <<= 8 * (8 - self.data.len() as i32);
+                self.current <<= 8 * (BYTE_WIDTH - self.data.len());
                 self.data = &self.data[self.data.len()..];
                 Some(())
             }
         } else {
             self.current = LittleEndian::read_u64(self.data);
             self.position = 0;
-            self.data = &self.data[8..];
+            self.data = &self.data[BYTE_WIDTH..];
             Some(())
         }
     }
@@ -335,22 +340,22 @@ impl<'a> BitGet<'a> {
     /// highest bits.
     #[inline(always)]
     fn read_unchecked(&mut self) {
-        if self.data.len() < 8 {
+        if self.data.len() < BYTE_WIDTH {
             if self.data.is_empty() {
                 panic!("Unchecked read when no data")
             } else {
-                self.position = 64 - (self.data.len() * 8) as i32;
+                self.position = BIT_WIDTH - (self.data.len() * 8);
                 self.current = 0;
                 for i in 0..self.data.len() {
                     self.current += u64::from(self.data[i]) << (i * 8)
                 }
-                self.current <<= 8 * (8 - self.data.len() as i32);
+                self.current <<= 8 * (BYTE_WIDTH - self.data.len());
                 self.data = &self.data[self.data.len()..];
             }
         } else {
             self.current = LittleEndian::read_u64(self.data);
             self.position = 0;
-            self.data = &self.data[8..];
+            self.data = &self.data[BYTE_WIDTH..];
         }
     }
 
@@ -371,7 +376,7 @@ impl<'a> BitGet<'a> {
     }
 
     fn ensure_current(&mut self) -> Option<()> {
-        if self.position == 64 {
+        if self.position == BIT_WIDTH {
             self.read()
         } else {
             Some(())
@@ -387,7 +392,7 @@ impl<'a> BitGet<'a> {
     /// ```
     #[inline(always)]
     pub fn read_bit_unchecked(&mut self) -> bool {
-        if self.position == 64 {
+        if self.position == BIT_WIDTH {
             self.read_unchecked();
         }
 
@@ -521,12 +526,13 @@ impl<'a> BitGet<'a> {
     /// ```
     pub fn read_bytes(&mut self, bytes: i32) -> Option<Vec<u8>> {
         let off = if self.position % 8 == 0 { 0 } else { 1 };
-        let bytes_in_position = 8 - self.position / 8;
-        if (bytes_in_position - off) + (self.data.len() as i32) < bytes {
+        let bytes_in_position = BYTE_WIDTH - self.position / 8;
+        let bts = bytes as usize;
+        if (bytes_in_position - off) + self.data.len() < bts {
             None
         } else {
-            let mut res = Vec::with_capacity(bytes as usize);
-            for _ in 0..bytes {
+            let mut res = Vec::with_capacity(bts);
+            for _ in 0..bts {
                 res.push(self.read_u8_unchecked());
             }
             Some(res)
