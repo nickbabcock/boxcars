@@ -123,49 +123,51 @@ const BIT_MASKS: [u32; 33] = [
 ];
 
 macro_rules! gen_read_unchecked {
-    ($name:ident, $t:ty, $bits:expr) => (
+    ($name:ident, $t:ty) => (
     #[inline(always)]
     pub fn $name(&mut self) -> $t {
-        if self.position <= 64 - $bits {
+        let bits = (::std::mem::size_of::<$t>() * 8) as i32;
+        if self.position <= 64 - bits {
             let res = (self.current >> self.position) as $t;
-            self.position += $bits;
+            self.position += bits;
             res
         } else if self.position < 64 {
             let shifted = self.position;
             let little = (self.current >> shifted) as $t;
             self.read_unchecked();
             let big = self.current >> self.position << (64 - shifted);
-            self.position += $bits - (64 - shifted);
+            self.position += bits - (64 - shifted);
             (big as $t) + little
         } else {
             self.read_unchecked();
             let res = (self.current >> self.position) as $t;
-            self.position += $bits;
+            self.position += bits;
             res
         }
     });
 }
 
 macro_rules! gen_read {
-    ($name:ident, $t:ty, $bits:expr) => (
+    ($name:ident, $t:ty) => (
     #[inline(always)]
     pub fn $name(&mut self) -> Option<$t> {
-        if self.position <= 64 - $bits {
+        let bits = (::std::mem::size_of::<$t>() * 8) as i32;
+        if self.position <= 64 - bits {
             let res = (self.current >> self.position) as $t;
-            self.position += $bits;
+            self.position += bits;
             Some(res)
         } else if self.position < 64 {
             let shifted = self.position;
             let little = (self.current >> shifted) as $t;
             self.read().map(|_| {
                 let big = self.current >> self.position << (64 - shifted);
-                self.position += $bits - (64 - shifted);
+                self.position += bits - (64 - shifted);
                 (big as $t) + little
             })
         } else {
             self.read().map(|_| {
                 let res = (self.current >> self.position) as $t;
-                self.position += $bits;
+                self.position += bits;
                 res
             })
         }
@@ -182,23 +184,23 @@ impl<'a> BitGet<'a> {
         }
     }
 
-    gen_read!(read_i8, i8, 8);
-    gen_read!(read_u8, u8, 8);
-    gen_read!(read_i16, i16, 16);
-    gen_read!(read_u16, u16, 16);
-    gen_read!(read_i32, i32, 32);
-    gen_read!(read_u32, u32, 32);
-    gen_read!(read_i64, i64, 64);
-    gen_read!(read_u64, u64, 64);
+    gen_read!(read_i8, i8);
+    gen_read!(read_u8, u8);
+    gen_read!(read_i16, i16);
+    gen_read!(read_u16, u16);
+    gen_read!(read_i32, i32);
+    gen_read!(read_u32, u32);
+    gen_read!(read_i64, i64);
+    gen_read!(read_u64, u64);
 
-    gen_read_unchecked!(read_i8_unchecked, i8, 8);
-    gen_read_unchecked!(read_u8_unchecked, u8, 8);
-    gen_read_unchecked!(read_i16_unchecked, i16, 16);
-    gen_read_unchecked!(read_u16_unchecked, u16, 16);
-    gen_read_unchecked!(read_i32_unchecked, i32, 32);
-    gen_read_unchecked!(read_u32_unchecked, u32, 32);
-    gen_read_unchecked!(read_i64_unchecked, i64, 64);
-    gen_read_unchecked!(read_u64_unchecked, u64, 64);
+    gen_read_unchecked!(read_i8_unchecked, i8);
+    gen_read_unchecked!(read_u8_unchecked, u8);
+    gen_read_unchecked!(read_i16_unchecked, i16);
+    gen_read_unchecked!(read_u16_unchecked, u16);
+    gen_read_unchecked!(read_i32_unchecked, i32);
+    gen_read_unchecked!(read_u32_unchecked, u32);
+    gen_read_unchecked!(read_i64_unchecked, i64);
+    gen_read_unchecked!(read_u64_unchecked, u64);
 
     #[inline(always)]
     pub fn read_i32_bits_unchecked(&mut self, bits: i32) -> i32 {
