@@ -13,19 +13,7 @@ license = "MIT"
 byteorder = "1"
 
 [[bench]]
-name = "bitget"
-harness = false
-
-[[bench]]
-name = "bitreader"
-harness = false
-
-[[bench]]
-name = "bitstream-io"
-harness = false
-
-[[bench]]
-name = "nom"
+name = "bitter"
 harness = false
 
 [dev-dependencies]
