@@ -2,7 +2,7 @@ extern crate boxcars;
 use boxcars::ParserBuilder;
 
 macro_rules! frame_len_test {
-    ($test_name: ident, $test_asset: expr, $frame_len: expr) => {
+    ($test_name:ident, $test_asset:expr, $frame_len:expr) => {
         #[test]
         fn $test_name() {
             let data = include_bytes!($test_asset);
@@ -16,7 +16,7 @@ macro_rules! frame_len_test {
                 Err(ref e) => panic!(format!("{}", e)),
             }
         }
-    }
+    };
 }
 
 frame_len_test!(test_b0867_replay, "../assets/b0867.replay", 8599);
@@ -38,3 +38,7 @@ frame_len_test!(test_net_version, "../assets/netversion.replay", 7901);
 frame_len_test!(test_159a4_replay, "../assets/159a4.replay", 7104);
 frame_len_test!(test_c0bca_replay, "../assets/c0bca.replay", 7290);
 frame_len_test!(test_db70_replay, "../assets/db70.replay", 9781);
+frame_len_test!(test_6cc24_replay, "../assets/6cc24.replay", 7319);
+frame_len_test!(test_57a6c_replay, "../assets/57a6c.replay", 378);
+frame_len_test!(test_01d3e5_replay, "../assets/01d3e5.replay", 393);
+frame_len_test!(test_a9df3_replay, "../assets/a9df3.replay", 330);

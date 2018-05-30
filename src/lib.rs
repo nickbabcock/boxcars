@@ -57,12 +57,12 @@ extern crate serde_derive;
 pub use self::models::*;
 pub use self::network::{Frame, NewActor, Rotation, Trajectory, UpdatedAttribute, Vector};
 pub use self::parsing::{CrcCheck, NetworkParse, ParserBuilder};
-mod network;
-mod parsing;
-mod models;
+mod attributes;
 pub mod crc;
 mod errors;
-mod attributes;
+mod models;
+mod network;
+mod parsing;
 
 #[cfg_attr(feature = "cargo-clippy", allow(clippy))]
 mod hashes {

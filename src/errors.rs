@@ -1,6 +1,6 @@
-use std::str;
-use network::{ActorId, ObjectId, StreamId};
 use attributes::Attribute;
+use network::{ActorId, ObjectId, StreamId};
+use std::str;
 
 #[derive(PartialEq, Debug, Clone, Fail)]
 pub enum ParseError {
@@ -55,7 +55,8 @@ pub enum NetworkError {
     #[fail(display = "Time is out of range: {}", _0)]
     TimeOutOfRange(f32),
 
-    #[fail(display = "Backtracking from frame: {} to {}, the last actor ({}) had a stream id of {}. This may mean that a new update of Rocket League updated this attribute. Decoded into {:?}", _0, _1, _2, _3, _4)]
+    #[fail(display = "Time was out of range. Backtracking from frame: {} to {}, the last actor ({}) had a stream id of {}. This may mean that a new update of Rocket League updated this attribute. Decoded into {:?}",
+           _0, _1, _2, _3, _4)]
     TimeOutOfRangeUpdate(usize, usize, ActorId, StreamId, Attribute),
 
     #[fail(display = "Delta is out of range: {}", _0)]
@@ -76,7 +77,8 @@ pub enum NetworkError {
     #[fail(display = "Replay contained object: {} but not the parent class: {}", _0, _1)]
     MissingParentClass(String, String),
 
-    #[fail(display = "Parent id of {} for object id of {} was not recognized to have attributes", _0, _1)]
+    #[fail(display = "Parent id of {} for object id of {} was not recognized to have attributes",
+           _0, _1)]
     ParentHasNoAttributes(ObjectId, ObjectId),
 
     #[fail(display = "Actor id: {} was not found", _0)]
@@ -85,10 +87,12 @@ pub enum NetworkError {
     #[fail(display = "Actor id: {} of object id: {} ({}) but no attributes found", _0, _1, _2)]
     MissingCache(ActorId, ObjectId, String),
 
-    #[fail(display = "Actor id: {} of object id: {} ({}) but stream id: {} not found in {}", _0, _1, _2, _3, _4)]
+    #[fail(display = "Actor id: {} of object id: {} ({}) but stream id: {} not found in {}", _0,
+           _1, _2, _3, _4)]
     MissingAttribute(ActorId, ObjectId, String, StreamId, String),
 
-    #[fail(display = "Actor id: {} of object id: {} ({}) but stream id: {} ({}) was not implemented. Possible missing implementations for stream id {}\n{}", _0, _1, _2, _3, _4, _3, _5)]
+    #[fail(display = "Actor id: {} of object id: {} ({}) but stream id: {} ({}) was not implemented. Possible missing implementations for stream id {}\n{}",
+           _0, _1, _2, _3, _4, _3, _5)]
     UnimplementedAttribute(ActorId, ObjectId, String, StreamId, String, String),
 
     #[fail(display = "Attribute error: {}", _0)]

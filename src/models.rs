@@ -1,3 +1,5 @@
+use network::Frame;
+use serde::ser::{SerializeMap, SerializeSeq};
 /// # Models
 ///
 /// Here lies the data structures that a rocket league replay is decoded into. All of the models
@@ -8,12 +10,9 @@
 /// numeric/string types). Asking "why JSON" would be next logical step, and that's due to other
 /// rocket league replay parsers (like Octane) using JSON; however, the output of this library is
 /// not compatible with that of other rocket league replay parsers.
-
 use serde::{Serialize, Serializer};
-use serde::ser::{SerializeMap, SerializeSeq};
-use std::collections::HashMap;
 use std::borrow::Cow;
-use network::Frame;
+use std::collections::HashMap;
 
 /// The structure that a rocket league replay is parsed into.
 #[derive(Serialize, PartialEq, Debug, Clone)]
@@ -193,8 +192,8 @@ impl<'a> Serialize for HeaderProp<'a> {
 mod tests {
     use super::*;
     use serde;
-    use std;
     use serde_json;
+    use std;
     use std::borrow::Cow;
 
     fn to_json<T: serde::Serialize>(input: &T) -> std::string::String {

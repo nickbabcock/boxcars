@@ -54,22 +54,22 @@
 //! - Packages
 //! - Etc
 
-use encoding_rs::{UTF_16LE, WINDOWS_1252};
-use models::*;
-use crc::calc_crc;
-use errors::{AttributeError, NetworkError, ParseError};
-use std::borrow::Cow;
-use failure::{Error, ResultExt};
-use byteorder::{ByteOrder, LittleEndian};
+use attributes::{AttributeDecoder, AttributeTag};
 use bitter::BitGet;
+use byteorder::{ByteOrder, LittleEndian};
+use crc::calc_crc;
+use encoding_rs::{UTF_16LE, WINDOWS_1252};
+use errors::{AttributeError, NetworkError, ParseError};
+use failure::{Error, ResultExt};
+use fnv::FnvHashMap;
 use hashes::{ATTRIBUTES, OBJECT_CLASSES, PARENT_CLASSES, SPAWN_STATS};
+use models::*;
+use multimap::MultiMap;
 use network::{normalize_object, ActorId, Frame, NewActor, ObjectId, SpawnTrajectory, StreamId,
               Trajectory, UpdatedAttribute};
-use attributes::{AttributeDecoder, AttributeTag};
+use std::borrow::Cow;
 use std::collections::HashMap;
-use fnv::FnvHashMap;
 use std::ops::Deref;
-use multimap::MultiMap;
 
 /// Determines under what circumstances the parser should perform the crc check for replay
 /// corruption. Since the crc check is the most time consuming check for parsing (causing
@@ -303,23 +303,29 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
     }
 
     fn properties_with_stream_id(&self, stream_id: StreamId) -> Vec<ContextObjectAttribute> {
-        self.body.net_cache.iter().map(|x| {
-            x.properties.iter().map(|prop| (x.object_ind, prop.object_ind, prop.stream_id)).collect::<Vec<(i32, i32, i32)>>()
-        })
-        .flat_map(|x| x)
-        .filter(|&(_obj_id, _prop_id, prop_stream_id)| StreamId(prop_stream_id) == stream_id)
-        .map(|(obj_id, prop_id, _prop_stream_id)| {
-            let obj_id = ObjectId(obj_id);
-            let prop_id = ObjectId(prop_id);
-            ContextObjectAttribute {
-                obj_id,
-                prop_id,
-                obj_name: self.object_ind_to_string(obj_id),
-                prop_name: self.object_ind_to_string(prop_id),
-            }
-        })
-        .filter(|x| !ATTRIBUTES.contains_key(x.prop_name.as_str()))
-        .collect()
+        self.body
+            .net_cache
+            .iter()
+            .map(|x| {
+                x.properties
+                    .iter()
+                    .map(|prop| (x.object_ind, prop.object_ind, prop.stream_id))
+                    .collect::<Vec<(i32, i32, i32)>>()
+            })
+            .flat_map(|x| x)
+            .filter(|&(_obj_id, _prop_id, prop_stream_id)| StreamId(prop_stream_id) == stream_id)
+            .map(|(obj_id, prop_id, _prop_stream_id)| {
+                let obj_id = ObjectId(obj_id);
+                let prop_id = ObjectId(prop_id);
+                ContextObjectAttribute {
+                    obj_id,
+                    prop_id,
+                    obj_name: self.object_ind_to_string(obj_id),
+                    prop_name: self.object_ind_to_string(prop_id),
+                }
+            })
+            .filter(|x| !ATTRIBUTES.contains_key(x.prop_name.as_str()))
+            .collect()
     }
 
     fn unimplemented_attribute(
@@ -330,8 +336,12 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
     ) -> NetworkError {
         let fm = self.properties_with_stream_id(stream_id)
             .into_iter()
-            .map(|x| format!("\tobject {} ({}) has property {} ({})",
-                x.obj_id, x.obj_name, x.prop_id, x.prop_name))
+            .map(|x| {
+                format!(
+                    "\tobject {} ({}) has property {} ({})",
+                    x.obj_id, x.obj_name, x.prop_id, x.prop_name
+                )
+            })
             .collect::<Vec<String>>()
             .join("\n");
 
@@ -367,7 +377,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
             let spawn = self.spawns.get(usize::from(object_id))
                 .ok_or_else(|| NetworkError::ObjectIdOutOfRange(object_id))?;
 
-            if let Some(traj) = Trajectory::from_spawn(&mut bits, *spawn);
+            if let Some(traj) = Trajectory::from_spawn(&mut bits, *spawn, self.version.net_version());
             then {
                 Ok(NewActor {
                     actor_id,
@@ -495,7 +505,13 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                 let mut frame_index = frames.len() - 1;
                 while let Some(frame) = frames.get(frame_index) {
                     if let Some(last_update) = frame.updated_actors.last() {
-                        return Err(NetworkError::TimeOutOfRangeUpdate(frames.len(), frame_index, last_update.actor_id, last_update.stream_id, last_update.attribute.clone()))?;
+                        return Err(NetworkError::TimeOutOfRangeUpdate(
+                            frames.len(),
+                            frame_index,
+                            last_update.actor_id,
+                            last_update.stream_id,
+                            last_update.attribute.clone(),
+                        ))?;
                     }
                     frame_index -= 1;
                 }
@@ -1491,7 +1507,7 @@ mod tests {
         let err = parser.parse().unwrap_err();
         assert!(
             format!("{}", err).starts_with(
-                "Could not decode replay debug info at offset (1010894): list of size"
+                "Could not decode replay debug info at offset (1010894): list of size",
             )
         );
     }
@@ -1508,7 +1524,7 @@ mod tests {
 
         assert!(
             format!("{}", err.cause().cause().unwrap()).starts_with(
-                "Could not decode replay debug info at offset (1010894): list of size"
+                "Could not decode replay debug info at offset (1010894): list of size",
             )
         );
     }

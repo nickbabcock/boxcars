@@ -1,7 +1,7 @@
 use bitter::BitGet;
+use errors::AttributeError;
 use network::{Rotation, Vector};
 use parsing::{VersionTriplet, decode_utf16, decode_windows1252};
-use errors::AttributeError;
 use std::borrow::Cow;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -330,7 +330,7 @@ impl AttributeDecoder {
     pub fn decode_applied_damage(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
         if_chain! {
             if let Some(a) = bits.read_u8();
-            if let Some(vector) = Vector::decode(bits);
+            if let Some(vector) = Vector::decode(bits, self.version.net_version());
             if let Some(b) = bits.read_u32();
             if let Some(c) = bits.read_u32();
             then {
@@ -346,7 +346,7 @@ impl AttributeDecoder {
             if let Some(da) = bits.read_u8();
             if let Some(db) = bits.read_bit();
             if let Some(dc) = bits.read_u32();
-            if let Some(dd) = Vector::decode(bits);
+            if let Some(dd) = Vector::decode(bits, self.version.net_version());
             if let Some(de) = bits.read_bit();
             if let Some(df) = bits.read_bit();
             then {
@@ -412,8 +412,8 @@ impl AttributeDecoder {
             if let Some(attacker_actor_id) = bits.read_u32();
             if let Some(victim_flag) = bits.read_bit();
             if let Some(victim_actor_id) = bits.read_u32();
-            if let Some(attack_velocity) = Vector::decode(bits);
-            if let Some(victim_velocity) = Vector::decode(bits);
+            if let Some(attack_velocity) = Vector::decode(bits, self.version.net_version());
+            if let Some(victim_velocity) = Vector::decode(bits, self.version.net_version());
             then {
                 Ok(Attribute::Demolish(Demolish {
                     attacker_flag,
@@ -436,7 +436,7 @@ impl AttributeDecoder {
     }
 
     pub fn decode_explosion(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
-        decode_explosion(bits)
+        decode_explosion(bits, self.version.net_version())
             .map(Attribute::Explosion)
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Explosion"))
     }
@@ -458,7 +458,7 @@ impl AttributeDecoder {
         bits: &mut BitGet,
     ) -> Result<Attribute, AttributeError> {
         if_chain! {
-            if let Some(explosion) = decode_explosion(bits);
+            if let Some(explosion) = decode_explosion(bits, self.version.net_version());
             if let Some(ea) = bits.read_bit();
             if let Some(eb) = bits.read_u32();
             then {
@@ -527,7 +527,7 @@ impl AttributeDecoder {
     }
 
     pub fn decode_location(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
-        Vector::decode(bits)
+        Vector::decode(bits, self.version.net_version())
             .map(Attribute::Location)
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Location"))
     }
@@ -574,7 +574,7 @@ impl AttributeDecoder {
         if_chain! {
             if let Some(active) = bits.read_bit();
             if let Some(actor_id) = bits.read_u32();
-            if let Some(offset) = Vector::decode(bits);
+            if let Some(offset) = Vector::decode(bits, self.version.net_version());
             if let Some(mass) = bits.read_f32();
             if let Some(rotation) = Rotation::decode(bits);
             then {
@@ -642,14 +642,24 @@ impl AttributeDecoder {
     pub fn decode_rigid_body(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
         if_chain! {
             if let Some(sleeping) = bits.read_bit();
-            if let Some(location) = Vector::decode(bits);
-            if let Some(x) = bits.read_u16();
-            if let Some(y) = bits.read_u16();
-            if let Some(z) = bits.read_u16();
+            if let Some(location) = Vector::decode(bits, self.version.net_version());
+
+            if let Some(_u1) = if self.version.net_version() >= 7 {
+                bits.read_bit()
+            } else { Some(true) };
+
+            if let Some(x) = bits.read_u32_bits(if self.version.net_version() >= 7 { 18 } else { 16 });
+            if let Some(y) = bits.read_u32_bits(if self.version.net_version() >= 7 { 18 } else { 16 });
+            if let Some(z) = bits.read_u32_bits(if self.version.net_version() >= 7 { 18 } else { 16 });
+
+            if let Some(_u2) = if self.version.net_version() >= 7 {
+                bits.read_bit()
+            } else { Some(true) };
+
 
             if let Some((linear_velocity, angular_velocity)) = if !sleeping {
-                let lv = Vector::decode(bits);
-                let av = Vector::decode(bits);
+                let lv = Vector::decode(bits, self.version.net_version());
+                let av = Vector::decode(bits, self.version.net_version());
                 if lv.is_some() && av.is_some() {
                     Some((lv, av))
                 } else {
@@ -663,9 +673,9 @@ impl AttributeDecoder {
                 Ok(Attribute::RigidBody(RigidBody {
                     sleeping,
                     location,
-                    x,
-                    y,
-                    z,
+                    x: x as u16,
+                    y: y as u16,
+                    z: z as u16,
                     linear_velocity,
                     angular_velocity,
                 }))
@@ -847,11 +857,11 @@ impl AttributeDecoder {
     }
 }
 
-fn decode_explosion(bits: &mut BitGet) -> Option<Explosion> {
+fn decode_explosion(bits: &mut BitGet, net_version: i32) -> Option<Explosion> {
     if_chain! {
         if let Some(flag) = bits.read_bit();
         if let Some(actor_id) = bits.read_u32();
-        if let Some(location) = Vector::decode(bits);
+        if let Some(location) = Vector::decode(bits, net_version);
         then {
             Some(Explosion {
                 flag,
@@ -930,7 +940,13 @@ fn decode_loadout(bits: &mut BitGet) -> Option<Loadout> {
             Some(None)
         };
 
+
         then {
+        if version >= 22 {
+            bits.read_u32();
+            bits.read_u32();
+            bits.read_u32();
+        }
             Some(Loadout {
                 version,
                 body,

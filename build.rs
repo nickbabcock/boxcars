@@ -179,6 +179,7 @@ fn main() {
         .entry("TAGame.CrowdManager_TA:ReplicatedGlobalOneShotSound", "AttributeTag::Flagged")
         .entry("TAGame.GameEvent_Soccar_TA:bBallHasBeenHit", "AttributeTag::Boolean")
         .entry("TAGame.GameEvent_Soccar_TA:bOverTime", "AttributeTag::Boolean")
+        .entry("TAGame.GameEvent_Soccar_TA:bUnlimitedTime", "AttributeTag::Boolean")
         .entry("TAGame.GameEvent_Soccar_TA:GameTime", "AttributeTag::Int")
         .entry("TAGame.GameEvent_Soccar_TA:ReplicatedMusicStinger", "AttributeTag::MusicStinger")
         .entry("TAGame.GameEvent_Soccar_TA:ReplicatedScoredOnTeam", "AttributeTag::Byte")
