@@ -3,9 +3,9 @@ extern crate boxcars;
 extern crate criterion;
 extern crate serde_json;
 
-use criterion::{black_box, Criterion};
-use boxcars::*;
 use boxcars::crc::calc_crc;
+use boxcars::*;
+use criterion::{black_box, Criterion};
 use std::io;
 
 fn bench_crc(c: &mut Criterion) {
