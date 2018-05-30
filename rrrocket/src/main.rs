@@ -8,33 +8,37 @@ extern crate serde_json;
 #[macro_use]
 extern crate structopt;
 
-use failure::{err_msg, Error, ResultExt};
-use structopt::StructOpt;
-use std::fs::{File, OpenOptions};
-use std::io::{self, BufWriter};
-use std::io::prelude::*;
-use rayon::prelude::*;
 use boxcars::{CrcCheck, NetworkParse, ParserBuilder, Replay};
-use std::path::Path;
+use failure::{err_msg, Error, ResultExt};
 use globset::Glob;
+use rayon::prelude::*;
+use std::fs::{File, OpenOptions};
+use std::io::prelude::*;
+use std::io::{self, BufWriter};
+use std::path::Path;
+use structopt::StructOpt;
 
 #[derive(StructOpt, Debug, Clone, PartialEq)]
 #[structopt(name = "rrrocket",
             about = "Parses Rocket League replay files and outputs JSON with decoded information")]
 struct Opt {
-    #[structopt(short = "c", long = "crc-check", help = "forces a crc check for corruption even when replay was successfully parsed")]
+    #[structopt(short = "c", long = "crc-check",
+                help = "forces a crc check for corruption even when replay was successfully parsed")]
     crc: bool,
 
-    #[structopt(short = "n", long = "network-parse", help = "parses the network data of a replay instead of skipping it")]
+    #[structopt(short = "n", long = "network-parse",
+                help = "parses the network data of a replay instead of skipping it")]
     body: bool,
 
-    #[structopt(short = "m", long = "multiple", help = "parse multiple replays, instead of writing JSON to stdout, write to a sibling JSON file")]
+    #[structopt(short = "m", long = "multiple",
+                help = "parse multiple replays, instead of writing JSON to stdout, write to a sibling JSON file")]
     multiple: bool,
 
     #[structopt(long = "dry-run", help = "parses but does not write JSON output")]
     dry_run: bool,
 
-    #[structopt(help = "Rocket League replay files")] input: Vec<String>,
+    #[structopt(help = "Rocket League replay files")]
+    input: Vec<String>,
 }
 
 fn read_file(input: &str) -> Result<Vec<u8>, Error> {
