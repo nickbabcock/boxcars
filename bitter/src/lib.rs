@@ -229,8 +229,7 @@ impl<'a> BitGet<'a> {
             self.read_unchecked();
             let had_read = BIT_WIDTH - shifted;
             let to_read = bts - had_read;
-            let big =
-                ((self.current >> self.position << had_read) as u32) & BIT_MASKS[bts];
+            let big = ((self.current >> self.position << had_read) as u32) & BIT_MASKS[bts];
             self.position += to_read;
             big + little
         } else {
@@ -255,8 +254,7 @@ impl<'a> BitGet<'a> {
             self.read().map(|_| {
                 let had_read = BIT_WIDTH - shifted;
                 let to_read = bts - had_read;
-                let big =
-                    ((self.current >> self.position << had_read) as u32) & BIT_MASKS[bts];
+                let big = ((self.current >> self.position << had_read) as u32) & BIT_MASKS[bts];
                 self.position += to_read;
                 big + little
             })
