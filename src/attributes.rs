@@ -940,13 +940,16 @@ fn decode_loadout(bits: &mut BitGet) -> Option<Loadout> {
             Some(None)
         };
 
+        if let Some(_unknown4) = if version >= 22 {
+            bits.read_u32()
+                .and(bits.read_u32())
+                .and(bits.read_u32())
+        } else {
+            Some(0)
+        };
+
 
         then {
-        if version >= 22 {
-            bits.read_u32();
-            bits.read_u32();
-            bits.read_u32();
-        }
             Some(Loadout {
                 version,
                 body,
