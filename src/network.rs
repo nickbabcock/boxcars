@@ -1,5 +1,6 @@
 use attributes::Attribute;
 use bitter::BitGet;
+use net_parser::NetworkParser;
 use std::fmt;
 
 /// An object's current vector
@@ -9,44 +10,6 @@ pub struct Vector {
     pub dx: i32,
     pub dy: i32,
     pub dz: i32,
-}
-
-impl Vector {
-    pub fn decode(bits: &mut BitGet, net_version: i32) -> Option<Vector> {
-        if_chain! {
-            if let Some(size_bits) = bits.read_bits_max(5, if net_version >= 7 { 22 } else { 20 });
-            let bias = 1 << (size_bits + 1);
-            let bit_limit = (size_bits + 2) as i32;
-            if let Some(dx) = bits.read_u32_bits(bit_limit);
-            if let Some(dy) = bits.read_u32_bits(bit_limit);
-            if let Some(dz) = bits.read_u32_bits(bit_limit);
-            then {
-                Some(Vector {
-                    bias: bias as i32,
-                    dx: dx as i32,
-                    dy: dy as i32,
-                    dz: dz as i32,
-                })
-            } else {
-                None
-            }
-        }
-    }
-
-    pub fn decode_unchecked(bits: &mut BitGet, net_version: i32) -> Vector {
-        let size_bits = bits.read_bits_max_unchecked(5, if net_version >= 7 { 22 } else { 20 });
-        let bias = 1 << (size_bits + 1);
-        let bit_limit = (size_bits + 2) as i32;
-        let dx = bits.read_u32_bits_unchecked(bit_limit);
-        let dy = bits.read_u32_bits_unchecked(bit_limit);
-        let dz = bits.read_u32_bits_unchecked(bit_limit);
-        Vector {
-            bias: bias as i32,
-            dx: dx as i32,
-            dy: dy as i32,
-            dz: dz as i32,
-        }
-    }
 }
 
 /// An object's current rotation
@@ -208,10 +171,9 @@ pub struct Trajectory {
 }
 
 impl Trajectory {
-    pub fn from_spawn(
+    pub fn from_spawn<T: NetworkParser>(
         bits: &mut BitGet,
         sp: SpawnTrajectory,
-        net_version: i32,
     ) -> Option<Trajectory> {
         match sp {
             SpawnTrajectory::None => Some(Trajectory {
@@ -219,13 +181,13 @@ impl Trajectory {
                 rotation: None,
             }),
 
-            SpawnTrajectory::Location => Vector::decode(bits, net_version).map(|v| Trajectory {
+            SpawnTrajectory::Location => T::decode_vector(bits).map(|v| Trajectory {
                 location: Some(v),
                 rotation: None,
             }),
 
             SpawnTrajectory::LocationAndRotation => if_chain! {
-                if let Some(v) = Vector::decode(bits, net_version);
+                if let Some(v) = T::decode_vector(bits);
                 if let Some(r) = Rotation::decode(bits);
                 then {
                     Some(Trajectory {
@@ -235,29 +197,6 @@ impl Trajectory {
                 } else {
                     None
                 }
-            },
-        }
-    }
-
-    pub fn from_spawn_unchecked(
-        bits: &mut BitGet,
-        sp: SpawnTrajectory,
-        net_version: i32,
-    ) -> Trajectory {
-        match sp {
-            SpawnTrajectory::None => Trajectory {
-                location: None,
-                rotation: None,
-            },
-
-            SpawnTrajectory::Location => Trajectory {
-                location: Some(Vector::decode_unchecked(bits, net_version)),
-                rotation: None,
-            },
-
-            SpawnTrajectory::LocationAndRotation => Trajectory {
-                location: Some(Vector::decode_unchecked(bits, net_version)),
-                rotation: Some(Rotation::decode_unchecked(bits)),
             },
         }
     }
@@ -287,26 +226,12 @@ pub fn normalize_object(name: &str) -> &str {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use net_parser::OldParser;
 
     #[test]
     fn test_decode_vector() {
         let mut bitter = BitGet::new(&[0b0000_0110, 0b0000_1000, 0b1101_1000, 0b0000_1101]);
-        let v = Vector::decode(&mut bitter, 5).unwrap();
-        assert_eq!(
-            v,
-            Vector {
-                bias: 128,
-                dx: 128,
-                dy: 128,
-                dz: 221,
-            }
-        );
-    }
-
-    #[test]
-    fn test_decode_vector_unchecked() {
-        let mut bitter = BitGet::new(&[0b0000_0110, 0b0000_1000, 0b1101_1000, 0b0000_1101]);
-        let v = Vector::decode_unchecked(&mut bitter, 5);
+        let v = OldParser::decode_vector(&mut bitter).unwrap();
         assert_eq!(
             v,
             Vector {

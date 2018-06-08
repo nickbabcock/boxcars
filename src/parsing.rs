@@ -65,6 +65,7 @@ use fnv::FnvHashMap;
 use hashes::{ATTRIBUTES, OBJECT_CLASSES, PARENT_CLASSES, SPAWN_STATS};
 use models::*;
 use multimap::MultiMap;
+use net_parser::{BeachParser, NetworkParser, OldParser};
 use network::{normalize_object, ActorId, Frame, NewActor, ObjectId, SpawnTrajectory, StreamId,
               Trajectory, UpdatedAttribute};
 use std::borrow::Cow;
@@ -359,7 +360,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
         )
     }
 
-    fn parse_new_actor(
+    fn parse_new_actor<T: NetworkParser>(
         &self,
         mut bits: &mut BitGet,
         actor_id: ActorId,
@@ -377,7 +378,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
             let spawn = self.spawns.get(usize::from(object_id))
                 .ok_or_else(|| NetworkError::ObjectIdOutOfRange(object_id))?;
 
-            if let Some(traj) = Trajectory::from_spawn(&mut bits, *spawn, self.version.net_version());
+            if let Some(traj) = Trajectory::from_spawn::<T>(&mut bits, *spawn);
             then {
                 Ok(NewActor {
                     actor_id,
@@ -391,9 +392,9 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
         }
     }
 
-    fn decode_frame(
+    fn decode_frame<T: NetworkParser>(
         &self,
-        attr_decoder: &AttributeDecoder,
+        attr_decoder: &AttributeDecoder<T>,
         mut bits: &mut BitGet,
         actors: &mut FnvHashMap<ActorId, ObjectId>,
         time: f32,
@@ -418,7 +419,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                 if bits.read_bit()
                     .ok_or_else(|| NetworkError::NotEnoughDataFor("Is new actor"))?
                 {
-                    let actor = self.parse_new_actor(&mut bits, actor_id)?;
+                    let actor = self.parse_new_actor::<T>(&mut bits, actor_id)?;
 
                     // Insert the new actor so we can keep track of it for attribute
                     // updates. It's common for an actor id to already exist, so we
@@ -492,8 +493,10 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
         })
     }
 
-    pub fn decode_frames(&self) -> Result<Vec<Frame>, Error> {
-        let attr_decoder = AttributeDecoder::new(self.version, self.color_ind, self.painted_ind);
+    fn attr_decode_frames<T: NetworkParser>(
+        &self,
+        attr_decoder: &AttributeDecoder<T>,
+    ) -> Result<Vec<Frame>, Error> {
         let mut frames: Vec<Frame> = Vec::with_capacity(self.frames_len);
         let mut actors = FnvHashMap::default();
         let mut bits = BitGet::new(self.body.network_data);
@@ -535,6 +538,21 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
         }
 
         Ok(frames)
+    }
+
+    pub fn decode_frames(&self) -> Result<Vec<Frame>, Error> {
+        if self.version.net_version() >= 7 {
+            let attr_decoder = AttributeDecoder::<BeachParser>::new(
+                self.version,
+                self.color_ind,
+                self.painted_ind,
+            );
+            self.attr_decode_frames(&attr_decoder)
+        } else {
+            let attr_decoder =
+                AttributeDecoder::<OldParser>::new(self.version, self.color_ind, self.painted_ind);
+            self.attr_decode_frames(&attr_decoder)
+        }
     }
 }
 

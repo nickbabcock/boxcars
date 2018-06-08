@@ -61,6 +61,7 @@ mod attributes;
 pub mod crc;
 mod errors;
 mod models;
+mod net_parser;
 mod network;
 mod parsing;
 

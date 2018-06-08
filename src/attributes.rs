@@ -1,8 +1,10 @@
 use bitter::BitGet;
 use errors::AttributeError;
+use net_parser::NetworkParser;
 use network::{Rotation, Vector};
 use parsing::{VersionTriplet, decode_utf16, decode_windows1252};
 use std::borrow::Cow;
+use std::marker::PhantomData;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AttributeTag {
@@ -174,13 +176,13 @@ pub struct TeamPaint {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct RigidBody {
-    sleeping: bool,
-    location: Vector,
-    x: u16,
-    y: u16,
-    z: u16,
-    linear_velocity: Option<Vector>,
-    angular_velocity: Option<Vector>,
+    pub sleeping: bool,
+    pub location: Vector,
+    pub x: u16,
+    pub y: u16,
+    pub z: u16,
+    pub linear_velocity: Option<Vector>,
+    pub angular_velocity: Option<Vector>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -235,18 +237,20 @@ pub struct LoadoutsOnline {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AttributeDecoder {
+pub struct AttributeDecoder<T: NetworkParser> {
     version: VersionTriplet,
     color_ind: u32,
     painted_ind: u32,
+    tada: PhantomData<T>,
 }
 
-impl AttributeDecoder {
+impl<T: NetworkParser> AttributeDecoder<T> {
     pub fn new(version: VersionTriplet, color_ind: u32, painted_ind: u32) -> Self {
         AttributeDecoder {
             version,
             color_ind,
             painted_ind,
+            tada: PhantomData,
         }
     }
 
@@ -330,7 +334,7 @@ impl AttributeDecoder {
     pub fn decode_applied_damage(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
         if_chain! {
             if let Some(a) = bits.read_u8();
-            if let Some(vector) = Vector::decode(bits, self.version.net_version());
+            if let Some(vector) = T::decode_vector(bits);
             if let Some(b) = bits.read_u32();
             if let Some(c) = bits.read_u32();
             then {
@@ -346,7 +350,7 @@ impl AttributeDecoder {
             if let Some(da) = bits.read_u8();
             if let Some(db) = bits.read_bit();
             if let Some(dc) = bits.read_u32();
-            if let Some(dd) = Vector::decode(bits, self.version.net_version());
+            if let Some(dd) = T::decode_vector(bits);
             if let Some(de) = bits.read_bit();
             if let Some(df) = bits.read_bit();
             then {
@@ -412,8 +416,8 @@ impl AttributeDecoder {
             if let Some(attacker_actor_id) = bits.read_u32();
             if let Some(victim_flag) = bits.read_bit();
             if let Some(victim_actor_id) = bits.read_u32();
-            if let Some(attack_velocity) = Vector::decode(bits, self.version.net_version());
-            if let Some(victim_velocity) = Vector::decode(bits, self.version.net_version());
+            if let Some(attack_velocity) = T::decode_vector(bits);
+            if let Some(victim_velocity) = T::decode_vector(bits);
             then {
                 Ok(Attribute::Demolish(Demolish {
                     attacker_flag,
@@ -436,7 +440,7 @@ impl AttributeDecoder {
     }
 
     pub fn decode_explosion(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
-        decode_explosion(bits, self.version.net_version())
+        decode_explosion::<T>(bits)
             .map(Attribute::Explosion)
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Explosion"))
     }
@@ -458,7 +462,7 @@ impl AttributeDecoder {
         bits: &mut BitGet,
     ) -> Result<Attribute, AttributeError> {
         if_chain! {
-            if let Some(explosion) = decode_explosion(bits, self.version.net_version());
+            if let Some(explosion) = decode_explosion::<T>(bits);
             if let Some(ea) = bits.read_bit();
             if let Some(eb) = bits.read_u32();
             then {
@@ -527,7 +531,7 @@ impl AttributeDecoder {
     }
 
     pub fn decode_location(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
-        Vector::decode(bits, self.version.net_version())
+        T::decode_vector(bits)
             .map(Attribute::Location)
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Location"))
     }
@@ -574,7 +578,7 @@ impl AttributeDecoder {
         if_chain! {
             if let Some(active) = bits.read_bit();
             if let Some(actor_id) = bits.read_u32();
-            if let Some(offset) = Vector::decode(bits, self.version.net_version());
+            if let Some(offset) = T::decode_vector(bits);
             if let Some(mass) = bits.read_f32();
             if let Some(rotation) = Rotation::decode(bits);
             then {
@@ -640,49 +644,7 @@ impl AttributeDecoder {
     }
 
     pub fn decode_rigid_body(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
-        if_chain! {
-            if let Some(sleeping) = bits.read_bit();
-            if let Some(location) = Vector::decode(bits, self.version.net_version());
-
-            if let Some(_u1) = if self.version.net_version() >= 7 {
-                bits.read_bit()
-            } else { Some(true) };
-
-            if let Some(x) = bits.read_u32_bits(if self.version.net_version() >= 7 { 18 } else { 16 });
-            if let Some(y) = bits.read_u32_bits(if self.version.net_version() >= 7 { 18 } else { 16 });
-            if let Some(z) = bits.read_u32_bits(if self.version.net_version() >= 7 { 18 } else { 16 });
-
-            if let Some(_u2) = if self.version.net_version() >= 7 {
-                bits.read_bit()
-            } else { Some(true) };
-
-
-            if let Some((linear_velocity, angular_velocity)) = if !sleeping {
-                let lv = Vector::decode(bits, self.version.net_version());
-                let av = Vector::decode(bits, self.version.net_version());
-                if lv.is_some() && av.is_some() {
-                    Some((lv, av))
-                } else {
-                    None
-                }
-            } else {
-                Some((None, None))
-            };
-
-            then {
-                Ok(Attribute::RigidBody(RigidBody {
-                    sleeping,
-                    location,
-                    x: x as u16,
-                    y: y as u16,
-                    z: z as u16,
-                    linear_velocity,
-                    angular_velocity,
-                }))
-            } else {
-                Err(AttributeError::NotEnoughDataFor("Rigid Body"))
-            }
-        }
+        T::decode_rigid_body(bits)
     }
 
     pub fn decode_not_implemented(&self, _bits: &mut BitGet) -> Result<Attribute, AttributeError> {
@@ -857,11 +819,11 @@ impl AttributeDecoder {
     }
 }
 
-fn decode_explosion(bits: &mut BitGet, net_version: i32) -> Option<Explosion> {
+fn decode_explosion<T: NetworkParser>(bits: &mut BitGet) -> Option<Explosion> {
     if_chain! {
         if let Some(flag) = bits.read_bit();
         if let Some(actor_id) = bits.read_u32();
-        if let Some(location) = Vector::decode(bits, net_version);
+        if let Some(location) = T::decode_vector(bits);
         then {
             Some(Explosion {
                 flag,
