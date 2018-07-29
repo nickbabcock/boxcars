@@ -19,22 +19,36 @@ use std::path::Path;
 use structopt::StructOpt;
 
 #[derive(StructOpt, Debug, Clone, PartialEq)]
-#[structopt(name = "rrrocket",
-            about = "Parses Rocket League replay files and outputs JSON with decoded information")]
+#[structopt(
+    name = "rrrocket",
+    about = "Parses Rocket League replay files and outputs JSON with decoded information"
+)]
 struct Opt {
-    #[structopt(short = "c", long = "crc-check",
-                help = "forces a crc check for corruption even when replay was successfully parsed")]
+    #[structopt(
+        short = "c",
+        long = "crc-check",
+        help = "forces a crc check for corruption even when replay was successfully parsed"
+    )]
     crc: bool,
 
-    #[structopt(short = "n", long = "network-parse",
-                help = "parses the network data of a replay instead of skipping it")]
+    #[structopt(
+        short = "n",
+        long = "network-parse",
+        help = "parses the network data of a replay instead of skipping it"
+    )]
     body: bool,
 
-    #[structopt(short = "m", long = "multiple",
-                help = "parse multiple replays, instead of writing JSON to stdout, write to a sibling JSON file")]
+    #[structopt(
+        short = "m",
+        long = "multiple",
+        help = "parse multiple replays, instead of writing JSON to stdout, write to a sibling JSON file"
+    )]
     multiple: bool,
 
-    #[structopt(long = "dry-run", help = "parses but does not write JSON output")]
+    #[structopt(
+        long = "dry-run",
+        help = "parses but does not write JSON output"
+    )]
     dry_run: bool,
 
     #[structopt(help = "Rocket League replay files")]
@@ -56,13 +70,11 @@ fn parse_replay<'a>(opt: &Opt, data: &'a [u8]) -> Result<Replay<'a>, Error> {
             CrcCheck::Always
         } else {
             CrcCheck::OnError
-        })
-        .with_network_parse(if opt.body {
+        }).with_network_parse(if opt.body {
             NetworkParse::Always
         } else {
             NetworkParse::Never
-        })
-        .parse()
+        }).parse()
 }
 
 /// Each file argument that we get could be a directory so we need to expand that directory and
@@ -80,7 +92,8 @@ fn expand_paths(files: &[String]) -> Result<Vec<Vec<String>>, Error> {
                 // directory / file will not be filtered and will cause the error to bubble up. In
                 // the future, we could get smart and ignore directories / files we don't have
                 // permission that wouldn't match the pattern anyways
-                let files: Result<Vec<_>, _> = p.read_dir()?
+                let files: Result<Vec<_>, _> = p
+                    .read_dir()?
                     .filter_map(|entry| {
                         match entry {
                             Ok(y) => {
@@ -96,14 +109,12 @@ fn expand_paths(files: &[String]) -> Result<Vec<Vec<String>>, Error> {
                             }
                             Err(e) => Some(Err(e)),
                         }
-                    })
-                    .collect();
+                    }).collect();
                 Ok(files?)
             } else {
                 Ok(vec![x.clone()])
             }
-        })
-        .collect()
+        }).collect()
 }
 
 fn parse_multiple_replays(opt: &Opt) -> Result<(), Error> {
@@ -131,8 +142,7 @@ fn parse_multiple_replays(opt: &Opt) -> Result<(), Error> {
                     .with_context(|_e| format!("Could not serialize replay {}", file))?;
             }
             Ok(())
-        })
-        .collect();
+        }).collect();
     res?;
     Ok(())
 }
@@ -187,8 +197,7 @@ mod tests {
                 "-c",
                 "--dry-run",
                 "assets/fuzz-string-too-long.replay",
-            ])
-            .fails_with(1)
+            ]).fails_with(1)
             .stderr()
             .contains(String::from_utf8(w).unwrap())
             .unwrap();
@@ -213,8 +222,7 @@ mod tests {
                 "--dry-run",
                 "-m",
                 "../assets/fuzz-string-too-long.replay",
-            ])
-            .fails_with(1)
+            ]).fails_with(1)
             .stderr()
             .contains(String::from_utf8(w).unwrap())
             .unwrap();
