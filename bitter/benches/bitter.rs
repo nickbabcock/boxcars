@@ -54,30 +54,27 @@ fn bitstream_bench(b: &mut Bencher, num_bits: u32) {
 }
 
 fn eight_bits(c: &mut Criterion) {
-    let bench =
-        Benchmark::new(
-            "bitter_arbitrary_unchecked",
-            ben!(BitGet::new(&DATA), |x: &mut BitGet| {
-                x.read_u32_bits_unchecked(8)
-            }),
-        ).with_function(
-            "bitter_arbitrary_checked",
-            ben!(BitGet::new(&DATA), |x: &mut BitGet| {
-                x.read_u32_bits(8)
-            }),
-        ).with_function(
-            "bitter_byte_unchecked",
-            ben!(BitGet::new(&DATA), |x: &mut BitGet| x.read_u8_unchecked()),
-        ).with_function(
-            "bitter_byte_checked",
-            ben!(BitGet::new(&DATA), |x: &mut BitGet| x.read_u8()),
-        ).with_function(
-            "bitreader",
-            ben!(BitReader::new(&DATA), |x: &mut BitReader| x.read_u8(8)
-                .unwrap()),
-        ).with_function("nom", |b| nom_bench(b, 8))
-        .with_function("bitstream_io", |b| bitstream_bench(b, 8))
-        .throughput(Throughput::Bytes(8 * ITER));
+    let bench = Benchmark::new(
+        "bitter_arbitrary_unchecked",
+        ben!(BitGet::new(&DATA), |x: &mut BitGet| x
+            .read_u32_bits_unchecked(8)),
+    ).with_function(
+        "bitter_arbitrary_checked",
+        ben!(BitGet::new(&DATA), |x: &mut BitGet| x.read_u32_bits(8)),
+    ).with_function(
+        "bitter_byte_unchecked",
+        ben!(BitGet::new(&DATA), |x: &mut BitGet| x.read_u8_unchecked()),
+    ).with_function(
+        "bitter_byte_checked",
+        ben!(BitGet::new(&DATA), |x: &mut BitGet| x.read_u8()),
+    ).with_function(
+        "bitreader",
+        ben!(BitReader::new(&DATA), |x: &mut BitReader| x
+            .read_u8(8)
+            .unwrap()),
+    ).with_function("nom", |b| nom_bench(b, 8))
+    .with_function("bitstream_io", |b| bitstream_bench(b, 8))
+    .throughput(Throughput::Bytes(8 * ITER));
 
     c.bench("eight_bits", bench);
 }
@@ -85,17 +82,15 @@ fn eight_bits(c: &mut Criterion) {
 fn seven_bits(c: &mut Criterion) {
     let bench = Benchmark::new(
         "bitter_arbitrary_unchecked",
-        ben!(BitGet::new(&DATA), |x: &mut BitGet| {
-            x.read_u32_bits_unchecked(7)
-        }),
+        ben!(BitGet::new(&DATA), |x: &mut BitGet| x
+            .read_u32_bits_unchecked(7)),
     ).with_function(
         "bitter_arbitrary_checked",
-        ben!(BitGet::new(&DATA), |x: &mut BitGet| {
-            x.read_u32_bits(7)
-        }),
+        ben!(BitGet::new(&DATA), |x: &mut BitGet| x.read_u32_bits(7)),
     ).with_function(
         "bitreader",
-        ben!(BitReader::new(&DATA), |x: &mut BitReader| x.read_u8(7)
+        ben!(BitReader::new(&DATA), |x: &mut BitReader| x
+            .read_u8(7)
             .unwrap()),
     ).with_function("nom", |b| nom_bench(b, 7))
     .with_function("bitstream_io", |b| bitstream_bench(b, 7))
