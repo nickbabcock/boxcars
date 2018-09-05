@@ -21,6 +21,7 @@ pub enum AttributeTag {
     Float,
     GameMode,
     Int,
+    Int64,
     Loadout,
     TeamLoadout,
     Location,
@@ -60,6 +61,7 @@ pub enum Attribute {
     Float(f32),
     GameMode(u8, u8),
     Int(i32),
+    Int64(i64),
     Loadout(Loadout),
     TeamLoadout(TeamLoadout),
     Location(Vector),
@@ -271,6 +273,7 @@ impl AttributeDecoder {
             AttributeTag::Float => self.decode_float(bits),
             AttributeTag::GameMode => self.decode_game_mode(bits),
             AttributeTag::Int => self.decode_int(bits),
+            AttributeTag::Int64 => self.decode_int64(bits),
             AttributeTag::Loadout => self.decode_loadout(bits),
             AttributeTag::TeamLoadout => self.decode_team_loadout(bits),
             AttributeTag::Location => self.decode_location(bits),
@@ -503,6 +506,12 @@ impl AttributeDecoder {
         bits.read_i32()
             .map(Attribute::Int)
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Int"))
+    }
+
+    pub fn decode_int64(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+        bits.read_i64()
+            .map(Attribute::Int64)
+            .ok_or_else(|| AttributeError::NotEnoughDataFor("Int64"))
     }
 
     pub fn decode_loadout(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
