@@ -29,7 +29,6 @@ fn main() {
         .entry("TAGame.Car_TA", "SpawnTrajectory::LocationAndRotation")
         .entry("Archetypes.Car.Car_Default", "SpawnTrajectory::LocationAndRotation")
         .entry("Archetypes.GameEvent.GameEvent_Season:CarArchetype", "SpawnTrajectory::LocationAndRotation")
-
         .entry("TAGame.CameraSettingsActor_TA", "SpawnTrajectory::Location")
         .entry("TAGame.CarComponent_Boost_TA", "SpawnTrajectory::Location")
         .entry("TAGame.CarComponent_Dodge_TA", "SpawnTrajectory::Location")
@@ -239,6 +238,7 @@ fn main() {
         .entry("TAGame.PRI_TA:TotalXP", "AttributeTag::Int")
         .entry("TAGame.PRI_TA:PrimaryTitle", "AttributeTag::Title")
         .entry("TAGame.PRI_TA:SecondaryTitle", "AttributeTag::Title")
+        .entry("TAGame.PRI_TA:SpectatorShortcut", "AttributeTag::Int")
         .entry("TAGame.RBActor_TA:bFrozen", "AttributeTag::Boolean")
         .entry("TAGame.RBActor_TA:bIgnoreSyncing", "AttributeTag::Boolean")
         .entry("TAGame.RBActor_TA:bReplayActor", "AttributeTag::Boolean")
