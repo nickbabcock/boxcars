@@ -54,7 +54,7 @@
 //! - Packages
 //! - Etc
 
-use attributes::{AttributeDecoder, AttributeTag};
+use attributes::{AttributeDecoder, ProductValueDecoder, AttributeTag};
 use bitter::BitGet;
 use byteorder::{ByteOrder, LittleEndian};
 use crc::calc_crc;
@@ -252,8 +252,7 @@ struct CacheInfo {
 
 struct FrameDecoder<'a, 'b: 'a> {
     frames_len: usize,
-    color_ind: u32,
-    painted_ind: u32,
+    product_decoder: ProductValueDecoder,
     channel_bits: i32,
     body: &'a ReplayBody<'b>,
     spawns: &'a Vec<SpawnTrajectory>,
@@ -493,7 +492,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
     }
 
     pub fn decode_frames(&self) -> Result<Vec<Frame>, Error> {
-        let attr_decoder = AttributeDecoder::new(self.version, self.color_ind, self.painted_ind);
+        let attr_decoder = AttributeDecoder::new(self.version, self.product_decoder);
         let mut frames: Vec<Frame> = Vec::with_capacity(self.frames_len);
         let mut actors = FnvHashMap::default();
         let mut bits = BitGet::new(self.body.network_data);
@@ -772,14 +771,8 @@ impl<'a> Parser<'a> {
             })
             .collect::<Result<FnvHashMap<_, _>, NetworkError>>()?;
 
-        let color_ind = name_obj_ind
-            .get("TAGame.ProductAttribute_UserColor_TA")
-            .map(|&x| i32::from(x))
-            .unwrap_or(0) as u32;
-        let painted_ind = name_obj_ind
-            .get("TAGame.ProductAttribute_Painted_TA")
-            .map(|&x| i32::from(x))
-            .unwrap_or(0) as u32;
+
+        let product_decoder = ProductValueDecoder::create(version, &name_obj_ind);
 
         // 1023 stolen from rattletrap
         let channels = header.max_channels().unwrap_or(1023);
@@ -792,8 +785,7 @@ impl<'a> Parser<'a> {
         if let Some(frame_len) = num_frames {
             let frame_decoder = FrameDecoder {
                 frames_len: frame_len as usize,
-                color_ind,
-                painted_ind,
+                product_decoder,
                 channel_bits,
                 body,
                 spawns: &spawns,

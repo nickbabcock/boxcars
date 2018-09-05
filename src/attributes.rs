@@ -1,7 +1,8 @@
 use bitter::BitGet;
 use errors::AttributeError;
-use network::{Rotation, Vector};
+use network::{Rotation, Vector, ObjectId};
 use parsing::{VersionTriplet, decode_utf16, decode_windows1252};
+use std::collections::HashMap;
 use std::borrow::Cow;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -221,11 +222,11 @@ pub struct PrivateMatchSettings {
     flag: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Product {
     unknown: bool,
     object_ind: u32,
-    value: Option<u32>,
+    value: ProductValue,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -236,19 +237,81 @@ pub struct LoadoutsOnline {
     unknown2: bool,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub enum ProductValue {
+    NoColor,
+    Absent,
+    OldColor(u32),
+    NewColor(u32),
+    OldPaint(u32),
+    NewPaint(u32),
+    Title(String),
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AttributeDecoder {
+pub struct ProductValueDecoder {
     version: VersionTriplet,
     color_ind: u32,
     painted_ind: u32,
+    title_ind: u32
 }
 
-impl AttributeDecoder {
-    pub fn new(version: VersionTriplet, color_ind: u32, painted_ind: u32) -> Self {
-        AttributeDecoder {
+impl ProductValueDecoder {
+    pub fn create(version: VersionTriplet, name_obj_ind: &HashMap<&str, ObjectId>) -> Self {
+        let color_ind = name_obj_ind
+            .get("TAGame.ProductAttribute_UserColor_TA")
+            .map(|&x| i32::from(x))
+            .unwrap_or(0) as u32;
+        let painted_ind = name_obj_ind
+            .get("TAGame.ProductAttribute_Painted_TA")
+            .map(|&x| i32::from(x))
+            .unwrap_or(0) as u32;
+        let title_ind = name_obj_ind
+            .get("TAGame.ProductAttribute_TitleID_TA")
+            .map(|&x| i32::from(x))
+            .unwrap_or(0) as u32;
+
+        ProductValueDecoder {
             version,
             color_ind,
             painted_ind,
+            title_ind
+        }
+    }
+
+    pub fn decode(&self, bits: &mut BitGet, obj_ind: u32) -> Option<ProductValue> {
+        if obj_ind == self.color_ind {
+            if self.version >= VersionTriplet(868, 23, 8) {
+                bits.read_u32().map(ProductValue::NewColor)
+            } else {
+                bits.if_get(|b| b.read_u32_bits(31).map(ProductValue::OldColor))
+                    .map(|x| x.unwrap_or(ProductValue::NoColor))
+            }
+        } else if obj_ind == self.painted_ind {
+            if self.version >= VersionTriplet(868, 18, 0) {
+                bits.read_u32_bits(31).map(ProductValue::NewPaint)
+            } else {
+                bits.read_bits_max(4, 14).map(ProductValue::OldPaint)
+            }
+        } else if obj_ind == self.title_ind {
+            decode_text(bits).ok().map(ProductValue::Title)
+        } else {
+            Some(ProductValue::Absent)
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AttributeDecoder {
+    version: VersionTriplet,
+    product_decoder: ProductValueDecoder,
+}
+
+impl AttributeDecoder {
+    pub fn new(version: VersionTriplet, product_decoder: ProductValueDecoder) -> Self {
+        AttributeDecoder {
+            version,
+            product_decoder,
         }
     }
 
@@ -809,25 +872,7 @@ impl AttributeDecoder {
         if_chain! {
             if let Some(unknown) = bits.read_bit();
             if let Some(obj_ind) = bits.read_u32();
-            if let Some(val) = if obj_ind == self.color_ind {
-                if let Some(on) = bits.read_bit() {
-                    if on {
-                        bits.read_u32_bits(31).map(Some)
-                    } else {
-                        Some(None)
-                    }
-                } else {
-                    None
-                }
-            } else if obj_ind == self.painted_ind {
-                if self.version >= VersionTriplet(868, 18, 0) {
-                    bits.read_u32_bits(31).map(Some)
-                } else {
-                    bits.read_bits_max(4, 14).map(Some)
-                }
-            } else {
-                Some(None)
-            };
+            if let Some(val) = self.product_decoder.decode(bits, obj_ind);
 
             then {
                 Some(Product {
