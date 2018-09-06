@@ -7,7 +7,7 @@ repository = "https://github.com/nickbabcock/boxcars"
 description = "Rocket league replay parser"
 keywords = ["rocket-league"]
 categories = ["parsing"]
-version = "0.2.4"
+version = "0.2.5"
 include = ["src/**/*.rs", "Cargo.toml", "build.rs"]
 
 [dependencies]
