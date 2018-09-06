@@ -54,7 +54,7 @@
 //! - Packages
 //! - Etc
 
-use attributes::{AttributeDecoder, ProductValueDecoder, AttributeTag};
+use attributes::{AttributeDecoder, AttributeTag, ProductValueDecoder};
 use bitter::BitGet;
 use byteorder::{ByteOrder, LittleEndian};
 use crc::calc_crc;
@@ -65,8 +65,10 @@ use fnv::FnvHashMap;
 use hashes::{ATTRIBUTES, OBJECT_CLASSES, PARENT_CLASSES, SPAWN_STATS};
 use models::*;
 use multimap::MultiMap;
-use network::{normalize_object, ActorId, Frame, NewActor, ObjectId, SpawnTrajectory, StreamId,
-              Trajectory, UpdatedAttribute};
+use network::{
+    normalize_object, ActorId, Frame, NewActor, ObjectId, SpawnTrajectory, StreamId, Trajectory,
+    UpdatedAttribute,
+};
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::ops::Deref;
@@ -310,8 +312,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                     .iter()
                     .map(|prop| (x.object_ind, prop.object_ind, prop.stream_id))
                     .collect::<Vec<(i32, i32, i32)>>()
-            })
-            .flat_map(|x| x)
+            }).flat_map(|x| x)
             .filter(|&(_obj_id, _prop_id, prop_stream_id)| StreamId(prop_stream_id) == stream_id)
             .map(|(obj_id, prop_id, _prop_stream_id)| {
                 let obj_id = ObjectId(obj_id);
@@ -322,8 +323,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                     obj_name: self.object_ind_to_string(obj_id),
                     prop_name: self.object_ind_to_string(prop_id),
                 }
-            })
-            .filter(|x| !ATTRIBUTES.contains_key(x.prop_name.as_str()))
+            }).filter(|x| !ATTRIBUTES.contains_key(x.prop_name.as_str()))
             .collect()
     }
 
@@ -333,15 +333,15 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
         object_id: ObjectId,
         stream_id: StreamId,
     ) -> NetworkError {
-        let fm = self.properties_with_stream_id(stream_id)
+        let fm = self
+            .properties_with_stream_id(stream_id)
             .into_iter()
             .map(|x| {
                 format!(
                     "\tobject {} ({}) has property {} ({})",
                     x.obj_id, x.obj_name, x.prop_id, x.prop_name
                 )
-            })
-            .collect::<Vec<String>>()
+            }).collect::<Vec<String>>()
             .join("\n");
 
         NetworkError::UnimplementedAttribute(
@@ -402,19 +402,23 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
         let mut updated_actors = Vec::new();
         let mut deleted_actors = Vec::new();
 
-        while bits.read_bit()
+        while bits
+            .read_bit()
             .ok_or_else(|| NetworkError::NotEnoughDataFor("Actor data"))?
         {
-            let actor_id = bits.read_i32_bits(self.channel_bits)
+            let actor_id = bits
+                .read_i32_bits(self.channel_bits)
                 .map(ActorId)
                 .ok_or_else(|| NetworkError::NotEnoughDataFor("Actor Id"))?;
 
             // alive
-            if bits.read_bit()
+            if bits
+                .read_bit()
                 .ok_or_else(|| NetworkError::NotEnoughDataFor("Is actor alive"))?
             {
                 // new
-                if bits.read_bit()
+                if bits
+                    .read_bit()
                     .ok_or_else(|| NetworkError::NotEnoughDataFor("Is new actor"))?
                 {
                     let actor = self.parse_new_actor(&mut bits, actor_id)?;
@@ -433,25 +437,27 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
 
                     // Once we have the type we need to look up what attributes are
                     // available for said type
-                    let cache_info = self.object_ind_attributes.get(object_id).ok_or_else(|| {
-                        NetworkError::MissingCache(
-                            actor_id,
-                            *object_id,
-                            self.object_ind_to_string(*object_id),
-                        )
-                    })?;
+                    let cache_info =
+                        self.object_ind_attributes.get(object_id).ok_or_else(|| {
+                            NetworkError::MissingCache(
+                                actor_id,
+                                *object_id,
+                                self.object_ind_to_string(*object_id),
+                            )
+                        })?;
 
                     // While there are more attributes to update for our actor:
-                    while bits.read_bit()
+                    while bits
+                        .read_bit()
                         .ok_or_else(|| NetworkError::NotEnoughDataFor("Is prop present"))?
                     {
                         // We've previously calculated the max the stream id can be for a
                         // given type and how many bits that it encompasses so use those
                         // values now
-                        let stream_id =
-                            bits.read_bits_max(cache_info.prop_id_bits, cache_info.max_prop_id)
-                                .map(|x| StreamId(x as i32))
-                                .ok_or_else(|| NetworkError::NotEnoughDataFor("Prop id"))?;
+                        let stream_id = bits
+                            .read_bits_max(cache_info.prop_id_bits, cache_info.max_prop_id)
+                            .map(|x| StreamId(x as i32))
+                            .ok_or_else(|| NetworkError::NotEnoughDataFor("Prop id"))?;
 
                         // Look the stream id up and find the corresponding attribute
                         // decoding function. Experience has told me replays that fail to
@@ -497,7 +503,8 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
         let mut actors = FnvHashMap::default();
         let mut bits = BitGet::new(self.body.network_data);
         while !bits.is_empty() && frames.len() < self.frames_len {
-            let time = bits.read_f32()
+            let time = bits
+                .read_f32()
                 .ok_or_else(|| NetworkError::NotEnoughDataFor("Time"))?;
 
             if time < 0.0 || (time > 0.0 && time < 1e-10) {
@@ -518,7 +525,8 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                 return Err(NetworkError::TimeOutOfRange(time))?;
             }
 
-            let delta = bits.read_f32()
+            let delta = bits
+                .read_f32()
                 .ok_or_else(|| NetworkError::NotEnoughDataFor("Delta"))?;
 
             if delta < 0.0 || (delta > 0.0 && delta < 1e-10) {
@@ -567,25 +575,31 @@ impl<'a> Parser<'a> {
     }
 
     fn parse(&mut self) -> Result<Replay<'a>, Error> {
-        let header_size = self.take(4, le_i32)
+        let header_size = self
+            .take(4, le_i32)
             .with_context(|e| self.err_str("header size", e))?;
 
-        let header_crc = self.take(4, le_i32)
+        let header_crc = self
+            .take(4, le_i32)
             .with_context(|e| self.err_str("header crc", e))?;
 
-        let header_data = self.view_data(header_size as usize)
+        let header_data = self
+            .view_data(header_size as usize)
             .with_context(|e| self.err_str("header data", e))?;
 
         let header =
             self.crc_section(header_data, header_crc as u32, "header", Self::parse_header)?;
 
-        let content_size = self.take(4, le_i32)
+        let content_size = self
+            .take(4, le_i32)
             .with_context(|e| self.err_str("content size", e))?;
 
-        let content_crc = self.take(4, le_i32)
+        let content_crc = self
+            .take(4, le_i32)
             .with_context(|e| self.err_str("content crc", e))?;
 
-        let content_data = self.view_data(content_size as usize)
+        let content_data = self
+            .view_data(content_size as usize)
             .with_context(|e| self.err_str("content data", e))?;
 
         let body = self.crc_section(content_data, content_crc as u32, "body", Self::parse_body)?;
@@ -638,22 +652,23 @@ impl<'a> Parser<'a> {
         );
 
         // Create a parallel vector where each object has it's name normalized
-        let normalized_objects: Vec<&str> = body.objects
+        let normalized_objects: Vec<&str> = body
+            .objects
             .iter()
             .map(|x| normalize_object(x.deref()))
             .collect();
 
         // Create a parallel vector where we lookup how to decode an object's initial trajectory
         // when they spawn as a new actor
-        let spawns: Vec<SpawnTrajectory> = body.objects
+        let spawns: Vec<SpawnTrajectory> = body
+            .objects
             .iter()
             .map(|x| {
                 SPAWN_STATS
                     .get(x.deref())
                     .cloned()
                     .unwrap_or(SpawnTrajectory::None)
-            })
-            .collect();
+            }).collect();
 
         let attrs: Vec<_> = normalized_objects
             .iter()
@@ -662,8 +677,7 @@ impl<'a> Parser<'a> {
                     .get(x.deref())
                     .cloned()
                     .unwrap_or(AttributeTag::NotImplemented)
-            })
-            .collect();
+            }).collect();
 
         // Create a map of an object's normalized name to a list of indices in the object
         // vector that have that same normalized name
@@ -674,7 +688,8 @@ impl<'a> Parser<'a> {
             .collect();
 
         // Map each object's name to it's index
-        let name_obj_ind: HashMap<&str, ObjectId> = body.objects
+        let name_obj_ind: HashMap<&str, ObjectId> = body
+            .objects
             .iter()
             .enumerate()
             .map(|(i, name)| (name.deref(), ObjectId(i as i32)))
@@ -697,8 +712,7 @@ impl<'a> Parser<'a> {
                             object_id: ObjectId(x.object_ind),
                         },
                     ))
-                })
-                .collect::<Result<HashMap<_, _>, NetworkError>>()?;
+                }).collect::<Result<HashMap<_, _>, NetworkError>>()?;
 
             let mut had_parent = false;
 
@@ -721,7 +735,8 @@ impl<'a> Parser<'a> {
             // parent and a parent cache id is set, try and find this parent id and carry down
             // their props.
             if !had_parent && cache.parent_id != 0 {
-                if let Some(parent) = body.net_cache
+                if let Some(parent) = body
+                    .net_cache
                     .iter()
                     .find(|x| x.cache_id == cache.parent_id)
                 {
@@ -768,9 +783,7 @@ impl<'a> Parser<'a> {
                         attributes: attrs.iter().map(|(k, o)| (*k, o.attribute)).collect(),
                     },
                 ))
-            })
-            .collect::<Result<FnvHashMap<_, _>, NetworkError>>()?;
-
+            }).collect::<Result<FnvHashMap<_, _>, NetworkError>>()?;
 
         let product_decoder = ProductValueDecoder::create(version, &name_obj_ind);
 
@@ -802,23 +815,29 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_header(&mut self) -> Result<Header<'a>, Error> {
-        let major_version = self.take(4, le_i32)
+        let major_version = self
+            .take(4, le_i32)
             .with_context(|e| self.err_str("major version", e))?;
 
-        let minor_version = self.take(4, le_i32)
+        let minor_version = self
+            .take(4, le_i32)
             .with_context(|e| self.err_str("minor version", e))?;
 
         let net_version = if major_version > 865 && minor_version > 17 {
-            Some(self.take(4, le_i32)
-                .with_context(|e| self.err_str("net version", e))?)
+            Some(
+                self.take(4, le_i32)
+                    .with_context(|e| self.err_str("net version", e))?,
+            )
         } else {
             None
         };
 
-        let game_type = self.parse_text()
+        let game_type = self
+            .parse_text()
             .with_context(|e| self.err_str("game type", e))?;
 
-        let properties = self.parse_rdict()
+        let properties = self
+            .parse_rdict()
             .with_context(|e| self.err_str("header properties", e))?;
 
         Ok(Header {
@@ -853,10 +872,11 @@ impl<'a> Parser<'a> {
             (CrcCheck::OnError, Err(e)) => {
                 let actual = calc_crc(data);
                 if actual != crc as u32 {
-                    Err(e.context(format!(
-                        "Failed to parse {} and crc check failed. Replay is corrupt",
-                        section
-                    )).into())
+                    Err(e
+                        .context(format!(
+                            "Failed to parse {} and crc check failed. Replay is corrupt",
+                            section
+                        )).into())
                 } else {
                     Err(e)
                 }
@@ -867,34 +887,46 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_body(&mut self) -> Result<ReplayBody<'a>, Error> {
-        let levels = self.text_list()
+        let levels = self
+            .text_list()
             .with_context(|e| self.err_str("levels", e))?;
 
-        let keyframes = self.parse_keyframe()
+        let keyframes = self
+            .parse_keyframe()
             .with_context(|e| self.err_str("keyframes", e))?;
 
-        let network_size = self.take(4, le_i32)
+        let network_size = self
+            .take(4, le_i32)
             .with_context(|e| self.err_str("network size", e))?;
 
-        let network_data = self.take(network_size as usize, |d| d)
+        let network_data = self
+            .take(network_size as usize, |d| d)
             .with_context(|e| self.err_str("network data", e))?;
 
-        let debug_infos = self.parse_debuginfo()
+        let debug_infos = self
+            .parse_debuginfo()
             .with_context(|e| self.err_str("debug info", e))?;
 
-        let tickmarks = self.parse_tickmarks()
+        let tickmarks = self
+            .parse_tickmarks()
             .with_context(|e| self.err_str("tickmarks", e))?;
 
-        let packages = self.text_list()
+        let packages = self
+            .text_list()
             .with_context(|e| self.err_str("packages", e))?;
-        let objects = self.text_list()
+        let objects = self
+            .text_list()
             .with_context(|e| self.err_str("objects", e))?;
-        let names = self.text_list().with_context(|e| self.err_str("names", e))?;
+        let names = self
+            .text_list()
+            .with_context(|e| self.err_str("names", e))?;
 
-        let class_index = self.parse_classindex()
+        let class_index = self
+            .parse_classindex()
             .with_context(|e| self.err_str("class index", e))?;
 
-        let net_cache = self.parse_classcache()
+        let net_cache = self
+            .parse_classcache()
             .with_context(|e| self.err_str("net cache", e))?;
 
         Ok(ReplayBody {

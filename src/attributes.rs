@@ -1,9 +1,9 @@
 use bitter::BitGet;
 use errors::AttributeError;
-use network::{Rotation, Vector, ObjectId};
-use parsing::{VersionTriplet, decode_utf16, decode_windows1252};
-use std::collections::HashMap;
+use network::{ObjectId, Rotation, Vector};
+use parsing::{decode_utf16, decode_windows1252, VersionTriplet};
 use std::borrow::Cow;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AttributeTag {
@@ -253,7 +253,7 @@ pub struct ProductValueDecoder {
     version: VersionTriplet,
     color_ind: u32,
     painted_ind: u32,
-    title_ind: u32
+    title_ind: u32,
 }
 
 impl ProductValueDecoder {
@@ -275,7 +275,7 @@ impl ProductValueDecoder {
             version,
             color_ind,
             painted_ind,
-            title_ind
+            title_ind,
         }
     }
 
@@ -929,7 +929,8 @@ fn decode_explosion(bits: &mut BitGet, net_version: i32) -> Option<Explosion> {
 }
 
 fn decode_text(bits: &mut BitGet) -> Result<String, AttributeError> {
-    let size = bits.read_i32()
+    let size = bits
+        .read_i32()
         .ok_or_else(|| AttributeError::NotEnoughDataFor("text string"))?;
 
     // A zero length string for attributes is fine (this differs from the replay header where we
@@ -1027,7 +1028,8 @@ fn decode_loadout(bits: &mut BitGet) -> Option<Loadout> {
 }
 
 fn decode_unique_id(bits: &mut BitGet, net_version: i32) -> Result<UniqueId, AttributeError> {
-    let system_id = bits.read_u8()
+    let system_id = bits
+        .read_u8()
         .ok_or_else(|| AttributeError::NotEnoughDataFor("System id"))?;
     decode_unique_id_with_system_id(bits, net_version, system_id)
 }
@@ -1038,10 +1040,12 @@ fn decode_unique_id_with_system_id(
     system_id: u8,
 ) -> Result<UniqueId, AttributeError> {
     let remote_id = match system_id {
-        0 => bits.read_u32_bits(24)
+        0 => bits
+            .read_u32_bits(24)
             .ok_or_else(|| AttributeError::NotEnoughDataFor("SplitScreen"))
             .map(RemoteId::SplitScreen),
-        1 => bits.read_u64()
+        1 => bits
+            .read_u64()
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Steam"))
             .map(RemoteId::Steam),
         2 => {
@@ -1051,16 +1055,19 @@ fn decode_unique_id_with_system_id(
                 .ok_or_else(|| AttributeError::NotEnoughDataFor("Playstation"))
                 .map(RemoteId::PlayStation)
         }
-        4 => bits.read_u64()
+        4 => bits
+            .read_u64()
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Xbox"))
             .map(RemoteId::Xbox),
-        6 => bits.read_bytes(32)
+        6 => bits
+            .read_bytes(32)
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Switch"))
             .map(RemoteId::Switch),
         x => Err(AttributeError::UnrecognizedRemoteId(x)),
     }?;
 
-    let local_id = bits.read_u8()
+    let local_id = bits
+        .read_u8()
         .ok_or_else(|| AttributeError::NotEnoughDataFor("UniqueId local_id"))?;
     Ok(UniqueId {
         system_id,
