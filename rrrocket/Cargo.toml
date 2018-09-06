@@ -3,14 +3,14 @@ authors = ["Nick Babcock <nbabcock19@hotmail.com>"]
 license = "MIT"
 name = "rrrocket"
 repository = "https://github.com/nickbabcock/boxcars"
-version = "0.2.5"
+version = "0.2.6"
 
 [dependencies]
 failure = "0.1.1"
 serde_json = "1.0.6"
 structopt = "0.2"
 rayon = "0.9"
-boxcars = "0.2.4"
+boxcars = "0.2.5"
 globset = "0.2"
 
 [dev-dependencies]

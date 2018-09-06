@@ -1,3 +1,7 @@
+## v0.2.6 - September 6th, 2018
+
+* Update replay parser to be compatible with v1.50
+
 ## v0.2.5 - May 30th, 2018
 
 * Update replay parser to be compatible with v1.45
