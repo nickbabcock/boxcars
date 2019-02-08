@@ -1053,6 +1053,7 @@ fn decode_unique_id_with_system_id(
             let to_read = if net_version >= 1 { 40 } else { 32 };
             bits.read_bytes(to_read)
                 .ok_or_else(|| AttributeError::NotEnoughDataFor("Playstation"))
+                .map(|x| x.into_owned())
                 .map(RemoteId::PlayStation)
         }
         4 => bits
@@ -1062,6 +1063,7 @@ fn decode_unique_id_with_system_id(
         6 => bits
             .read_bytes(32)
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Switch"))
+            .map(|x| x.into_owned())
             .map(RemoteId::Switch),
         x => Err(AttributeError::UnrecognizedRemoteId(x)),
     }?;

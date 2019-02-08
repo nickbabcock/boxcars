@@ -19,7 +19,7 @@ byteorder = "1"
 phf = "0.7"
 fnv = "1.0"
 if_chain = "0.1"
-bitter = "0.1"
+bitter = "0.3.1"
 multimap = "0.4"
 
 [dev-dependencies]
@@ -34,4 +34,4 @@ harness = false
 phf_codegen = "0.7"
 
 [workspace]
-members = ["rrrocket", "bitter"]
+members = ["rrrocket"]
