@@ -1547,7 +1547,7 @@ mod tests {
         );
 
         assert!(
-            format!("{}", err.cause().cause().unwrap()).starts_with(
+            format!("{}", err.as_fail().cause().unwrap()).starts_with(
                 "Could not decode replay debug info at offset (1010894): list of size",
             )
         );
@@ -1562,7 +1562,7 @@ mod tests {
             "Crc mismatch. Expected 3765941959 but received 1314727725",
             format!("{}", err)
         );
-        assert!(err.cause().cause().is_none());
+        assert!(err.as_fail().cause().is_none());
     }
 
     #[test]
