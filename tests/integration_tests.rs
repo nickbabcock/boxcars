@@ -43,3 +43,7 @@ frame_len_test!(test_57a6c_replay, "../assets/57a6c.replay", 378);
 frame_len_test!(test_01d3e5_replay, "../assets/01d3e5.replay", 393);
 frame_len_test!(test_a9df3_replay, "../assets/a9df3.replay", 330);
 frame_len_test!(test_419a_replay, "../assets/419a.replay", 10183);
+frame_len_test!(test_4bc3b_replay, "../assets/4bc3b.replay", 9536);
+frame_len_test!(test_d52eb_replay, "../assets/d52eb.replay", 17815);
+frame_len_test!(test_edbb_replay, "../assets/edbb.replay", 356);
+frame_len_test!(test_7256_replay, "../assets/7256.replay", 9634);

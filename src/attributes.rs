@@ -196,6 +196,7 @@ pub struct UniqueId {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum RemoteId {
     PlayStation(Vec<u8>),
+    PsyNet(Vec<u8>),
     SplitScreen(u32),
     Steam(u64),
     Switch(Vec<u8>),
@@ -246,6 +247,7 @@ pub enum ProductValue {
     OldPaint(u32),
     NewPaint(u32),
     Title(String),
+    SpecialEdition(u32),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -253,6 +255,7 @@ pub struct ProductValueDecoder {
     version: VersionTriplet,
     color_ind: u32,
     painted_ind: u32,
+    special_edition_ind: u32,
     title_ind: u32,
 }
 
@@ -270,12 +273,17 @@ impl ProductValueDecoder {
             .get("TAGame.ProductAttribute_TitleID_TA")
             .map(|&x| i32::from(x))
             .unwrap_or(0) as u32;
+        let special_edition_ind = name_obj_ind
+            .get("TAGame.ProductAttribute_SpecialEdition_TA")
+            .map(|&x| i32::from(x))
+            .unwrap_or(0) as u32;
 
         ProductValueDecoder {
             version,
             color_ind,
             painted_ind,
             title_ind,
+            special_edition_ind,
         }
     }
 
@@ -295,6 +303,8 @@ impl ProductValueDecoder {
             }
         } else if obj_ind == self.title_ind {
             decode_text(bits).ok().map(ProductValue::Title)
+        } else if obj_ind == self.special_edition_ind {
+            bits.read_u32_bits(31).map(ProductValue::SpecialEdition)
         } else {
             Some(ProductValue::Absent)
         }
@@ -1065,6 +1075,11 @@ fn decode_unique_id_with_system_id(
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Switch"))
             .map(|x| x.into_owned())
             .map(RemoteId::Switch),
+        7 => bits
+            .read_bytes(32)
+            .ok_or_else(|| AttributeError::NotEnoughDataFor("PsyNet"))
+            .map(|x| x.into_owned())
+            .map(RemoteId::PsyNet),
         x => Err(AttributeError::UnrecognizedRemoteId(x)),
     }?;
 
