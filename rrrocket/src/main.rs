@@ -5,7 +5,6 @@ extern crate failure;
 extern crate globset;
 extern crate rayon;
 extern crate serde_json;
-#[macro_use]
 extern crate structopt;
 
 use boxcars::{CrcCheck, NetworkParse, ParserBuilder, Replay};
@@ -170,7 +169,7 @@ fn run() -> Result<(), Error> {
 fn main() {
     if let Err(ref e) = run() {
         let mut stderr = io::stderr();
-        for fail in e.causes() {
+        for fail in e.iter_chain() {
             let _ = writeln!(stderr, "{}", fail);
         }
 
