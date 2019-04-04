@@ -27,7 +27,7 @@ serde_json = "1"
 criterion = "0.2"
 
 [[bench]]
-name = "boxcars"
+name = "bench_boxcars"
 harness = false
 
 [build-dependencies]
