@@ -1,16 +1,32 @@
-[![Build
-Status](https://travis-ci.org/nickbabcock/boxcars.svg?branch=master)](https://travis-ci.org/nickbabcock/boxcars)
-
 # Boxcars
 
-Boxcars is a [Rocket League](http://www.rocketleaguegame.com/) replay parser written in Rust
-with [serde](https://github.com/serde-rs/serde) support for serialization oftentimes into JSON.
-The focus is correctness and performance with boxcar users able to dictate what sections of the
-replay to parse. For instance, parsing just the header (where tidbits like goals and scores are
-stored) completes in under 50 microseconds. However, if you want to check against replay
-corruption and parse the network data, it would cost you 30 milliseconds (~1000x increase).
-While a 1000x increase in time sounds significant; keep in mind, 30ms is phenomenal compared to
-current state of the art Rocket League Replay parsers.
+[![Build Status](https://travis-ci.org/nickbabcock/boxcars.svg?branch=master)](https://travis-ci.org/nickbabcock/boxcars) [![Build status](https://ci.appveyor.com/api/projects/status/v0l0okwfqa5vg13v?svg=true)](https://ci.appveyor.com/project/nickbabcock/boxcars) [![](https://docs.rs/boxcars/badge.svg)](https://docs.rs/boxcars) [![Version](https://img.shields.io/crates/v/boxcars.svg?style=flat-square)](https://crates.io/crates/boxcars)
+
+*Looking for rrrocket (the commandline app that parses replays and outputs JSON for analysis)? It [recently moved](https://github.com/nickbabcock/rrrocket)*
+
+Boxcars is a [Rocket League](http://www.rocketleaguegame.com/) replay parser
+library written in Rust, designed to be fast and safe: 10-100x faster than
+established parsers. Boxcars is extensively fuzzed to ensure potentially
+malicious user input is handled gracefully.
+
+A key feature of boxcars is the ability to dictate what sections of the replay
+to parse. A replay is broken up into two main parts: the header (where tidbits
+like goals and scores are stored) and the network body, which contains
+positional, rotational, and speed data (among other attributes). Since the
+network data fluctuates between Rocket League patches and accounts for 99.8% of
+the parsing time, one can tell boxcars to skip the network data or ignore
+errors from the network data.
+
+- By skipping network data one can parse and aggregate thousands of replays in
+  under a second to provide an immediate response to the user. Then a full
+  parsing of the replay data can provide additional insights when given time.
+- By ignoring network data errors, boxcars can still provide details about
+  newly patched replays based on the header.
+
+Boxcars will also check for replay corruption on error, but this can be
+configured to always check for corruption or never check.
+
+Serialization support is provided through [serde](https://github.com/serde-rs/serde).
 
 Below is an example to output the replay structure to json:
 
@@ -34,75 +50,12 @@ fn run() -> Result<(), ::failure::Error> {
     serde_json::to_writer(&mut io::stdout(), &replay)?;
     Ok(())
 }
-
 ```
 
-# rrrocket
+## Benchmarks
 
-Rrrocket is what a cli program might look like utilizing the boxcars library.
-Rrrocket parses a Rocket League replay file and outputs JSON. The executable
-has been built for many platforms, so head on over to the [latest
-release](https://github.com/nickbabcock/boxcars/releases/latest) and download
-the appropriate bundle. If you're not sure which bundle to download, here are
-the most likely options:
-
-- For Windows, you'll want the one labeled `windows-msvc`
-- For Linux, you'll want the one labeled `linux-musl`
-- For macOS, you'll want the only one labeled `apple`
-
-A sample output of the JSON from rrrocket:
-
-```json
-{
-  "header_size": 4768,
-  "header_crc": 337843175,
-  "major_version": 868,
-  "minor_version": 12,
-  "game_type": "TAGame.Replay_Soccar_TA",
-  "properties": {
-    "TeamSize": 3,
-    "Team0Score": 5,
-    "Team1Score": 2,
-    "Goals": [
-      {
-        "PlayerName": "Cakeboss",
-        "PlayerTeam": 1,
-        "frame": 441
-      },
-      // all the goals
-    ]
-    // and many more properties
-  }
-```
-
-# boxcapy
-
-boxcapy is a python script that ingests given JSON files that have been created
-by `rrrocket`. The command below is the one I use to generate the JSON files:
-
-```bash
-find . -type f -iname "*.replay" | xargs -n1 -I{} bash -c '~/rrrocket {} > {}.json'
-```
-
-To have your graphs saved into your directory follow the below instructions:
-
-- Since the graphs are in the style of XKCD, one has to install the Humor Sans font before continuing (eg. `apt install fonts-humor-sans`)
-
-## Python 2
-
-- Install [pipenv](https://docs.pipenv.org/install.html#installing-pipenv)
-- Install dependencies `pipenv --two && pipenv install`
-- Run on generated JSON files: `pipenv run boxcapy/rocket-plot.py ~/Demos/*.json --headless`
-
-## Python 3
-
-- Install [pipenv](https://docs.pipenv.org/install.html#installing-pipenv)
-- Install dependencies `pipenv --three && pipenv install --skip-lock`
-- Run on generated JSON files: `pipenv run boxcapy/rocket-plot.py ~/Demos/*.json --headless`
-
-# Benchmarks
-
-Since Boxcars allows you to pick and choose what to parse, below is a table with the following options and the estimated elapsed time.
+Since Boxcars allows you to pick and choose what to parse, below is a table
+with the following options and the estimated elapsed time.
 
 | Header | Corruption Check | Body | Output JSON | Elapsed |
 | -      | -                | -    | -           | -       |
@@ -112,10 +65,6 @@ Since Boxcars allows you to pick and choose what to parse, below is a table with
 | ✔      | ✔                | ✔    | ✔           | 38ms    |
 | ✔      |                  | ✔    | ✔           | 35ms    |
 
-The most astounding number is that boxcars can parse 25,000 replay headers per
-second per core, and Boxcars will scale linearly as more cores are dedicated to
-parsing replays in parallel.
-
-# Special Thanks
+## Special Thanks
 
 Special thanks needs to be given to everyone in the Rocket League community who figured out the replay format and all its intricacies. Boxcars wouldn't exist if it weren't for them. I heavily leaned on implementations in [rattletrap](https://github.com/tfausak/rattletrap) and [RocketLeagueReplayParser](https://github.com/jjbott/RocketLeagueReplayParser). One of those should be your go to Rocket League Replay tool, unless you need speed, as those implementations are more mature than boxcars.

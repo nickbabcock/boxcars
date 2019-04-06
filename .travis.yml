@@ -8,7 +8,7 @@ sudo: required
 
 env:
   global:
-    - CRATE_NAME=rrrocket
+    - CRATE_NAME=boxcars
 
 matrix:
   include:
@@ -50,39 +50,3 @@ install:
 
 script:
   - bash ci/script.sh
-
-after_script: set +e
-
-before_deploy:
-  - sh ci/before_deploy.sh
-
-deploy:
-  api_key:
-    secure: hvUI8Tp3r73D1imf9Yscwam5mkZnS/ykfyPh33rccIft5wDrJaXhmDgQ9E2RGUnaPA4KjQWtkLChxZ9faHc7NVRxmdyIxZd7WAF368Rt/zCq3RJW5AazRa+MMGgQJWKHeqXLT1I6RoRaSP0qHu4unjH0SCzk+pZFKmWRrINqef4xfnhXWt2M9mfdtIVCceqZDK9g6n37IqzoaREuR+7X1zKlPuBPnhdgJ6/4qwv/UWFDC5v324WnINQAFI4bKLiGPEoPfuQrVKqOiLEf6T2CQiB4aG4geV3l8eXoOVrcvqi1NEmfod7BOV3oUTdCZff7t6j37pfrohaHmi84nUTtAeUDO2fN4Mm86M7OvWhA0ON6bnVHUXNDzfXOIxVEYQ3/tPFKBPWeszS3iOt0bt6JqXGmCt8jpZjgE6sJmpNV5PklEaLQNweLo9OyUBitMEABT6kp1afgLzt8f1Yu7bE9FXB3ZLBWfyrQVQNQ6ak/ezR1fnTwvwIIzTKFLQKuL/uGhm3tNcHlYi1vnIqGa7VL/dBSyxr9M8HTKMgXIhvwLOMA2eR6Yqgcs9Z4c5uJZcR29xpZYYudCf0fctPPxNXAhRVFTXBUOpWpKJZFRtdN6sCGB6fw4yCPT0IMl91t6h8OIyJvSDMit93ajJzjJvFurCKRuUk/QKVCGhAraWXkT6E=
-  file_glob: true
-  file: $CRATE_NAME-$TRAVIS_TAG-$TARGET.*
-  on:
-    condition: $TRAVIS_RUST_VERSION = stable
-    tags: true
-  provider: releases
-  skip_cleanup: true
-
-cache: cargo
-before_cache:
-  # Travis can't cache files that are not readable by "others"
-  - chmod -R a+r $HOME/.cargo
-
-cache: cargo
-before_cache:
-  # Travis can't cache files that are not readable by "others"
-  - chmod -R a+r $HOME/.cargo
-
-branches:
-  only:
-    # release tags
-    - /^v\d+\.\d+\.\d+.*$/
-    - master
-
-notifications:
-  email:
-    on_success: never

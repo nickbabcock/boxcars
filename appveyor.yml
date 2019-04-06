@@ -4,7 +4,7 @@
 environment:
   global:
     RUST_VERSION: stable
-    CRATE_NAME: rrrocket
+    CRATE_NAME: boxcars
   matrix:
     - TARGET: x86_64-pc-windows-gnu
     - TARGET: x86_64-pc-windows-msvc
@@ -35,38 +35,8 @@ test_script:
       cargo build --all --target %TARGET% &&
       cargo build --all --target %TARGET% --release &&
       cargo test --all --target %TARGET% &&
-      cargo test --all --target %TARGET% --release &&
-      cargo run -p rrrocket --target %TARGET% -- --help &&
-      cargo run -p rrrocket --target %TARGET% --release -- --help
+      cargo test --all --target %TARGET% --release
     )
-
-before_deploy:
-  - cargo rustc -p rrrocket --target %TARGET% --release --bin rrrocket -- -C lto
-  - ps: ci\before_deploy.ps1
-
-deploy:
-  artifact: /.*\.zip/
-  auth_token:
-    secure: NAE2+/lVnBW2WgC6rjdPXGcgZHzoTBTamT/HcWTzLbwxHo21FXTxmWHUESmmHQBN
-  description: ''
-  on:
-    RUST_VERSION: stable
-    appveyor_repo_tag: true
-  provider: GitHub
-
-cache:
-  - C:\Users\appveyor\.cargo\registry
-  - target
-
-branches:
-  only:
-    # Release tags
-    - /^v\d+\.\d+\.\d+.*$/
-    - master
-
-notifications:
-  - provider: Email
-    on_build_success: false
 
 # Building is done in the test phase, so we disable Appveyor's build phase.
 build: false
