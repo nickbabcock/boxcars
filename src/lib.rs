@@ -81,7 +81,7 @@ mod models;
 mod network;
 mod parsing;
 
-#[cfg_attr(feature = "cargo-clippy", allow(clippy))]
+#[cfg_attr(feature = "cargo-clippy", allow(clippy::all))]
 mod hashes {
     include!(concat!(env!("OUT_DIR"), "/generated.rs"));
 }

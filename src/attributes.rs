@@ -647,7 +647,7 @@ impl AttributeDecoder {
 
     pub fn decode_pickup(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
         if_chain! {
-            if let Some(instigator_id) = bits.if_get(|s| s.read_u32());
+            if let Some(instigator_id) = bits.if_get(BitGet::read_u32);
             if let Some(picked_up) = bits.read_bit();
             then {
                 Ok(Attribute::Pickup(Pickup {
@@ -1077,7 +1077,7 @@ fn decode_unique_id_with_system_id(
             let to_read = if net_version >= 1 { 40 } else { 32 };
             bits.read_bytes(to_read)
                 .ok_or_else(|| AttributeError::NotEnoughDataFor("Playstation"))
-                .map(|x| x.into_owned())
+                .map(Cow::into_owned)
                 .map(RemoteId::PlayStation)
         }
         4 => bits
@@ -1087,12 +1087,12 @@ fn decode_unique_id_with_system_id(
         6 => bits
             .read_bytes(32)
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Switch"))
-            .map(|x| x.into_owned())
+            .map(Cow::into_owned)
             .map(RemoteId::Switch),
         7 => bits
             .read_bytes(32)
             .ok_or_else(|| AttributeError::NotEnoughDataFor("PsyNet"))
-            .map(|x| x.into_owned())
+            .map(Cow::into_owned)
             .map(RemoteId::PsyNet),
         x => Err(AttributeError::UnrecognizedRemoteId(x)),
     }?;

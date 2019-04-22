@@ -60,9 +60,9 @@ pub struct Rotation {
 impl Rotation {
     pub fn decode(bits: &mut BitGet) -> Option<Rotation> {
         if_chain! {
-            if let Some(yaw) = bits.if_get(|b| b.read_i8());
-            if let Some(pitch) = bits.if_get(|b| b.read_i8());
-            if let Some(roll) = bits.if_get(|b| b.read_i8());
+            if let Some(yaw) = bits.if_get(BitGet::read_i8);
+            if let Some(pitch) = bits.if_get(BitGet::read_i8);
+            if let Some(roll) = bits.if_get(BitGet::read_i8);
             then {
                 Some(Rotation {
                     yaw,
@@ -76,9 +76,9 @@ impl Rotation {
     }
 
     pub fn decode_unchecked(bits: &mut BitGet) -> Rotation {
-        let yaw = bits.if_get_unchecked(|b| b.read_i8_unchecked());
-        let pitch = bits.if_get_unchecked(|b| b.read_i8_unchecked());
-        let roll = bits.if_get_unchecked(|b| b.read_i8_unchecked());
+        let yaw = bits.if_get_unchecked(BitGet::read_i8_unchecked);
+        let pitch = bits.if_get_unchecked(BitGet::read_i8_unchecked);
+        let roll = bits.if_get_unchecked(BitGet::read_i8_unchecked);
         Rotation { yaw, pitch, roll }
     }
 }

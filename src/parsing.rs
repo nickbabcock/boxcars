@@ -297,7 +297,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
             cache_info
                 .attributes
                 .keys()
-                .map(|x| x.to_string())
+                .map(ToString::to_string)
                 .collect::<Vec<_>>()
                 .join(","),
         )
@@ -1011,7 +1011,7 @@ impl<'a> Parser<'a> {
     }
 
     fn text_list(&mut self) -> Result<Vec<Cow<'a, str>>, ParseError> {
-        self.list_of(|s| s.parse_text())
+        self.list_of(Parser::parse_text)
     }
 
     /// Parses UTF-8 string from replay
@@ -1129,7 +1129,7 @@ impl<'a> Parser<'a> {
 
     fn array_property(&mut self) -> Result<HeaderProp<'a>, ParseError> {
         let size = self.take(12, |d| le_i32(&d[8..]))?;
-        let arr = self.repeat(size as usize, |s| s.parse_rdict())?;
+        let arr = self.repeat(size as usize, Parser::parse_rdict)?;
         Ok(HeaderProp::Array(arr))
     }
 
