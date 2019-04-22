@@ -541,6 +541,10 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
             frames.push(frame);
         }
 
+        if self.version >= VersionTriplet(868, 24, 10) {
+            bits.read_u32().ok_or_else(|| NetworkError::NotEnoughDataFor("Trailer"))?;
+        }
+
         Ok(frames)
     }
 }

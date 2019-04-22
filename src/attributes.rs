@@ -248,6 +248,8 @@ pub enum ProductValue {
     NewPaint(u32),
     Title(String),
     SpecialEdition(u32),
+    OldTeamEdition(u32),
+    NewTeamEdition(u32),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -256,6 +258,7 @@ pub struct ProductValueDecoder {
     color_ind: u32,
     painted_ind: u32,
     special_edition_ind: u32,
+    team_edition_ind: u32,
     title_ind: u32,
 }
 
@@ -277,6 +280,10 @@ impl ProductValueDecoder {
             .get("TAGame.ProductAttribute_SpecialEdition_TA")
             .map(|&x| i32::from(x))
             .unwrap_or(0) as u32;
+        let team_edition_ind = name_obj_ind
+            .get("TAGame.ProductAttribute_TeamEdition_TA")
+            .map(|&x| i32::from(x))
+            .unwrap_or(0) as u32;
 
         ProductValueDecoder {
             version,
@@ -284,6 +291,7 @@ impl ProductValueDecoder {
             painted_ind,
             title_ind,
             special_edition_ind,
+            team_edition_ind,
         }
     }
 
@@ -305,6 +313,12 @@ impl ProductValueDecoder {
             decode_text(bits).ok().map(ProductValue::Title)
         } else if obj_ind == self.special_edition_ind {
             bits.read_u32_bits(31).map(ProductValue::SpecialEdition)
+        } else if obj_ind == self.team_edition_ind {
+            if self.version >= VersionTriplet(868, 18, 0) {
+                bits.read_u32_bits(31).map(ProductValue::NewTeamEdition)
+            } else {
+                bits.read_bits_max(4, 14).map(ProductValue::OldTeamEdition)
+            }
         } else {
             Some(ProductValue::Absent)
         }

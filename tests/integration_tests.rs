@@ -47,3 +47,4 @@ frame_len_test!(test_4bc3b_replay, "../assets/4bc3b.replay", 9536);
 frame_len_test!(test_d52eb_replay, "../assets/d52eb.replay", 17815);
 frame_len_test!(test_edbb_replay, "../assets/edbb.replay", 356);
 frame_len_test!(test_7256_replay, "../assets/7256.replay", 9634);
+frame_len_test!(test_5a06_replay, "../assets/5a06.replay", 515);
