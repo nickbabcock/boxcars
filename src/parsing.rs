@@ -312,7 +312,8 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                     .iter()
                     .map(|prop| (x.object_ind, prop.object_ind, prop.stream_id))
                     .collect::<Vec<(i32, i32, i32)>>()
-            }).flat_map(|x| x)
+            })
+            .flat_map(|x| x)
             .filter(|&(_obj_id, _prop_id, prop_stream_id)| StreamId(prop_stream_id) == stream_id)
             .map(|(obj_id, prop_id, _prop_stream_id)| {
                 let obj_id = ObjectId(obj_id);
@@ -323,7 +324,8 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                     obj_name: self.object_ind_to_string(obj_id),
                     prop_name: self.object_ind_to_string(prop_id),
                 }
-            }).filter(|x| !ATTRIBUTES.contains_key(x.prop_name.as_str()))
+            })
+            .filter(|x| !ATTRIBUTES.contains_key(x.prop_name.as_str()))
             .collect()
     }
 
@@ -341,7 +343,8 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                     "\tobject {} ({}) has property {} ({})",
                     x.obj_id, x.obj_name, x.prop_id, x.prop_name
                 )
-            }).collect::<Vec<String>>()
+            })
+            .collect::<Vec<String>>()
             .join("\n");
 
         NetworkError::UnimplementedAttribute(
@@ -542,7 +545,8 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
         }
 
         if self.version >= VersionTriplet(868, 24, 10) {
-            bits.read_u32().ok_or_else(|| NetworkError::NotEnoughDataFor("Trailer"))?;
+            bits.read_u32()
+                .ok_or_else(|| NetworkError::NotEnoughDataFor("Trailer"))?;
         }
 
         Ok(frames)
@@ -672,7 +676,8 @@ impl<'a> Parser<'a> {
                     .get(x.deref())
                     .cloned()
                     .unwrap_or(SpawnTrajectory::None)
-            }).collect();
+            })
+            .collect();
 
         let attrs: Vec<_> = normalized_objects
             .iter()
@@ -681,7 +686,8 @@ impl<'a> Parser<'a> {
                     .get(x.deref())
                     .cloned()
                     .unwrap_or(AttributeTag::NotImplemented)
-            }).collect();
+            })
+            .collect();
 
         // Create a map of an object's normalized name to a list of indices in the object
         // vector that have that same normalized name
@@ -716,7 +722,8 @@ impl<'a> Parser<'a> {
                             object_id: ObjectId(x.object_ind),
                         },
                     ))
-                }).collect::<Result<HashMap<_, _>, NetworkError>>()?;
+                })
+                .collect::<Result<HashMap<_, _>, NetworkError>>()?;
 
             let mut had_parent = false;
 
@@ -787,7 +794,8 @@ impl<'a> Parser<'a> {
                         attributes: attrs.iter().map(|(k, o)| (*k, o.attribute)).collect(),
                     },
                 ))
-            }).collect::<Result<FnvHashMap<_, _>, NetworkError>>()?;
+            })
+            .collect::<Result<FnvHashMap<_, _>, NetworkError>>()?;
 
         let product_decoder = ProductValueDecoder::create(version, &name_obj_ind);
 
@@ -880,7 +888,8 @@ impl<'a> Parser<'a> {
                         .context(format!(
                             "Failed to parse {} and crc check failed. Replay is corrupt",
                             section
-                        )).into())
+                        ))
+                        .into())
                 } else {
                     Err(e)
                 }
@@ -1533,11 +1542,8 @@ mod tests {
         let data = include_bytes!("../assets/fuzz-list-too-large.replay");
         let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Never);
         let err = parser.parse().unwrap_err();
-        assert!(
-            format!("{}", err).starts_with(
-                "Could not decode replay debug info at offset (1010894): list of size",
-            )
-        );
+        assert!(format!("{}", err)
+            .starts_with("Could not decode replay debug info at offset (1010894): list of size",));
     }
 
     #[test]
@@ -1550,11 +1556,8 @@ mod tests {
             format!("{}", err)
         );
 
-        assert!(
-            format!("{}", err.as_fail().cause().unwrap()).starts_with(
-                "Could not decode replay debug info at offset (1010894): list of size",
-            )
-        );
+        assert!(format!("{}", err.as_fail().cause().unwrap())
+            .starts_with("Could not decode replay debug info at offset (1010894): list of size",));
     }
 
     #[test]
