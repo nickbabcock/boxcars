@@ -1,3 +1,7 @@
+# v0.2.7 - April 22nd 2019
+
+* Update network parser to be compatible with v1.61 rocket league replays
+
 # v0.2.6 - April 4th 2019
 
 * Update network parser to be compatible with v1.59 rocket league replays
