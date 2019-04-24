@@ -55,20 +55,20 @@
 //! - Etc
 
 use crate::attributes::{AttributeDecoder, AttributeTag, ProductValueDecoder};
-use bitter::BitGet;
-use byteorder::{ByteOrder, LittleEndian};
 use crate::crc::calc_crc;
-use encoding_rs::{UTF_16LE, WINDOWS_1252};
 use crate::errors::{AttributeError, NetworkError, ParseError};
-use failure::{Error, ResultExt};
-use fnv::FnvHashMap;
 use crate::hashes::{ATTRIBUTES, OBJECT_CLASSES, PARENT_CLASSES, SPAWN_STATS};
 use crate::models::*;
-use multimap::MultiMap;
 use crate::network::{
     normalize_object, ActorId, Frame, NewActor, ObjectId, SpawnTrajectory, StreamId, Trajectory,
     UpdatedAttribute,
 };
+use bitter::BitGet;
+use byteorder::{ByteOrder, LittleEndian};
+use encoding_rs::{UTF_16LE, WINDOWS_1252};
+use failure::{Error, ResultExt};
+use fnv::FnvHashMap;
+use multimap::MultiMap;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::ops::Deref;

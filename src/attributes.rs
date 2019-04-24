@@ -1,7 +1,7 @@
-use bitter::BitGet;
 use crate::errors::AttributeError;
 use crate::network::{ObjectId, Rotation, Vector};
 use crate::parsing::{decode_utf16, decode_windows1252, VersionTriplet};
+use bitter::BitGet;
 use std::borrow::Cow;
 use std::collections::HashMap;
 
