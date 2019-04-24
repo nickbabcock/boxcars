@@ -1,4 +1,4 @@
-use network::Frame;
+use crate::network::Frame;
 use serde::ser::{SerializeMap, SerializeSeq};
 /// # Models
 ///

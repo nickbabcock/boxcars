@@ -291,7 +291,7 @@ const TABLE: [u32; 256] = [
 
 #[cfg(test)]
 mod tests {
-    use crc::calc_crc;
+    use crate::crc::calc_crc;
 
     #[test]
     fn crc_rumble_test() {

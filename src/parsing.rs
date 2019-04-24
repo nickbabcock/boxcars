@@ -54,18 +54,18 @@
 //! - Packages
 //! - Etc
 
-use attributes::{AttributeDecoder, AttributeTag, ProductValueDecoder};
+use crate::attributes::{AttributeDecoder, AttributeTag, ProductValueDecoder};
 use bitter::BitGet;
 use byteorder::{ByteOrder, LittleEndian};
-use crc::calc_crc;
+use crate::crc::calc_crc;
 use encoding_rs::{UTF_16LE, WINDOWS_1252};
-use errors::{AttributeError, NetworkError, ParseError};
+use crate::errors::{AttributeError, NetworkError, ParseError};
 use failure::{Error, ResultExt};
 use fnv::FnvHashMap;
-use hashes::{ATTRIBUTES, OBJECT_CLASSES, PARENT_CLASSES, SPAWN_STATS};
-use models::*;
+use crate::hashes::{ATTRIBUTES, OBJECT_CLASSES, PARENT_CLASSES, SPAWN_STATS};
+use crate::models::*;
 use multimap::MultiMap;
-use network::{
+use crate::network::{
     normalize_object, ActorId, Frame, NewActor, ObjectId, SpawnTrajectory, StreamId, Trajectory,
     UpdatedAttribute,
 };
@@ -1260,8 +1260,8 @@ fn le_i64(d: &[u8]) -> i64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use errors::ParseError;
-    use models::{HeaderProp, TickMark};
+    use crate::errors::ParseError;
+    use crate::models::{HeaderProp, TickMark};
     use std::borrow::Cow;
 
     #[test]
