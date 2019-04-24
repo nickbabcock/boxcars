@@ -10,9 +10,9 @@ fn main() {
     let path = Path::new(&env::var("OUT_DIR").unwrap()).join("generated.rs");
     let mut file = BufWriter::new(File::create(&path).unwrap());
 
-    write!(&mut file, "use attributes::AttributeTag;\n ").unwrap();
     write!(&mut file, "use phf;\n ").unwrap();
-    write!(&mut file, "use network::SpawnTrajectory;\n ").unwrap();
+    write!(&mut file, "use crate::attributes::AttributeTag;\n ").unwrap();
+    write!(&mut file, "use crate::network::SpawnTrajectory;\n ").unwrap();
 
     write!(&mut file, "pub static SPAWN_STATS: phf::Map<&'static str, SpawnTrajectory> = ").unwrap();
     phf_codegen::Map::new()
