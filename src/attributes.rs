@@ -62,6 +62,8 @@ pub enum Attribute {
     Float(f32),
     GameMode(u8, u8),
     Int(i32),
+
+    #[serde(serialize_with = "crate::serde_utils::display_it")]
     Int64(i64),
     Loadout(Loadout),
     TeamLoadout(TeamLoadout),
@@ -69,6 +71,8 @@ pub enum Attribute {
     MusicStinger(MusicStinger),
     PlayerHistoryKey(u16),
     Pickup(Pickup),
+
+    #[serde(serialize_with = "crate::serde_utils::display_it")]
     QWord(u64),
     Welded(Welded),
     Title(bool, bool, u32, u32, u32, u32, u32, bool),
@@ -198,8 +202,12 @@ pub enum RemoteId {
     PlayStation(Vec<u8>),
     PsyNet(Vec<u8>),
     SplitScreen(u32),
+
+    #[serde(serialize_with = "crate::serde_utils::display_it")]
     Steam(u64),
     Switch(Vec<u8>),
+
+    #[serde(serialize_with = "crate::serde_utils::display_it")]
     Xbox(u64),
 }
 
