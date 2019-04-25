@@ -1,5 +1,3 @@
-use crate::network::Frame;
-use serde::ser::{SerializeMap, SerializeSeq};
 /// # Models
 ///
 /// Here lies the data structures that a rocket league replay is decoded into. All of the models
@@ -10,6 +8,8 @@ use serde::ser::{SerializeMap, SerializeSeq};
 /// numeric/string types). Asking "why JSON" would be next logical step, and that's due to other
 /// rocket league replay parsers (like Octane) using JSON; however, the output of this library is
 /// not compatible with that of other rocket league replay parsers.
+use crate::network::Frame;
+use serde::ser::{SerializeMap, SerializeSeq};
 use serde::{Serialize, Serializer};
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -86,7 +86,7 @@ pub enum HeaderProp<'a> {
     Float(f32),
     Int(i32),
     Name(Cow<'a, str>),
-    QWord(i64),
+    QWord(u64),
     Str(Cow<'a, str>),
 }
 
@@ -182,7 +182,7 @@ impl<'a> Serialize for HeaderProp<'a> {
             HeaderProp::Byte => serializer.serialize_u8(0),
             HeaderProp::Float(ref x) => serializer.serialize_f32(*x),
             HeaderProp::Int(ref x) => serializer.serialize_i32(*x),
-            HeaderProp::QWord(ref x) => serializer.serialize_i64(*x),
+            HeaderProp::QWord(ref x) => serializer.collect_str(x),
             HeaderProp::Name(ref x) | HeaderProp::Str(ref x) => serializer.serialize_str(x),
         }
     }
@@ -231,7 +231,7 @@ mod tests {
     #[test]
     fn serialize_header_numbers() {
         assert_eq!(to_json(&HeaderProp::Byte), "0");
-        assert_eq!(to_json(&HeaderProp::QWord(10)), "10");
+        assert_eq!(to_json(&HeaderProp::QWord(10)), "\"10\"");
         assert_eq!(to_json(&HeaderProp::Float(10.2)), "10.2");
         assert_eq!(to_json(&HeaderProp::Int(11)), "11");
     }

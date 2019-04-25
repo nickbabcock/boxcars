@@ -78,6 +78,7 @@ mod errors;
 mod models;
 mod network;
 mod parsing;
+mod serde_utils;
 
 #[cfg_attr(feature = "cargo-clippy", allow(clippy::all))]
 mod hashes {
