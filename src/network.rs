@@ -1,4 +1,4 @@
-use attributes::Attribute;
+use crate::attributes::Attribute;
 use bitter::BitGet;
 use std::fmt;
 
