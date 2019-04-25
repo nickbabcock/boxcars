@@ -86,7 +86,7 @@ pub enum HeaderProp<'a> {
     Float(f32),
     Int(i32),
     Name(Cow<'a, str>),
-    QWord(i64),
+    QWord(u64),
     Str(Cow<'a, str>),
 }
 

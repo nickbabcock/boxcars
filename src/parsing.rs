@@ -1133,7 +1133,7 @@ impl<'a> Parser<'a> {
     }
 
     fn qword_property(&mut self) -> Result<HeaderProp<'a>, ParseError> {
-        self.take(16, |d| HeaderProp::QWord(le_i64(&d[8..])))
+        self.take(16, |d| HeaderProp::QWord(le_u64(&d[8..])))
     }
 
     fn array_property(&mut self) -> Result<HeaderProp<'a>, ParseError> {
@@ -1253,8 +1253,8 @@ fn le_f32(d: &[u8]) -> f32 {
 }
 
 #[inline]
-fn le_i64(d: &[u8]) -> i64 {
-    LittleEndian::read_i64(d)
+fn le_u64(d: &[u8]) -> u64 {
+    LittleEndian::read_u64(d)
 }
 
 #[cfg(test)]
