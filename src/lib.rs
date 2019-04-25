@@ -63,13 +63,11 @@ extern crate fnv;
 extern crate if_chain;
 extern crate multimap;
 extern crate phf;
+#[macro_use]
 extern crate serde;
 
 #[cfg(test)]
 extern crate serde_json;
-
-#[macro_use]
-extern crate serde_derive;
 
 pub use self::models::*;
 pub use self::network::{Frame, NewActor, Rotation, Trajectory, UpdatedAttribute, Vector};
