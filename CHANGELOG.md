@@ -1,3 +1,15 @@
+# v0.2.8 - APril 25th 2019
+
+* Serialize 64bit numbers as strings, so that JSON parsers don't lose any data
+  in parsing them as 64bit floating point
+  * Javascript numbers are 64bit floating point. 64bit integers can't be
+    represented wholly in floating point notation. Thus serialize them as
+    strings so that downstream applications can decide on how best to interpret
+    large numbers (like 76561198122624102). Affects Int64, QWord, Steam, and
+    XBox attributes.
+* QWord header property changes from i64 to u64 as some pointed out that
+  negative numbers didn't make sense for QWord properties (OnlineId)
+
 # v0.2.7 - April 22nd 2019
 
 * Update network parser to be compatible with v1.61 rocket league replays
