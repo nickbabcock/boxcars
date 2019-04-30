@@ -11,7 +11,7 @@ fn main() {
     let mut file = BufWriter::new(File::create(&path).unwrap());
 
     write!(&mut file, "use phf;\n ").unwrap();
-    write!(&mut file, "use crate::attributes::AttributeTag;\n ").unwrap();
+    write!(&mut file, "use crate::network::AttributeTag;\n ").unwrap();
     write!(&mut file, "use crate::network::SpawnTrajectory;\n ").unwrap();
 
     write!(&mut file, "pub static SPAWN_STATS: phf::Map<&'static str, SpawnTrajectory> = ").unwrap();

@@ -1,4 +1,4 @@
-use crate::attributes::Attribute;
+use crate::network::attributes::Attribute;
 use bitter::BitGet;
 use std::fmt;
 
