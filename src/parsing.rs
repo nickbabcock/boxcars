@@ -1104,7 +1104,7 @@ impl<'a> Parser<'a> {
     fn byte_property(&mut self) -> Result<HeaderProp<'a>, ParseError> {
         // It's unknown (to me at least) why the byte property has two strings in it.
         self.take(8, |_d| ())?;
-        if self.parse_str()?.deref() != "OnlinePlatform_Steam" {
+        if self.parse_str()? != "OnlinePlatform_Steam" {
             self.parse_str()?;
         }
         Ok(HeaderProp::Byte)
