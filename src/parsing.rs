@@ -1076,8 +1076,7 @@ impl<'a> Parser<'a> {
                 break;
             }
 
-            let a = self.parse_str()?;
-            let val = match a {
+            let val = match self.parse_str()? {
                 "ArrayProperty" => self.array_property(),
                 "BoolProperty" => self.bool_property(),
                 "ByteProperty" => self.byte_property(),
