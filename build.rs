@@ -103,7 +103,7 @@ fn main() {
     write!(&mut file, ";\n").unwrap();
 
 
-    write!(&mut file, "pub static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = ").unwrap();
+    write!(&mut file, "pub (crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = ").unwrap();
     phf_codegen::Map::new()
         .entry("Engine.Actor:bBlockActors", "AttributeTag::Boolean")
         .entry("Engine.Actor:bCollideActors", "AttributeTag::Boolean")

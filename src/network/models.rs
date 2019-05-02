@@ -268,7 +268,7 @@ impl Trajectory {
 /// `stadium_foggy_p.TheWorld:PersistentLevel.VehiclePickup_Boost_TA_30` should be normalized to
 /// `TheWorld:PersistentLevel.VehiclePickup_Boost_TA` so that we don't have to work around each
 /// stadium and pickup that is released.
-pub fn normalize_object(name: &str) -> &str {
+pub(crate) fn normalize_object(name: &str) -> &str {
     if name.contains("TheWorld:PersistentLevel.CrowdActor_TA") {
         "TheWorld:PersistentLevel.CrowdActor_TA"
     } else if name.contains("TheWorld:PersistentLevel.CrowdManager_TA") {

@@ -12,7 +12,7 @@ use fnv::FnvHashMap;
 use std::collections::HashMap;
 use std::ops::Deref;
 
-pub struct FrameDecoder<'a, 'b: 'a> {
+pub(crate) struct FrameDecoder<'a, 'b: 'a> {
     pub frames_len: usize,
     pub product_decoder: ProductValueDecoder,
     pub channel_bits: i32,

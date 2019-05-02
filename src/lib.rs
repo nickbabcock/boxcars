@@ -70,7 +70,8 @@ extern crate serde;
 extern crate serde_json;
 
 pub use self::models::*;
-pub use self::network::{Frame, NewActor, Rotation, Trajectory, UpdatedAttribute, Vector};
+pub use self::network::attributes::Attribute;
+pub use self::network::*;
 pub use self::parser::{CrcCheck, NetworkParse, ParserBuilder};
 mod core_parser;
 pub mod crc;

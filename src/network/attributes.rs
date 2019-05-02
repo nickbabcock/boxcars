@@ -6,7 +6,7 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AttributeTag {
+pub(crate) enum AttributeTag {
     Boolean,
     Byte,
     AppliedDamage,
@@ -90,111 +90,111 @@ pub enum Attribute {
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct CamSettings {
-    fov: f32,
-    height: f32,
-    angle: f32,
-    distance: f32,
-    swiftness: f32,
-    swivel: f32,
-    transition: Option<f32>,
+    pub fov: f32,
+    pub height: f32,
+    pub angle: f32,
+    pub distance: f32,
+    pub swiftness: f32,
+    pub swivel: f32,
+    pub transition: Option<f32>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct ClubColors {
-    blue_flag: bool,
-    blue_color: u8,
-    orange_flag: bool,
-    orange_color: u8,
+    pub blue_flag: bool,
+    pub blue_color: u8,
+    pub orange_flag: bool,
+    pub orange_color: u8,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct Demolish {
-    attacker_flag: bool,
-    attacker_actor_id: u32,
-    victim_flag: bool,
-    victim_actor_id: u32,
-    attack_velocity: Vector,
-    victim_velocity: Vector,
+    pub attacker_flag: bool,
+    pub attacker_actor_id: u32,
+    pub victim_flag: bool,
+    pub victim_actor_id: u32,
+    pub attack_velocity: Vector,
+    pub victim_velocity: Vector,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct Explosion {
-    flag: bool,
-    actor_id: u32,
-    location: Vector,
+    pub flag: bool,
+    pub actor_id: u32,
+    pub location: Vector,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct Loadout {
-    version: u8,
-    body: u32,
-    decal: u32,
-    wheels: u32,
-    rocket_trail: u32,
-    antenna: u32,
-    topper: u32,
-    unknown1: u32,
-    unknown2: Option<u32>,
-    engine_audio: Option<u32>,
-    trail: Option<u32>,
-    goal_explosion: Option<u32>,
-    banner: Option<u32>,
-    unknown3: Option<u32>,
+    pub version: u8,
+    pub body: u32,
+    pub decal: u32,
+    pub wheels: u32,
+    pub rocket_trail: u32,
+    pub antenna: u32,
+    pub topper: u32,
+    pub unknown1: u32,
+    pub unknown2: Option<u32>,
+    pub engine_audio: Option<u32>,
+    pub trail: Option<u32>,
+    pub goal_explosion: Option<u32>,
+    pub banner: Option<u32>,
+    pub unknown3: Option<u32>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct TeamLoadout {
-    blue: Loadout,
-    orange: Loadout,
+    pub blue: Loadout,
+    pub orange: Loadout,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct MusicStinger {
-    flag: bool,
-    cue: u32,
-    trigger: u8,
+    pub flag: bool,
+    pub cue: u32,
+    pub trigger: u8,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct Pickup {
-    instigator_id: Option<u32>,
-    picked_up: bool,
+    pub instigator_id: Option<u32>,
+    pub picked_up: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct Welded {
-    active: bool,
-    actor_id: u32,
-    offset: Vector,
-    mass: f32,
-    rotation: Rotation,
+    pub active: bool,
+    pub actor_id: u32,
+    pub offset: Vector,
+    pub mass: f32,
+    pub rotation: Rotation,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct TeamPaint {
-    team: u8,
-    primary_color: u8,
-    accent_color: u8,
-    primary_finish: u32,
-    accent_finish: u32,
+    pub team: u8,
+    pub primary_color: u8,
+    pub accent_color: u8,
+    pub primary_finish: u32,
+    pub accent_finish: u32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct RigidBody {
-    sleeping: bool,
-    location: Vector,
-    x: u16,
-    y: u16,
-    z: u16,
-    linear_velocity: Option<Vector>,
-    angular_velocity: Option<Vector>,
+    pub sleeping: bool,
+    pub location: Vector,
+    pub x: u16,
+    pub y: u16,
+    pub z: u16,
+    pub linear_velocity: Option<Vector>,
+    pub angular_velocity: Option<Vector>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct UniqueId {
-    system_id: u8,
-    remote_id: RemoteId,
-    local_id: u8,
+    pub system_id: u8,
+    pub remote_id: RemoteId,
+    pub local_id: u8,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -213,37 +213,37 @@ pub enum RemoteId {
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Reservation {
-    number: u32,
-    unique_id: UniqueId,
-    name: Option<String>,
-    unknown1: bool,
-    unknown2: bool,
-    unknown3: Option<u8>,
+    pub number: u32,
+    pub unique_id: UniqueId,
+    pub name: Option<String>,
+    pub unknown1: bool,
+    pub unknown2: bool,
+    pub unknown3: Option<u8>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct PrivateMatchSettings {
-    mutators: String,
-    joinable_by: u32,
-    max_players: u32,
-    game_name: String,
-    password: String,
-    flag: bool,
+    pub mutators: String,
+    pub joinable_by: u32,
+    pub max_players: u32,
+    pub game_name: String,
+    pub password: String,
+    pub flag: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Product {
-    unknown: bool,
-    object_ind: u32,
-    value: ProductValue,
+    pub unknown: bool,
+    pub object_ind: u32,
+    pub value: ProductValue,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct LoadoutsOnline {
-    blue: Vec<Vec<Product>>,
-    orange: Vec<Vec<Product>>,
-    unknown1: bool,
-    unknown2: bool,
+    pub blue: Vec<Vec<Product>>,
+    pub orange: Vec<Vec<Product>>,
+    pub unknown1: bool,
+    pub unknown2: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -261,7 +261,7 @@ pub enum ProductValue {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ProductValueDecoder {
+pub(crate) struct ProductValueDecoder {
     version: VersionTriplet,
     color_ind: u32,
     painted_ind: u32,
@@ -334,7 +334,7 @@ impl ProductValueDecoder {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AttributeDecoder {
+pub(crate) struct AttributeDecoder {
     version: VersionTriplet,
     product_decoder: ProductValueDecoder,
 }
