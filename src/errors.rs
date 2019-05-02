@@ -1,5 +1,4 @@
-use crate::attributes::Attribute;
-use crate::network::{ActorId, ObjectId, StreamId};
+use crate::network::{ActorId, Attribute, ObjectId, StreamId};
 use std::str;
 
 #[derive(PartialEq, Debug, Clone, Fail)]

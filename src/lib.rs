@@ -71,13 +71,15 @@ extern crate serde_json;
 
 pub use self::models::*;
 pub use self::network::{Frame, NewActor, Rotation, Trajectory, UpdatedAttribute, Vector};
-pub use self::parsing::{CrcCheck, NetworkParse, ParserBuilder};
-mod attributes;
+pub use self::parser::{CrcCheck, NetworkParse, ParserBuilder};
+mod core_parser;
 pub mod crc;
 mod errors;
+mod header;
 mod models;
 mod network;
-mod parsing;
+mod parser;
+mod parsing_utils;
 mod serde_utils;
 
 #[cfg_attr(feature = "cargo-clippy", allow(clippy::all))]

@@ -1,6 +1,6 @@
 use crate::errors::AttributeError;
-use crate::network::{ObjectId, Rotation, Vector};
-use crate::parsing::{decode_utf16, decode_windows1252, VersionTriplet};
+use crate::network::{ObjectId, Rotation, Vector, VersionTriplet};
+use crate::parsing_utils::{decode_utf16, decode_windows1252};
 use bitter::BitGet;
 use std::borrow::Cow;
 use std::collections::HashMap;

@@ -120,7 +120,7 @@ pub struct CacheProp {
     pub stream_id: i32,
 }
 
-/// Contains useful information when decoding the network stream, which we aren't
+/// Contains useful information when decoding the network stream
 #[derive(Serialize, PartialEq, Debug, Clone)]
 pub struct ClassNetCache {
     /// The index that the object appears in the `Replay::objects`
