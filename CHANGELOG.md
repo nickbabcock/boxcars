@@ -1,4 +1,9 @@
-# v0.2.8 - APril 25th 2019
+# v0.3.0 - May 2nd 2019
+
+* Minor version bump as the network API grew significantly. A lot of the network attributes were publicly opaque, so while one could access all the members (and write them out as JSON for instance) there was no way to access individual fields on these attributes (like RigidBody::sleeping was inaccessible). Hiding these fields was an oversight and has been fixed.
+* Update encoding_rs from 0.7 to 0.8 (no discernible changes should be expected)
+
+# v0.2.8 - April 25th 2019
 
 * Serialize 64bit numbers as strings, so that JSON parsers don't lose any data
   in parsing them as 64bit floating point
