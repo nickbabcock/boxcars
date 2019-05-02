@@ -1,8 +1,7 @@
-pub use attributes::*;
-pub use frame_decoder::*;
+pub(crate) use attributes::*;
 pub use models::*;
 
-mod attributes;
+pub mod attributes;
 mod frame_decoder;
 mod models;
 
@@ -19,20 +18,20 @@ use multimap::MultiMap;
 use std::collections::HashMap;
 use std::ops::Deref;
 
-pub struct CacheInfo {
+pub(crate) struct CacheInfo {
     max_prop_id: i32,
     prop_id_bits: i32,
     attributes: FnvHashMap<StreamId, AttributeTag>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ObjectAttribute {
+pub(crate) struct ObjectAttribute {
     attribute: AttributeTag,
     object_id: ObjectId,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct VersionTriplet(pub i32, pub i32, pub i32);
+pub(crate) struct VersionTriplet(pub i32, pub i32, pub i32);
 
 impl VersionTriplet {
     pub fn net_version(&self) -> i32 {
@@ -40,7 +39,7 @@ impl VersionTriplet {
     }
 }
 
-pub fn parse(header: &Header, body: &ReplayBody) -> Result<NetworkFrames, Error> {
+pub(crate) fn parse(header: &Header, body: &ReplayBody) -> Result<NetworkFrames, Error> {
     let version = VersionTriplet(
         header.major_version,
         header.minor_version,
