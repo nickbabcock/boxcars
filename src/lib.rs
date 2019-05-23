@@ -53,16 +53,12 @@
 
 #![recursion_limit = "1000"]
 
-extern crate bitter;
-extern crate byteorder;
-extern crate encoding_rs;
 #[macro_use]
 extern crate failure;
-extern crate fnv;
+
 #[macro_use]
 extern crate if_chain;
-extern crate multimap;
-extern crate phf;
+
 #[macro_use]
 extern crate serde;
 

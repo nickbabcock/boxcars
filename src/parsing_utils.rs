@@ -41,7 +41,7 @@ pub fn decode_str(input: &[u8]) -> Result<&str, ParseError> {
     }
 }
 
-pub fn decode_utf16(input: &[u8]) -> Result<Cow<str>, ParseError> {
+pub fn decode_utf16(input: &[u8]) -> Result<Cow<'_, str>, ParseError> {
     if input.len() < 2 {
         Err(ParseError::ZeroSize)
     } else {
@@ -50,7 +50,7 @@ pub fn decode_utf16(input: &[u8]) -> Result<Cow<str>, ParseError> {
     }
 }
 
-pub fn decode_windows1252(input: &[u8]) -> Result<Cow<str>, ParseError> {
+pub fn decode_windows1252(input: &[u8]) -> Result<Cow<'_, str>, ParseError> {
     if input.is_empty() {
         Err(ParseError::ZeroSize)
     } else {

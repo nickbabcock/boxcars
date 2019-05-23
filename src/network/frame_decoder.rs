@@ -123,7 +123,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
 
     fn parse_new_actor(
         &self,
-        mut bits: &mut BitGet,
+        mut bits: &mut BitGet<'_>,
         actor_id: ActorId,
     ) -> Result<NewActor, NetworkError> {
         if_chain! {
@@ -156,7 +156,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
     fn decode_frame(
         &self,
         attr_decoder: &AttributeDecoder,
-        mut bits: &mut BitGet,
+        mut bits: &mut BitGet<'_>,
         actors: &mut FnvHashMap<ActorId, ObjectId>,
         time: f32,
         delta: f32,

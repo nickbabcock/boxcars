@@ -1,7 +1,6 @@
-extern crate boxcars;
 #[macro_use]
 extern crate criterion;
-extern crate serde_json;
+use serde_json;
 
 use boxcars::crc::calc_crc;
 use boxcars::*;

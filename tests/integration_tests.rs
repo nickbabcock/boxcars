@@ -1,4 +1,3 @@
-extern crate boxcars;
 use boxcars::ParserBuilder;
 
 macro_rules! frame_len_test {

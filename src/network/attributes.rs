@@ -303,7 +303,7 @@ impl ProductValueDecoder {
         }
     }
 
-    pub fn decode(&self, bits: &mut BitGet, obj_ind: u32) -> Option<ProductValue> {
+    pub fn decode(&self, bits: &mut BitGet<'_>, obj_ind: u32) -> Option<ProductValue> {
         if obj_ind == self.color_ind {
             if self.version >= VersionTriplet(868, 23, 8) {
                 bits.read_u32().map(ProductValue::NewColor)
@@ -350,7 +350,7 @@ impl AttributeDecoder {
     pub fn decode(
         &self,
         tag: AttributeTag,
-        bits: &mut BitGet,
+        bits: &mut BitGet<'_>,
     ) -> Result<Attribute, AttributeError> {
         match tag {
             AttributeTag::Boolean => self.decode_boolean(bits),
@@ -392,7 +392,7 @@ impl AttributeDecoder {
         }
     }
 
-    pub fn decode_byte(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_byte(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         bits.read_u8()
             .map(Attribute::Byte)
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Byte"))
@@ -400,14 +400,14 @@ impl AttributeDecoder {
 
     pub fn decode_player_history_key(
         &self,
-        bits: &mut BitGet,
+        bits: &mut BitGet<'_>,
     ) -> Result<Attribute, AttributeError> {
         bits.read_u32_bits(14)
             .map(|x| Attribute::PlayerHistoryKey(x as u16))
             .ok_or_else(|| AttributeError::NotEnoughDataFor("PlayerHistoryKey"))
     }
 
-    pub fn decode_flagged_byte(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_flagged_byte(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         if_chain! {
             if let Some(b) = bits.read_bit();
             if let Some(data) = bits.read_u8();
@@ -419,13 +419,16 @@ impl AttributeDecoder {
         }
     }
 
-    pub fn decode_boolean(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_boolean(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         bits.read_bit()
             .map(Attribute::Boolean)
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Boolean"))
     }
 
-    pub fn decode_applied_damage(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_applied_damage(
+        &self,
+        bits: &mut BitGet<'_>,
+    ) -> Result<Attribute, AttributeError> {
         if_chain! {
             if let Some(a) = bits.read_u8();
             if let Some(vector) = Vector::decode(bits, self.version.net_version());
@@ -439,7 +442,7 @@ impl AttributeDecoder {
         }
     }
 
-    pub fn decode_damage_state(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_damage_state(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         if_chain! {
             if let Some(da) = bits.read_u8();
             if let Some(db) = bits.read_bit();
@@ -455,7 +458,7 @@ impl AttributeDecoder {
         }
     }
 
-    pub fn decode_cam_settings(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_cam_settings(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         if_chain! {
             if let Some(fov) = bits.read_f32();
             if let Some(height) = bits.read_f32();
@@ -485,7 +488,7 @@ impl AttributeDecoder {
         }
     }
 
-    pub fn decode_club_colors(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_club_colors(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         if_chain! {
             if let Some(blue_flag) = bits.read_bit();
             if let Some(blue_color) = bits.read_u8();
@@ -504,7 +507,7 @@ impl AttributeDecoder {
         }
     }
 
-    pub fn decode_demolish(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_demolish(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         if_chain! {
             if let Some(attacker_flag) = bits.read_bit();
             if let Some(attacker_actor_id) = bits.read_u32();
@@ -527,19 +530,19 @@ impl AttributeDecoder {
         }
     }
 
-    pub fn decode_enum(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_enum(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         bits.read_u32_bits(11)
             .map(|x| Attribute::Enum(x as u16))
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Enum"))
     }
 
-    pub fn decode_explosion(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_explosion(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         decode_explosion(bits, self.version.net_version())
             .map(Attribute::Explosion)
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Explosion"))
     }
 
-    pub fn decode_stat_event(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_stat_event(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         if_chain! {
             if let Some(u1) = bits.read_bit();
             if let Some(id) = bits.read_u32();
@@ -553,7 +556,7 @@ impl AttributeDecoder {
 
     pub fn decode_extended_explosion(
         &self,
-        bits: &mut BitGet,
+        bits: &mut BitGet<'_>,
     ) -> Result<Attribute, AttributeError> {
         if_chain! {
             if let Some(explosion) = decode_explosion(bits, self.version.net_version());
@@ -567,7 +570,7 @@ impl AttributeDecoder {
         }
     }
 
-    pub fn decode_flagged(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_flagged(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         if_chain! {
             if let Some(on) = bits.read_bit();
             if let Some(val) = bits.read_u32();
@@ -579,13 +582,13 @@ impl AttributeDecoder {
         }
     }
 
-    pub fn decode_float(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_float(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         bits.read_f32()
             .map(Attribute::Float)
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Float"))
     }
 
-    pub fn decode_game_mode(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_game_mode(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         let init: u8 = if self.version < VersionTriplet(868, 12, 0) {
             2
         } else {
@@ -597,25 +600,25 @@ impl AttributeDecoder {
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Game Mode"))
     }
 
-    pub fn decode_int(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_int(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         bits.read_i32()
             .map(Attribute::Int)
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Int"))
     }
 
-    pub fn decode_int64(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_int64(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         bits.read_i64()
             .map(Attribute::Int64)
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Int64"))
     }
 
-    pub fn decode_loadout(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_loadout(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         decode_loadout(bits)
             .map(Attribute::Loadout)
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Loadout"))
     }
 
-    pub fn decode_team_loadout(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_team_loadout(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         if_chain! {
             if let Some(blue) = decode_loadout(bits);
             if let Some(orange) = decode_loadout(bits);
@@ -630,13 +633,13 @@ impl AttributeDecoder {
         }
     }
 
-    pub fn decode_location(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_location(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         Vector::decode(bits, self.version.net_version())
             .map(Attribute::Location)
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Location"))
     }
 
-    pub fn decode_music_stinger(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_music_stinger(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         if_chain! {
             if let Some(flag) = bits.read_bit();
             if let Some(cue) = bits.read_u32();
@@ -653,7 +656,7 @@ impl AttributeDecoder {
         }
     }
 
-    pub fn decode_pickup(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_pickup(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         if_chain! {
             if let Some(instigator_id) = bits.if_get(BitGet::read_u32);
             if let Some(picked_up) = bits.read_bit();
@@ -668,13 +671,13 @@ impl AttributeDecoder {
         }
     }
 
-    pub fn decode_qword(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_qword(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         bits.read_u64()
             .map(Attribute::QWord)
             .ok_or_else(|| AttributeError::NotEnoughDataFor("QWord"))
     }
 
-    pub fn decode_welded(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_welded(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         if_chain! {
             if let Some(active) = bits.read_bit();
             if let Some(actor_id) = bits.read_u32();
@@ -695,7 +698,7 @@ impl AttributeDecoder {
         }
     }
 
-    pub fn decode_title(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_title(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         if_chain! {
             if let Some(unknown1) = bits.read_bit();
             if let Some(unknown2) = bits.read_bit();
@@ -722,7 +725,7 @@ impl AttributeDecoder {
         }
     }
 
-    pub fn decode_team_paint(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_team_paint(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         if_chain! {
             if let Some(team) = bits.read_u8();
             if let Some(primary_color) = bits.read_u8();
@@ -743,7 +746,7 @@ impl AttributeDecoder {
         }
     }
 
-    pub fn decode_rigid_body(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_rigid_body(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         if_chain! {
             if let Some(sleeping) = bits.read_bit();
             if let Some(location) = Vector::decode(bits, self.version.net_version());
@@ -789,19 +792,22 @@ impl AttributeDecoder {
         }
     }
 
-    pub fn decode_not_implemented(&self, _bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_not_implemented(
+        &self,
+        _bits: &mut BitGet<'_>,
+    ) -> Result<Attribute, AttributeError> {
         Err(AttributeError::Unimplemented)
     }
 
-    pub fn decode_string(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_string(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         Ok(Attribute::String(decode_text(bits)?))
     }
 
-    pub fn decode_unique_id(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_unique_id(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         decode_unique_id(bits, self.version.net_version()).map(Attribute::UniqueId)
     }
 
-    pub fn decode_reservation(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_reservation(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         if_chain! {
             if let Some(number) = bits.read_u32_bits(3);
             let unique = decode_unique_id(bits, self.version.net_version())?;
@@ -834,7 +840,7 @@ impl AttributeDecoder {
         }
     }
 
-    pub fn decode_party_leader(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_party_leader(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         if let Some(system_id) = bits.read_u8() {
             if system_id != 0 {
                 let id =
@@ -850,7 +856,7 @@ impl AttributeDecoder {
 
     pub fn decode_private_match_settings(
         &self,
-        bits: &mut BitGet,
+        bits: &mut BitGet<'_>,
     ) -> Result<Attribute, AttributeError> {
         if_chain! {
             let mutators = decode_text(bits)?;
@@ -875,13 +881,19 @@ impl AttributeDecoder {
         }
     }
 
-    pub fn decode_loadout_online(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_loadout_online(
+        &self,
+        bits: &mut BitGet<'_>,
+    ) -> Result<Attribute, AttributeError> {
         self.inner_decode_online_loadout(bits)
             .map(Attribute::LoadoutOnline)
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Loadout Online"))
     }
 
-    pub fn decode_loadouts_online(&self, bits: &mut BitGet) -> Result<Attribute, AttributeError> {
+    pub fn decode_loadouts_online(
+        &self,
+        bits: &mut BitGet<'_>,
+    ) -> Result<Attribute, AttributeError> {
         if_chain! {
             if let Some(blue) = self.inner_decode_online_loadout(bits);
             if let Some(orange) = self.inner_decode_online_loadout(bits);
@@ -900,7 +912,7 @@ impl AttributeDecoder {
         }
     }
 
-    fn decode_product(&self, bits: &mut BitGet) -> Option<Product> {
+    fn decode_product(&self, bits: &mut BitGet<'_>) -> Option<Product> {
         if_chain! {
             if let Some(unknown) = bits.read_bit();
             if let Some(obj_ind) = bits.read_u32();
@@ -918,7 +930,7 @@ impl AttributeDecoder {
         }
     }
 
-    fn inner_decode_online_loadout(&self, bits: &mut BitGet) -> Option<Vec<Vec<Product>>> {
+    fn inner_decode_online_loadout(&self, bits: &mut BitGet<'_>) -> Option<Vec<Vec<Product>>> {
         if let Some(size) = bits.read_u8() {
             let mut res = Vec::with_capacity(size as usize);
             for _ in 0..size {
@@ -943,7 +955,7 @@ impl AttributeDecoder {
     }
 }
 
-fn decode_explosion(bits: &mut BitGet, net_version: i32) -> Option<Explosion> {
+fn decode_explosion(bits: &mut BitGet<'_>, net_version: i32) -> Option<Explosion> {
     if_chain! {
         if let Some(flag) = bits.read_bit();
         if let Some(actor_id) = bits.read_u32();
@@ -960,7 +972,7 @@ fn decode_explosion(bits: &mut BitGet, net_version: i32) -> Option<Explosion> {
     }
 }
 
-fn decode_text(bits: &mut BitGet) -> Result<String, AttributeError> {
+fn decode_text(bits: &mut BitGet<'_>) -> Result<String, AttributeError> {
     let size = bits
         .read_i32()
         .ok_or_else(|| AttributeError::NotEnoughDataFor("text string"))?;
@@ -980,7 +992,9 @@ fn decode_text(bits: &mut BitGet) -> Result<String, AttributeError> {
     }
 }
 
-fn decode_loadout_specials(bits: &mut BitGet) -> Option<(Option<u32>, Option<u32>, Option<u32>)> {
+fn decode_loadout_specials(
+    bits: &mut BitGet<'_>,
+) -> Option<(Option<u32>, Option<u32>, Option<u32>)> {
     if_chain! {
         if let Some(engine_audio) = bits.read_u32();
         if let Some(trail) = bits.read_u32();
@@ -993,7 +1007,7 @@ fn decode_loadout_specials(bits: &mut BitGet) -> Option<(Option<u32>, Option<u32
     }
 }
 
-fn decode_loadout(bits: &mut BitGet) -> Option<Loadout> {
+fn decode_loadout(bits: &mut BitGet<'_>) -> Option<Loadout> {
     if_chain! {
         if let Some(version) = bits.read_u8();
         if let Some(body) = bits.read_u32();
@@ -1059,7 +1073,7 @@ fn decode_loadout(bits: &mut BitGet) -> Option<Loadout> {
     }
 }
 
-fn decode_unique_id(bits: &mut BitGet, net_version: i32) -> Result<UniqueId, AttributeError> {
+fn decode_unique_id(bits: &mut BitGet<'_>, net_version: i32) -> Result<UniqueId, AttributeError> {
     let system_id = bits
         .read_u8()
         .ok_or_else(|| AttributeError::NotEnoughDataFor("System id"))?;
@@ -1067,7 +1081,7 @@ fn decode_unique_id(bits: &mut BitGet, net_version: i32) -> Result<UniqueId, Att
 }
 
 fn decode_unique_id_with_system_id(
-    bits: &mut BitGet,
+    bits: &mut BitGet<'_>,
     net_version: i32,
     system_id: u8,
 ) -> Result<UniqueId, AttributeError> {

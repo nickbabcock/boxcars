@@ -1,5 +1,4 @@
-extern crate boxcars;
-use boxcars::ParserBuilder;
+use boxcars::{self, ParserBuilder};
 
 #[test]
 fn test_sample1() {

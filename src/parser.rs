@@ -284,8 +284,8 @@ impl<'a> Parser<'a> {
 
     fn parse_network(
         &mut self,
-        header: &Header,
-        body: &ReplayBody,
+        header: &Header<'_>,
+        body: &ReplayBody<'_>,
     ) -> Result<NetworkFrames, Error> {
         network::parse(header, body)
     }

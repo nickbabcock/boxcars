@@ -12,7 +12,7 @@ pub struct Vector {
 }
 
 impl Vector {
-    pub fn decode(bits: &mut BitGet, net_version: i32) -> Option<Vector> {
+    pub fn decode(bits: &mut BitGet<'_>, net_version: i32) -> Option<Vector> {
         if_chain! {
             if let Some(size_bits) = bits.read_bits_max(5, if net_version >= 7 { 22 } else { 20 });
             let bias = 1 << (size_bits + 1);
@@ -33,7 +33,7 @@ impl Vector {
         }
     }
 
-    pub fn decode_unchecked(bits: &mut BitGet, net_version: i32) -> Vector {
+    pub fn decode_unchecked(bits: &mut BitGet<'_>, net_version: i32) -> Vector {
         let size_bits = bits.read_bits_max_unchecked(5, if net_version >= 7 { 22 } else { 20 });
         let bias = 1 << (size_bits + 1);
         let bit_limit = (size_bits + 2) as i32;
@@ -58,7 +58,7 @@ pub struct Rotation {
 }
 
 impl Rotation {
-    pub fn decode(bits: &mut BitGet) -> Option<Rotation> {
+    pub fn decode(bits: &mut BitGet<'_>) -> Option<Rotation> {
         if_chain! {
             if let Some(yaw) = bits.if_get(BitGet::read_i8);
             if let Some(pitch) = bits.if_get(BitGet::read_i8);
@@ -75,7 +75,7 @@ impl Rotation {
         }
     }
 
-    pub fn decode_unchecked(bits: &mut BitGet) -> Rotation {
+    pub fn decode_unchecked(bits: &mut BitGet<'_>) -> Rotation {
         let yaw = bits.if_get_unchecked(BitGet::read_i8_unchecked);
         let pitch = bits.if_get_unchecked(BitGet::read_i8_unchecked);
         let roll = bits.if_get_unchecked(BitGet::read_i8_unchecked);
@@ -144,7 +144,7 @@ impl From<ObjectId> for usize {
 }
 
 impl fmt::Display for ObjectId {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
     }
 }
@@ -162,7 +162,7 @@ impl From<StreamId> for i32 {
 }
 
 impl fmt::Display for StreamId {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
     }
 }
@@ -179,7 +179,7 @@ impl From<ActorId> for i32 {
 }
 
 impl fmt::Display for ActorId {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
     }
 }
@@ -209,7 +209,7 @@ pub struct Trajectory {
 
 impl Trajectory {
     pub fn from_spawn(
-        bits: &mut BitGet,
+        bits: &mut BitGet<'_>,
         sp: SpawnTrajectory,
         net_version: i32,
     ) -> Option<Trajectory> {
@@ -240,7 +240,7 @@ impl Trajectory {
     }
 
     pub fn from_spawn_unchecked(
-        bits: &mut BitGet,
+        bits: &mut BitGet<'_>,
         sp: SpawnTrajectory,
         net_version: i32,
     ) -> Trajectory {
