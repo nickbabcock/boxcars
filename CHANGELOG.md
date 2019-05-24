@@ -1,6 +1,7 @@
 # v0.3.1 - May 23rd 2019
 
 - Fix compilation edge case
+- Update if_chain requirement from 0.1 to 1.0
 
 # v0.3.0 - May 2nd 2019
 
