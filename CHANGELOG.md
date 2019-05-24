@@ -1,3 +1,7 @@
+# v0.3.1 - May 23rd 2019
+
+- Fix compilation edge case
+
 # v0.3.0 - May 2nd 2019
 
 * Minor version bump as the network API grew significantly. A lot of the network attributes were publicly opaque, so while one could access all the members (and write them out as JSON for instance) there was no way to access individual fields on these attributes (like RigidBody::sleeping was inaccessible). Hiding these fields was an oversight and has been fixed.
