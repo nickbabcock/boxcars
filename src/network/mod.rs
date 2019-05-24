@@ -1,5 +1,5 @@
-pub(crate) use attributes::*;
-pub use models::*;
+pub(crate) use self::attributes::*;
+pub use self::models::*;
 
 pub mod attributes;
 mod frame_decoder;

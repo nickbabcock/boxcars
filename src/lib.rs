@@ -62,9 +62,6 @@ extern crate if_chain;
 #[macro_use]
 extern crate serde;
 
-#[cfg(test)]
-extern crate serde_json;
-
 pub use self::models::*;
 pub use self::network::attributes::Attribute;
 pub use self::network::*;
