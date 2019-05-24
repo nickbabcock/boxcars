@@ -1,3 +1,8 @@
+# v0.3.2 - May 24th 2019
+
+- Update multimap requirement from 0.4 to 0.5
+- Bugfix for newer replays with reservations involving psynet players
+
 # v0.3.1 - May 23rd 2019
 
 - Fix compilation edge case
