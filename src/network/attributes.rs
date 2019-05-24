@@ -1112,7 +1112,7 @@ fn decode_unique_id_with_system_id(
             .map(Cow::into_owned)
             .map(RemoteId::Switch),
         7 => bits
-            .read_bytes(32)
+            .read_bytes(if net_version >= 10 { 8 } else { 32 })
             .ok_or_else(|| AttributeError::NotEnoughDataFor("PsyNet"))
             .map(Cow::into_owned)
             .map(RemoteId::PsyNet),
