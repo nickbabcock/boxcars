@@ -1,4 +1,5 @@
 use boxcars::{self, ParserBuilder};
+use std::borrow::Cow;
 
 #[test]
 fn test_sample1() {
@@ -49,4 +50,100 @@ fn test_sample1() {
 
     let first_stream_id: boxcars::StreamId = first_update.stream_id;
     assert_eq!(31, first_stream_id.0);
+}
+
+fn extract_online_id(replay: &boxcars::Replay<'_>, user: &str) -> (u64, boxcars::attributes::RemoteId) {
+    let (_, stats) = replay
+        .properties
+        .iter()
+        .find(|(prop, _)| *prop == "PlayerStats")
+        .unwrap();
+
+    let online_id = match stats {
+        boxcars::HeaderProp::Array(arr) => {
+            let our_player = arr
+                .iter()
+                .find(|properties| {
+                    properties
+                        .iter()
+                        .find(|(prop, val)| {
+                            *prop == "Name"
+                                && *val == boxcars::HeaderProp::Str(Cow::Borrowed(user))
+                        })
+                        .is_some()
+                })
+                .unwrap();
+
+            let (_, online_id) = our_player
+                .iter()
+                .find(|(prop, _val)| *prop == "OnlineID")
+                .unwrap();
+            if let boxcars::HeaderProp::QWord(oid) = online_id {
+                *oid
+            } else {
+                panic!("unexpected property");
+            }
+        }
+        _ => panic!("Expected array"),
+    };
+
+
+    let frames = &replay.network_frames.as_ref().unwrap().frames;
+    let reservation = frames
+        .iter()
+        .flat_map(|x| {
+            x.updated_actors.iter().filter_map(|x| {
+                if let boxcars::Attribute::Reservation(r) = &x.attribute {
+                    if r.name.as_ref().map(|x| x == user).unwrap_or(false) {
+                        Some(dbg!(&r.unique_id.remote_id))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            })
+        })
+        .last()
+        .unwrap();
+
+    (online_id, reservation.clone())
+}
+
+#[test]
+fn test_long_psynet_id() {
+    let data = include_bytes!("../assets/replays/good/d52eb.replay");
+    let replay = ParserBuilder::new(&data[..])
+        .always_check_crc()
+        .must_parse_network_data()
+        .parse()
+        .unwrap();
+
+    let (header_oid, network_oid) = extract_online_id(&replay, "FunFactJac");
+    assert_eq!(15633594671552264637, header_oid);
+
+    if let boxcars::attributes::RemoteId::PsyNet(psy) = network_oid {
+        assert_eq!(header_oid, psy.online_id);
+    } else {
+        panic!("Needed psynet remote_id");
+    }
+}
+
+#[test]
+fn test_short_psynet_id() {
+    let data = include_bytes!("../assets/replays/good/60dfe.replay");
+    let replay = ParserBuilder::new(&data[..])
+        .always_check_crc()
+        .must_parse_network_data()
+        .parse()
+        .unwrap();
+
+    let (header_oid, network_oid) = extract_online_id(&replay, "Shope");
+    assert_eq!(18091002852234862424, header_oid);
+
+    if let boxcars::attributes::RemoteId::PsyNet(psy) = network_oid {
+        assert_eq!(header_oid, psy.online_id);
+    } else {
+        panic!("Needed psynet remote_id");
+    }
 }

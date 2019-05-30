@@ -197,10 +197,16 @@ pub struct UniqueId {
     pub local_id: u8,
 }
 
+#[derive(Debug, Default, Clone, PartialEq, Serialize)]
+pub struct PsyNetId {
+    pub online_id: u64,
+    unknown1: Vec<u8>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum RemoteId {
     PlayStation(Vec<u8>),
-    PsyNet(Vec<u8>),
+    PsyNet(PsyNetId),
     SplitScreen(u32),
 
     #[serde(serialize_with = "crate::serde_utils::display_it")]
@@ -1111,11 +1117,28 @@ fn decode_unique_id_with_system_id(
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Switch"))
             .map(Cow::into_owned)
             .map(RemoteId::Switch),
-        7 => bits
-            .read_bytes(if net_version >= 10 { 8 } else { 32 })
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("PsyNet"))
-            .map(Cow::into_owned)
-            .map(RemoteId::PsyNet),
+        7 => {
+            let online_id = bits
+                .read_u64()
+                .ok_or_else(|| AttributeError::NotEnoughDataFor("PsyNet ID"))?;
+
+            if net_version < 10 {
+                let unknown1 = bits
+                    .read_bytes(24)
+                    .ok_or_else(|| AttributeError::NotEnoughDataFor("PsyNet ID Unknown"))
+                    .map(Cow::into_owned)?;
+
+                Ok(RemoteId::PsyNet(PsyNetId {
+                    online_id,
+                    unknown1,
+                }))
+            } else {
+                Ok(RemoteId::PsyNet(PsyNetId {
+                    online_id,
+                    ..Default::default()
+                }))
+            }
+        }
         x => Err(AttributeError::UnrecognizedRemoteId(x)),
     }?;
 
