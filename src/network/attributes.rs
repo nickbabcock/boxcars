@@ -199,8 +199,9 @@ pub struct UniqueId {
 
 #[derive(Debug, Default, Clone, PartialEq, Serialize)]
 pub struct PsyNetId {
+    #[serde(serialize_with = "crate::serde_utils::display_it")]
     pub online_id: u64,
-    unknown1: Vec<u8>,
+    pub unknown1: Vec<u8>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
