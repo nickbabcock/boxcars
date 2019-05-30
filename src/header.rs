@@ -176,7 +176,7 @@ mod tests {
     #[test]
     fn rdict_one_element() {
         // dd skip=$((0x1269)) count=$((0x12a8 - 0x1269)) if=rumble.replay of=rdict_one.replay bs=1
-        let data = include_bytes!("../assets/rdict_one.replay");
+        let data = include_bytes!("../assets/replays/partial/rdict_one.replay");
         let mut parser = CoreParser::new(&data[..]);
         let res = parse_rdict(&mut parser).unwrap();
         assert_eq!(
@@ -188,7 +188,7 @@ mod tests {
     #[test]
     fn rdict_one_int_element() {
         // dd skip=$((0x250)) count=$((0x284 - 0x250)) if=rumble.replay of=rdict_int.replay bs=1
-        let data = include_bytes!("../assets/rdict_int.replay");
+        let data = include_bytes!("../assets/replays/partial/rdict_int.replay");
         let mut parser = CoreParser::new(&data[..]);
         let res = parse_rdict(&mut parser).unwrap();
         assert_eq!(res, vec![("PlayerTeam", HeaderProp::Int(0))]);
@@ -197,7 +197,7 @@ mod tests {
     #[test]
     fn rdict_one_bool_element() {
         // dd skip=$((0xa0f)) count=$((0xa3b - 0xa0f)) if=rumble.replay of=rdict_bool.replay bs=1
-        let data = include_bytes!("../assets/rdict_bool.replay");
+        let data = include_bytes!("../assets/replays/partial/rdict_bool.replay");
         let mut parser = CoreParser::new(&data[..]);
         let res = parse_rdict(&mut parser).unwrap();
         assert_eq!(res, vec![("bBot", HeaderProp::Bool(false))]);
@@ -214,7 +214,7 @@ mod tests {
     #[test]
     fn rdict_one_name_element() {
         // dd skip=$((0x1237)) count=$((0x1269 - 0x1237)) if=rumble.replay of=rdict_name.replay bs=1
-        let data = append_none(include_bytes!("../assets/rdict_name.replay"));
+        let data = append_none(include_bytes!("../assets/replays/partial/rdict_name.replay"));
         let mut parser = CoreParser::new(&data[..]);
         let res = parse_rdict(&mut parser).unwrap();
         assert_eq!(
@@ -226,7 +226,7 @@ mod tests {
     #[test]
     fn rdict_one_float_element() {
         // dd skip=$((0x10a2)) count=$((0x10ce - 0x10a2)) if=rumble.replay of=rdict_float.replay bs=1
-        let data = append_none(include_bytes!("../assets/rdict_float.replay"));
+        let data = append_none(include_bytes!("../assets/replays/partial/rdict_float.replay"));
         let mut parser = CoreParser::new(&data[..]);
         let res = parse_rdict(&mut parser).unwrap();
         assert_eq!(res, vec![("RecordFPS", HeaderProp::Float(30.0))]);
@@ -235,7 +235,7 @@ mod tests {
     #[test]
     fn rdict_one_qword_element() {
         // dd skip=$((0x576)) count=$((0x5a5 - 0x576)) if=rumble.replay of=rdict_qword.replay bs=1
-        let data = append_none(include_bytes!("../assets/rdict_qword.replay"));
+        let data = append_none(include_bytes!("../assets/replays/partial/rdict_qword.replay"));
         let mut parser = CoreParser::new(&data[..]);
         let res = parse_rdict(&mut parser).unwrap();
         assert_eq!(
@@ -247,7 +247,7 @@ mod tests {
     #[test]
     fn rdict_one_array_element() {
         // dd skip=$((0xab)) count=$((0x3f7 + 36)) if=rumble.replay of=rdict_array.replay bs=1
-        let data = append_none(include_bytes!("../assets/rdict_array.replay"));
+        let data = append_none(include_bytes!("../assets/replays/partial/rdict_array.replay"));
         let mut parser = CoreParser::new(&data[..]);
         let res = parse_rdict(&mut parser).unwrap();
         let expected = vec![
@@ -299,7 +299,7 @@ mod tests {
     #[test]
     fn rdict_one_byte_element() {
         // dd skip=$((0xdf0)) count=$((0xe41 - 0xdf0)) if=rumble.replay of=rdict_byte.replay bs=1
-        let data = append_none(include_bytes!("../assets/rdict_byte.replay"));
+        let data = append_none(include_bytes!("../assets/replays/partial/rdict_byte.replay"));
         let mut parser = CoreParser::new(&data[..]);
         let res = parse_rdict(&mut parser).unwrap();
         assert_eq!(res, vec![("Platform", HeaderProp::Byte)]);

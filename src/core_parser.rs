@@ -131,7 +131,7 @@ mod tests {
     #[test]
     fn parse_text_encoding() {
         // dd skip=16 count=28 if=rumble.replay of=text.replay bs=1
-        let data = include_bytes!("../assets/text.replay");
+        let data = include_bytes!("../assets/replays/partial/text.replay");
         let mut parser = CoreParser::new(&data[..]);
         assert_eq!(parser.parse_str().unwrap(), "TAGame.Replay_Soccar_TA");
     }
@@ -139,7 +139,7 @@ mod tests {
     #[test]
     fn parse_text_encoding_bad() {
         // dd skip=16 count=28 if=rumble.replay of=text.replay bs=1
-        let data = include_bytes!("../assets/text.replay");
+        let data = include_bytes!("../assets/replays/partial/text.replay");
         let mut parser = CoreParser::new(&data[..data.len() - 1]);
         let res = parser.parse_str();
         assert!(res.is_err());
@@ -160,7 +160,7 @@ mod tests {
     fn parse_text_encoding_bad_2() {
         // Test for when there is not enough data to decode text length
         // dd skip=16 count=28 if=rumble.replay of=text.replay bs=1
-        let data = include_bytes!("../assets/text.replay");
+        let data = include_bytes!("../assets/replays/partial/text.replay");
         let mut parser = CoreParser::new(&data[..2]);
         let res = parser.parse_str();
         assert!(res.is_err());
@@ -171,7 +171,7 @@ mod tests {
     #[test]
     fn parse_utf16_string() {
         // dd skip=((0x120)) count=28 if=utf-16.replay of=utf-16-text.replay bs=1
-        let data = include_bytes!("../assets/utf-16-text.replay");
+        let data = include_bytes!("../assets/replays/partial/utf-16-text.replay");
         let mut parser = CoreParser::new(&data[..]);
         let res = parser.parse_text().unwrap();
         assert_eq!(res, "\u{2623}D[e]!v1zz\u{2623}");
@@ -179,7 +179,7 @@ mod tests {
 
     #[test]
     fn test_windows1252_string() {
-        let data = include_bytes!("../assets/windows_1252.replay");
+        let data = include_bytes!("../assets/replays/partial/windows_1252.replay");
         let mut parser = CoreParser::new(&data[0x1ad..0x1c4]);
         let res = parser.parse_text().unwrap();
         assert_eq!(res, "caudillman6000\u{b3}(2)");

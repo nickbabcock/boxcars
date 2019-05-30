@@ -500,28 +500,28 @@ mod tests {
 
     #[test]
     fn test_the_parsing_text_too_long() {
-        let data = include_bytes!("../assets/fuzz-string-too-long.replay");
+        let data = include_bytes!("../assets/replays/bad/fuzz-string-too-long.replay");
         let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Never);
         assert!(parser.parse().is_err())
     }
 
     #[test]
     fn test_fuzz_corpus_slice_index() {
-        let data = include_bytes!("../assets/fuzz-slice-index.replay");
+        let data = include_bytes!("../assets/replays/bad/fuzz-slice-index.replay");
         let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Never);
         assert!(parser.parse().is_err())
     }
 
     #[test]
     fn test_the_fuzz_corpus_abs_panic() {
-        let data = include_bytes!("../assets/fuzz-corpus.replay");
+        let data = include_bytes!("../assets/replays/bad/fuzz-corpus.replay");
         let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Never);
         assert!(parser.parse().is_err())
     }
 
     #[test]
     fn test_the_fuzz_corpus_large_list() {
-        let data = include_bytes!("../assets/fuzz-list-too-large.replay");
+        let data = include_bytes!("../assets/replays/bad/fuzz-list-too-large.replay");
         let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Never);
         let err = parser.parse().unwrap_err();
         assert!(format!("{}", err)
@@ -530,7 +530,7 @@ mod tests {
 
     #[test]
     fn test_the_fuzz_corpus_large_list_on_error_crc() {
-        let data = include_bytes!("../assets/fuzz-list-too-large.replay");
+        let data = include_bytes!("../assets/replays/bad/fuzz-list-too-large.replay");
         let mut parser = Parser::new(&data[..], CrcCheck::OnError, NetworkParse::Never);
         let err = parser.parse().unwrap_err();
         assert_eq!(
@@ -544,7 +544,7 @@ mod tests {
 
     #[test]
     fn test_the_fuzz_corpus_large_list_always_crc() {
-        let data = include_bytes!("../assets/fuzz-list-too-large.replay");
+        let data = include_bytes!("../assets/replays/bad/fuzz-list-too-large.replay");
         let mut parser = Parser::new(&data[..], CrcCheck::Always, NetworkParse::Never);
         let err = parser.parse().unwrap_err();
         assert_eq!(
