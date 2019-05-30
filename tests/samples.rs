@@ -147,3 +147,22 @@ fn test_short_psynet_id() {
         panic!("Needed psynet remote_id");
     }
 }
+
+#[test]
+fn test_switch_id() {
+    let data = include_bytes!("../assets/replays/good/7083.replay");
+    let replay = ParserBuilder::new(&data[..])
+        .always_check_crc()
+        .must_parse_network_data()
+        .parse()
+        .unwrap();
+
+    let (header_oid, network_oid) = extract_online_id(&replay, "Leon");
+    assert_eq!(13979735202661301154, header_oid);
+
+    if let boxcars::attributes::RemoteId::Switch(switch) = network_oid {
+        assert_eq!(header_oid, switch.online_id);
+    } else {
+        panic!("Needed switch remote_id");
+    }
+}
