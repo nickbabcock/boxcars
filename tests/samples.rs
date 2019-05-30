@@ -2,7 +2,7 @@ use boxcars::{self, ParserBuilder};
 
 #[test]
 fn test_sample1() {
-    let data = include_bytes!("../assets/3d07e.replay");
+    let data = include_bytes!("../assets/replays/good/3d07e.replay");
     let replay = ParserBuilder::new(&data[..])
         .always_check_crc()
         .must_parse_network_data()

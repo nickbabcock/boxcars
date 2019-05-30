@@ -34,7 +34,7 @@
 //! use std::fs::File;
 //! use std::io::{self, Read};
 //! # fn main() {
-//! #    let filename = "assets/rumble.replay";
+//! #    let filename = "assets/replays/good/rumble.replay";
 //! #    run(filename).unwrap();
 //! # }
 //!

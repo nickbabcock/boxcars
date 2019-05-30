@@ -39,7 +39,7 @@ use std::fs::File;
 use std::io::{self, Read};
 
 fn run() -> Result<(), ::failure::Error> {
-    let filename = "assets/rumble.replay";
+    let filename = "assets/replays/good/rumble.replay";
     let mut f = File::open(filename)?;
     let mut buffer = vec![];
     f.read_to_end(&mut buffer)?;

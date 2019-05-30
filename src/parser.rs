@@ -458,7 +458,7 @@ mod tests {
 
     #[test]
     fn key_frame_list() {
-        let data = include_bytes!("../assets/rumble.replay");
+        let data = include_bytes!("../assets/replays/good/rumble.replay");
 
         // List is 2A long, each keyframe is 12 bytes. Then add four for list length = 508
         let mut parser = Parser::new(
@@ -472,7 +472,7 @@ mod tests {
 
     #[test]
     fn tickmark_list() {
-        let data = include_bytes!("../assets/rumble.replay");
+        let data = include_bytes!("../assets/replays/good/rumble.replay");
 
         // 7 tick marks at 8 bytes + size of tick list
         let mut parser = Parser::new(
@@ -556,7 +556,7 @@ mod tests {
 
     #[test]
     fn test_crc_check_with_bad() {
-        let mut data = include_bytes!("../assets/rumble.replay").to_vec();
+        let mut data = include_bytes!("../assets/replays/good/rumble.replay").to_vec();
 
         // Changing this byte won't make the parsing fail but will make the crc check fail
         data[4775] = 100;

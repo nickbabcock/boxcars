@@ -295,7 +295,7 @@ mod tests {
 
     #[test]
     fn crc_rumble_test() {
-        let data = include_bytes!("../assets/rumble.replay");
+        let data = include_bytes!("../assets/replays/good/rumble.replay");
         assert_eq!(calc_crc(&data[..]), 2034487435);
     }
 
