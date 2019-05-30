@@ -52,7 +52,10 @@ fn test_sample1() {
     assert_eq!(31, first_stream_id.0);
 }
 
-fn extract_online_id(replay: &boxcars::Replay<'_>, user: &str) -> (u64, boxcars::attributes::RemoteId) {
+fn extract_online_id(
+    replay: &boxcars::Replay<'_>,
+    user: &str,
+) -> (u64, boxcars::attributes::RemoteId) {
     let (_, stats) = replay
         .properties
         .iter()
@@ -67,8 +70,7 @@ fn extract_online_id(replay: &boxcars::Replay<'_>, user: &str) -> (u64, boxcars:
                     properties
                         .iter()
                         .find(|(prop, val)| {
-                            *prop == "Name"
-                                && *val == boxcars::HeaderProp::Str(Cow::Borrowed(user))
+                            *prop == "Name" && *val == boxcars::HeaderProp::Str(Cow::Borrowed(user))
                         })
                         .is_some()
                 })
@@ -87,7 +89,6 @@ fn extract_online_id(replay: &boxcars::Replay<'_>, user: &str) -> (u64, boxcars:
         _ => panic!("Expected array"),
     };
 
-
     let frames = &replay.network_frames.as_ref().unwrap().frames;
     let reservation = frames
         .iter()
@@ -95,7 +96,7 @@ fn extract_online_id(replay: &boxcars::Replay<'_>, user: &str) -> (u64, boxcars:
             x.updated_actors.iter().filter_map(|x| {
                 if let boxcars::Attribute::Reservation(r) = &x.attribute {
                     if r.name.as_ref().map(|x| x == user).unwrap_or(false) {
-                        Some(dbg!(&r.unique_id.remote_id))
+                        Some(&r.unique_id.remote_id)
                     } else {
                         None
                     }
@@ -164,5 +165,45 @@ fn test_switch_id() {
         assert_eq!(header_oid, switch.online_id);
     } else {
         panic!("Needed switch remote_id");
+    }
+}
+
+#[test]
+fn test_long_ps4_id() {
+    let data = include_bytes!("../assets/replays/good/159a4.replay");
+    let replay = ParserBuilder::new(&data[..])
+        .always_check_crc()
+        .must_parse_network_data()
+        .parse()
+        .unwrap();
+
+    let (header_oid, network_oid) = extract_online_id(&replay, "SyCoz-Chaos");
+    assert_eq!(3373421750759248985, header_oid);
+
+    if let boxcars::attributes::RemoteId::PlayStation(ps) = network_oid {
+        assert_eq!(header_oid, ps.online_id);
+        assert_eq!(ps.name, "SyCoz-Chaos");
+    } else {
+        panic!("Needed playstation remote_id");
+    }
+}
+
+#[test]
+fn test_short_ps4_id() {
+    let data = include_bytes!("../assets/replays/good/3d07e.replay");
+    let replay = ParserBuilder::new(&data[..])
+        .always_check_crc()
+        .must_parse_network_data()
+        .parse()
+        .unwrap();
+
+    let (header_oid, network_oid) = extract_online_id(&replay, "TheGoldenGarp");
+    assert_eq!(0, header_oid);
+
+    if let boxcars::attributes::RemoteId::PlayStation(ps) = network_oid {
+        assert_eq!(1, ps.online_id);
+        assert_eq!(ps.name, "TheGoldenGarp");
+    } else {
+        panic!("Needed playstation remote_id");
     }
 }
