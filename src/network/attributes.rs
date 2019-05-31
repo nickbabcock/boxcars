@@ -2,6 +2,7 @@ use crate::errors::AttributeError;
 use crate::network::{ObjectId, Rotation, Vector, VersionTriplet};
 use crate::parsing_utils::{decode_utf16, decode_windows1252};
 use bitter::BitGet;
+use encoding_rs::WINDOWS_1252;
 use std::borrow::Cow;
 use std::collections::HashMap;
 
@@ -204,15 +205,30 @@ pub struct PsyNetId {
     pub unknown1: Vec<u8>,
 }
 
+#[derive(Debug, Default, Clone, PartialEq, Serialize)]
+pub struct SwitchId {
+    #[serde(serialize_with = "crate::serde_utils::display_it")]
+    pub online_id: u64,
+    pub unknown1: Vec<u8>,
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Serialize)]
+pub struct Ps4Id {
+    #[serde(serialize_with = "crate::serde_utils::display_it")]
+    pub online_id: u64,
+    pub name: String,
+    pub unknown1: Vec<u8>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum RemoteId {
-    PlayStation(Vec<u8>),
+    PlayStation(Ps4Id),
     PsyNet(PsyNetId),
     SplitScreen(u32),
 
     #[serde(serialize_with = "crate::serde_utils::display_it")]
     Steam(u64),
-    Switch(Vec<u8>),
+    Switch(SwitchId),
 
     #[serde(serialize_with = "crate::serde_utils::display_it")]
     Xbox(u64),
@@ -1102,22 +1118,51 @@ fn decode_unique_id_with_system_id(
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Steam"))
             .map(RemoteId::Steam),
         2 => {
-            // TODO: Extract ps4 id
-            let to_read = if net_version >= 1 { 40 } else { 32 };
-            bits.read_bytes(to_read)
-                .ok_or_else(|| AttributeError::NotEnoughDataFor("Playstation"))
-                .map(Cow::into_owned)
-                .map(RemoteId::PlayStation)
+            let name_bytes = bits
+                .read_bytes(16)
+                .ok_or_else(|| AttributeError::NotEnoughDataFor("PS4 Name"))?
+                .into_iter()
+                .take_while(|&&x| x != 0)
+                .cloned()
+                .collect::<Vec<u8>>();
+
+            let (name, _) = WINDOWS_1252.decode_without_bom_handling(&name_bytes[..]);
+            let to_read = if net_version >= 1 { 16 } else { 8 };
+
+            let unknown1 = bits
+                .read_bytes(to_read)
+                .ok_or_else(|| AttributeError::NotEnoughDataFor("PS4 Unknown"))
+                .map(Cow::into_owned)?;
+
+            let online_id = bits
+                .read_u64()
+                .ok_or_else(|| AttributeError::NotEnoughDataFor("PS4 ID"))?;
+
+            Ok(RemoteId::PlayStation(Ps4Id {
+                name: name.to_string(),
+                unknown1,
+                online_id,
+            }))
         }
         4 => bits
             .read_u64()
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Xbox"))
             .map(RemoteId::Xbox),
-        6 => bits
-            .read_bytes(32)
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("Switch"))
-            .map(Cow::into_owned)
-            .map(RemoteId::Switch),
+        6 => {
+            let online_id = bits
+                .read_u64()
+                .ok_or_else(|| AttributeError::NotEnoughDataFor("Switch ID"))?;
+
+            let unknown1 = bits
+                .read_bytes(24)
+                .ok_or_else(|| AttributeError::NotEnoughDataFor("Switch ID Unknown"))
+                .map(Cow::into_owned)?;
+
+            Ok(RemoteId::Switch(SwitchId {
+                online_id,
+                unknown1,
+            }))
+        }
         7 => {
             let online_id = bits
                 .read_u64()
