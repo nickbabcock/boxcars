@@ -219,6 +219,7 @@ impl<'a> Parser<'a> {
         let header_crc = self
             .core
             .take(4, le_i32)
+            .map(|x| x as u32)
             .with_context(|e| self.err_str("header crc", e))?;
 
         let header_data = self
@@ -237,6 +238,7 @@ impl<'a> Parser<'a> {
         let content_crc = self
             .core
             .take(4, le_i32)
+            .map(|x| x as u32)
             .with_context(|e| self.err_str("content crc", e))?;
 
         let content_data = self

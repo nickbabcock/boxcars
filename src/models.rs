@@ -18,7 +18,7 @@ use std::collections::HashMap;
 #[derive(Serialize, PartialEq, Debug, Clone)]
 pub struct Replay<'a> {
     pub header_size: i32,
-    pub header_crc: i32,
+    pub header_crc: u32,
     pub major_version: i32,
     pub minor_version: i32,
     pub net_version: Option<i32>,
@@ -29,7 +29,7 @@ pub struct Replay<'a> {
     #[serde(serialize_with = "pair_vec")]
     pub properties: Vec<(&'a str, HeaderProp<'a>)>,
     pub content_size: i32,
-    pub content_crc: i32,
+    pub content_crc: u32,
     pub network_frames: Option<NetworkFrames>,
     pub levels: Vec<Cow<'a, str>>,
     pub keyframes: Vec<KeyFrame>,
