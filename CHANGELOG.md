@@ -1,3 +1,8 @@
+# v0.3.3 - June 1st, 2019
+
+- Update crc content from signed 32bits to unsigned 32bits as a negative checksum can be misleading.
+- Additional decoding for PsyNet, Switch, and Ps4 remote ids. Instead of just a vector of opaque bytes, now the values contain a structure with additional fields like (`online_id` or `name`). Any leftover data is still captured as opaque bytes.
+
 # v0.3.2 - May 24th 2019
 
 - Update multimap requirement from 0.4 to 0.5
