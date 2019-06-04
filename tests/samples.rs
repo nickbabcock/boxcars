@@ -207,3 +207,30 @@ fn test_short_ps4_id() {
         panic!("Needed playstation remote_id");
     }
 }
+
+#[test]
+fn test_preserve_endian() {
+    let data = include_bytes!("../assets/replays/good/fc427.replay");
+    let replay = ParserBuilder::new(&data[..])
+        .always_check_crc()
+        .must_parse_network_data()
+        .parse()
+        .unwrap();
+
+    let frames = &replay.network_frames.as_ref().unwrap().frames;
+    let new_paints: Vec<u32> = frames
+        .iter()
+        .flat_map(|x| x.updated_actors.iter())
+        .filter_map(|ac| match &ac.attribute {
+            boxcars::Attribute::LoadoutsOnline(x) => Some(x.blue.iter().flat_map(|pr| pr.iter())),
+            _ => None,
+        })
+        .flat_map(|x| x)
+        .filter_map(|x| match x.value {
+            boxcars::attributes::ProductValue::NewPaint(p) => Some(p),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+
+    assert_eq!(*new_paints.get(0).unwrap(), 11);
+}
