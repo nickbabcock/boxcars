@@ -1,3 +1,7 @@
+# v0.3.4 - June 5th, 2019
+
+* Update network parser to be compatible with v1.63 rocket league replays
+
 # v0.3.3 - June 1st, 2019
 
 - Update crc content from signed 32bits to unsigned 32bits as a negative checksum can be misleading.
