@@ -9,7 +9,7 @@ use std::io;
 
 fn bench_crc(c: &mut Criterion) {
     c.bench_function("bench_crc", |b| {
-        let data = include_bytes!("../assets/rumble.replay");
+        let data = include_bytes!("../assets/replays/good/rumble.replay");
         b.iter(|| {
             black_box(calc_crc(&data[..]));
         })
@@ -18,7 +18,7 @@ fn bench_crc(c: &mut Criterion) {
 
 fn bench_parse_crc_body(c: &mut Criterion) {
     c.bench_function("bench_parse_crc_body", |b| {
-        let data = include_bytes!("../assets/3381.replay");
+        let data = include_bytes!("../assets/replays/good/3381.replay");
         b.iter(|| {
             black_box(
                 ParserBuilder::new(data)
@@ -33,7 +33,7 @@ fn bench_parse_crc_body(c: &mut Criterion) {
 
 fn bench_parse_no_crc_body(c: &mut Criterion) {
     c.bench_function("bench_parse_no_crc_body", |b| {
-        let data = include_bytes!("../assets/3381.replay");
+        let data = include_bytes!("../assets/replays/good/3381.replay");
         b.iter(|| {
             black_box(
                 ParserBuilder::new(data)
@@ -48,7 +48,7 @@ fn bench_parse_no_crc_body(c: &mut Criterion) {
 
 fn bench_parse_no_crc_no_body(c: &mut Criterion) {
     c.bench_function("bench_parse_no_crc_no_body", |b| {
-        let data = include_bytes!("../assets/3381.replay");
+        let data = include_bytes!("../assets/replays/good/3381.replay");
         b.iter(|| {
             black_box(
                 ParserBuilder::new(data)
@@ -63,7 +63,7 @@ fn bench_parse_no_crc_no_body(c: &mut Criterion) {
 
 fn bench_parse_crc_json(c: &mut Criterion) {
     c.bench_function("bench_parse_crc_json", |b| {
-        let data = include_bytes!("../assets/3381.replay");
+        let data = include_bytes!("../assets/replays/good/3381.replay");
         b.iter(|| {
             let data = ParserBuilder::new(data).always_check_crc().parse().unwrap();
             black_box(serde_json::to_writer(&mut io::sink(), &data).is_ok());
@@ -73,7 +73,7 @@ fn bench_parse_crc_json(c: &mut Criterion) {
 
 fn bench_parse_no_crc_json(c: &mut Criterion) {
     c.bench_function("bench_parse_no_crc_json", |b| {
-        let data = include_bytes!("../assets/3381.replay");
+        let data = include_bytes!("../assets/replays/good/3381.replay");
         b.iter(|| {
             let replay = ParserBuilder::new(data)
                 .on_error_check_crc()
