@@ -68,3 +68,130 @@ with the following options and the estimated elapsed time.
 ## Special Thanks
 
 Special thanks needs to be given to everyone in the Rocket League community who figured out the replay format and all its intricacies. Boxcars wouldn't exist if it weren't for them. I heavily leaned on implementations in [rattletrap](https://github.com/tfausak/rattletrap) and [RocketLeagueReplayParser](https://github.com/jjbott/RocketLeagueReplayParser). One of those should be your go to Rocket League Replay tool, unless you need speed, as those implementations are more mature than boxcars.
+
+## Difference between rattletrap and boxcars
+
+- Rattletrap can binary that ingests rocket league replays and outputs, while boxcars is a lower level parsing library for rocket league. Boxcars underpins Rrrocket, a cli binary that outputs JSON similar to Rattletrap
+- Rattletrap can roundtrip replays (convert them into JSON and then write them out back to a replay losslessly). Boxcars is focussed on parsing replays.
+- In part due to allowing roundtrip parsing, rattletrap JSON output is 2x larger than boxcars (rrrocket) even when accounting for output minification.
+
+Below are some differences in the model:
+
+rattletrap:
+
+```json
+"properties": {
+  "value": {
+    "BuildID": {
+      "kind": "IntProperty",
+      "size": "4",
+      "value": {
+        "int": 1401925076
+      }
+    },
+  }
+}
+```
+
+boxcars:
+
+```json
+"properties": {
+  "BuildID": 1401925076
+}
+```
+
+---
+
+rattletrap:
+
+```json
+"actor_id": {
+  "limit": 2047,
+  "value": 1
+},
+```
+
+boxcars:
+
+```json
+"actor_id": 1
+```
+
+---
+
+rattletrap:
+
+```json
+"value": {
+  "spawned": {
+    "class_name": "TAGame.GameEvent_Soccar_TA",
+    "flag": true,
+    "initialization": {
+      "location": {
+        "bias": 2,
+        "size": {
+          "limit": 21,
+          "value": 0
+        },
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    "name": "GRI_TA_1",
+    "name_index": 0,
+    "object_id": 85,
+    "object_name": "Archetypes.GameEvent.GameEvent_Soccar"
+  }
+}
+```
+
+boxcars:
+
+```json
+"actor_id": 1,
+"name_id": 1,
+"object_id": 85,
+"initial_trajectory": {
+  "location": {
+    "bias": 2,
+    "dx": 2,
+    "dy": 2,
+    "dz": 2
+  },
+  "rotation": null
+}
+```
+
+While rattletrap provides convenience conversions, boxcars omit them in favor of a more raw view of the replay:
+
+- to derive `object_name`: `replay.objects[x.object_id]`
+- to derive `name`: `replay.names[x.name_id]`
+
+The raw formula for calculating x,y,z from dx, dy, dz, and bias is:
+
+```
+x = dx - bias
+y = dy - bias
+z = dz - bias
+```
+
+So:
+
+```json
+"location": {
+  "bias": 4096,
+  "dx": 6048,
+  "dy": 1632,
+  "dz": 4113
+},
+```
+
+Would translate into
+
+```
+x: 1952
+y: -2464
+z: 17
+```
