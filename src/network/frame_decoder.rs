@@ -271,18 +271,16 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                 .ok_or_else(|| NetworkError::NotEnoughDataFor("Time"))?;
 
             if time < 0.0 || (time > 0.0 && time < 1e-10) {
-                let mut frame_index = frames.len() - 1;
-                while let Some(frame) = frames.get(frame_index) {
+                for (i, frame) in frames.iter().enumerate().rev() {
                     if let Some(last_update) = frame.updated_actors.last() {
                         return Err(NetworkError::TimeOutOfRangeUpdate(
                             frames.len(),
-                            frame_index,
+                            i,
                             last_update.actor_id,
                             last_update.stream_id,
                             last_update.attribute.clone(),
                         ))?;
                     }
-                    frame_index -= 1;
                 }
 
                 return Err(NetworkError::TimeOutOfRange(time))?;
