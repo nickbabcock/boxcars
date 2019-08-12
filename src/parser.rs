@@ -557,6 +557,18 @@ mod tests {
     }
 
     #[test]
+    fn test_the_fuzz_object_id_too_large() {
+        let data = include_bytes!("../assets/replays/bad/fuzz-large-object-id.replay");
+        let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Always);
+        let err = parser.parse().unwrap_err();
+        assert_eq!(
+            "Object Id of 1547 exceeds range",
+            format!("{}", err)
+        );
+        assert!(err.as_fail().cause().is_none());
+    }
+
+    #[test]
     fn test_crc_check_with_bad() {
         let mut data = include_bytes!("../assets/replays/good/rumble.replay").to_vec();
 
