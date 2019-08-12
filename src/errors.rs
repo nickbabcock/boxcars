@@ -122,4 +122,7 @@ pub enum NetworkError {
 
     #[fail(display = "Attribute error: {}", _0)]
     AttributeError(#[cause] AttributeError),
+
+    #[fail(display = "Too many frames to decode: {}", _0)]
+    TooManyFrames(i32),
 }

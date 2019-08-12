@@ -193,6 +193,10 @@ pub(crate) fn parse(header: &Header<'_>, body: &ReplayBody<'_>) -> Result<Networ
     let num_frames = header.num_frames();
 
     if let Some(frame_len) = num_frames {
+        if frame_len as usize > body.network_data.len() {
+            return Err(Error::from(NetworkError::TooManyFrames(frame_len)));
+        }
+
         let frame_decoder = FrameDecoder {
             frames_len: frame_len as usize,
             product_decoder,

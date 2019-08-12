@@ -580,6 +580,18 @@ mod tests {
     }
 
     #[test]
+    fn test_the_fuzz_too_many_frames() {
+        let data = include_bytes!("../assets/replays/bad/fuzz-too-many-frames.replay");
+        let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Always);
+        let err = parser.parse().unwrap_err();
+        assert_eq!(
+            "Too many frames to decode: 738197735",
+            format!("{}", err)
+        );
+        assert!(err.as_fail().cause().is_none());
+    }
+
+    #[test]
     fn test_crc_check_with_bad() {
         let mut data = include_bytes!("../assets/replays/good/rumble.replay").to_vec();
 
