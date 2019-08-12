@@ -1,0 +1,8 @@
+# Ignore everything
+*
+
+!.gitignore
+!crc-body/small-frames.replay
+!crc-no-body
+!no-crc-body
+!no-crc-no-body
