@@ -508,6 +508,17 @@ mod tests {
     }
 
     #[test]
+    fn test_the_parsing_text_too_long2() {
+        let data = include_bytes!("../assets/replays/bad/fuzz-string-too-long2.replay");
+        let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Always);
+        let err = parser.parse().unwrap_err();
+        assert_eq!(
+            "Attribute error: Unexpected size for string: -1912602609",
+            format!("{}", err)
+        );
+    }
+
+    #[test]
     fn test_fuzz_corpus_slice_index() {
         let data = include_bytes!("../assets/replays/bad/fuzz-slice-index.replay");
         let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Never);
@@ -551,6 +562,30 @@ mod tests {
         let err = parser.parse().unwrap_err();
         assert_eq!(
             "Crc mismatch. Expected 3765941959 but received 1314727725",
+            format!("{}", err)
+        );
+        assert!(err.as_fail().cause().is_none());
+    }
+
+    #[test]
+    fn test_the_fuzz_object_id_too_large() {
+        let data = include_bytes!("../assets/replays/bad/fuzz-large-object-id.replay");
+        let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Always);
+        let err = parser.parse().unwrap_err();
+        assert_eq!(
+            "Object Id of 1547 exceeds range",
+            format!("{}", err)
+        );
+        assert!(err.as_fail().cause().is_none());
+    }
+
+    #[test]
+    fn test_the_fuzz_too_many_frames() {
+        let data = include_bytes!("../assets/replays/bad/fuzz-too-many-frames.replay");
+        let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Always);
+        let err = parser.parse().unwrap_err();
+        assert_eq!(
+            "Too many frames to decode: 738197735",
             format!("{}", err)
         );
         assert!(err.as_fail().cause().is_none());

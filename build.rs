@@ -25,6 +25,10 @@ fn main() {
         .entry("Archetypes.Ball.Ball_Default", "SpawnTrajectory::LocationAndRotation")
         .entry("Archetypes.Ball.Ball_Puck", "SpawnTrajectory::LocationAndRotation")
         .entry("Archetypes.Ball.CubeBall", "SpawnTrajectory::LocationAndRotation")
+        .entry("Archetypes.Ball.Ball_Haunted", "SpawnTrajectory::LocationAndRotation")
+        .entry("Archetypes.SpecialPickups.SpecialPickup_HauntedBallBeam", "SpawnTrajectory::Location")
+        .entry("Archetypes.SpecialPickups.SpecialPickup_Rugby", "SpawnTrajectory::Location")
+        .entry("TAGame.Ball_Haunted_TA", "SpawnTrajectory::LocationAndRotation")
         .entry("TAGame.Car_Season_TA", "SpawnTrajectory::LocationAndRotation")
         .entry("TAGame.Car_TA", "SpawnTrajectory::LocationAndRotation")
         .entry("Archetypes.Car.Car_Default", "SpawnTrajectory::LocationAndRotation")
@@ -97,6 +101,7 @@ fn main() {
         .entry("TheWorld:PersistentLevel.CrowdManager_TA", "SpawnTrajectory::Location")
         .entry("TheWorld:PersistentLevel.InMapScoreboard_TA", "SpawnTrajectory::Location")
         .entry("TheWorld:PersistentLevel.VehiclePickup_Boost_TA", "SpawnTrajectory::Location")
+        .entry("TAGame.HauntedBallTrapTrigger_TA", "SpawnTrajectory::Location")
         .build(&mut file)
         .unwrap();
 
@@ -268,6 +273,12 @@ fn main() {
         .entry("TAGame.Vehicle_TA:ReplicatedThrottle", "AttributeTag::Byte")
         .entry("TAGame.VehiclePickup_TA:bNoPickup", "AttributeTag::Boolean")
         .entry("TAGame.VehiclePickup_TA:ReplicatedPickupData", "AttributeTag::Pickup")
+        .entry("TAGame.Ball_Haunted_TA:LastTeamTouch", "AttributeTag::Byte")
+        .entry("TAGame.Ball_Haunted_TA:TotalActiveBeams", "AttributeTag::Byte")
+        .entry("TAGame.Ball_Haunted_TA:DeactivatedGoalIndex", "AttributeTag::Byte")
+        .entry("TAGame.Ball_Haunted_TA:ReplicatedBeamBrokenValue", "AttributeTag::Byte")
+        .entry("TAGame.Ball_Haunted_TA:bIsBallBeamed", "AttributeTag::Boolean")
+        .entry("TAGame.SpecialPickup_Rugby_TA:bBallWelded", "AttributeTag::Boolean")
         .build(&mut file)
         .unwrap();
 
@@ -280,8 +291,10 @@ fn main() {
         .entry("Archetypes.Ball.Ball_BasketBall_Mutator", "\"TAGame.Ball_TA\"")
         .entry("Archetypes.Ball.Ball_Basketball", "\"TAGame.Ball_TA\"")
         .entry("Archetypes.Ball.Ball_BasketBall", "\"TAGame.Ball_TA\"")
+        .entry("Archetypes.Ball.Ball_Beachball", "\"TAGame.Ball_TA\"")
         .entry("Archetypes.Ball.Ball_Breakout", "\"TAGame.Ball_Breakout_TA\"")
         .entry("Archetypes.Ball.Ball_Default", "\"TAGame.Ball_TA\"")
+        .entry("Archetypes.Ball.Ball_Haunted", "\"TAGame.Ball_Haunted_TA\"")
         .entry("Archetypes.Ball.Ball_Puck", "\"TAGame.Ball_TA\"")
         .entry("Archetypes.Ball.CubeBall", "\"TAGame.Ball_TA\"")
         .entry("Archetypes.Car.Car_Default", "\"TAGame.Car_TA\"")
@@ -315,6 +328,8 @@ fn main() {
         .entry("Archetypes.SpecialPickups.SpecialPickup_StrongHit", "\"TAGame.SpecialPickup_HitForce_TA\"")
         .entry("Archetypes.SpecialPickups.SpecialPickup_Swapper", "\"TAGame.SpecialPickup_Swapper_TA\"")
         .entry("Archetypes.SpecialPickups.SpecialPickup_Tornado", "\"TAGame.SpecialPickup_Tornado_TA\"")
+        .entry("Archetypes.SpecialPickups.SpecialPickup_HauntedBallBeam", "\"TAGame.SpecialPickup_HauntedBallBeam_TA\"")
+        .entry("Archetypes.SpecialPickups.SpecialPickup_Rugby", "\"TAGame.SpecialPickup_Rugby_TA\"")
         .entry("Archetypes.Teams.Team0", "\"TAGame.Team_Soccar_TA\"")
         .entry("Archetypes.Teams.Team1", "\"TAGame.Team_Soccar_TA\"")
         .entry("GameInfo_Basketball.GameInfo.GameInfo_Basketball:GameReplicationInfoArchetype", "\"TAGame.GRI_TA\"")
@@ -330,6 +345,8 @@ fn main() {
         .entry("TheWorld:PersistentLevel.CrowdManager_TA", "\"TAGame.CrowdManager_TA\"")
         .entry("TheWorld:PersistentLevel.InMapScoreboard_TA", "\"TAGame.InMapScoreboard_TA\"")
         .entry("TheWorld:PersistentLevel.VehiclePickup_Boost_TA", "\"TAGame.VehiclePickup_Boost_TA\"")
+        .entry("Haunted_TrainStation_P.TheWorld:PersistentLevel.HauntedBallTrapTrigger_TA_1", "\"TAGame.HauntedBallTrapTrigger_TA\"")
+        .entry("Haunted_TrainStation_P.TheWorld:PersistentLevel.HauntedBallTrapTrigger_TA_0", "\"TAGame.HauntedBallTrapTrigger_TA\"")
         .build(&mut file)
         .unwrap();
 
@@ -385,11 +402,13 @@ fn main() {
         .entry("TAGame.SpecialPickup_TA", "\"TAGame.CarComponent_TA\"")
         .entry("TAGame.SpecialPickup_Targeted_TA", "\"TAGame.SpecialPickup_TA\"")
         .entry("TAGame.SpecialPickup_Tornado_TA", "\"TAGame.SpecialPickup_TA\"")
+        .entry("TAGame.SpecialPickup_Rugby_TA", "\"TAGame.SpecialPickup_TA\"")
         .entry("TAGame.Team_Soccar_TA", "\"TAGame.Team_TA\"")
         .entry("TAGame.Team_TA", "\"Engine.TeamInfo\"")
         .entry("TAGame.Vehicle_TA", "\"TAGame.RBActor_TA\"")
         .entry("TAGame.VehiclePickup_TA", "\"Engine.ReplicationInfo\"")
         .entry("TAGame.VehiclePickup_Boost_TA", "\"TAGame.VehiclePickup_TA\"")
+        .entry("TAGame.SpecialPickup_HauntedBallBeam_TA", "\"TAGame.SpecialPickup_TA\"")
         .build(&mut file)
         .unwrap();
 

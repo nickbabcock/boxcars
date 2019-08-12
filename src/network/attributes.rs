@@ -1005,9 +1005,10 @@ fn decode_text(bits: &mut BitGet<'_>) -> Result<String, AttributeError> {
     if size == 0 {
         Ok(String::from(""))
     } else if size < 0 {
-        bits.read_bytes(size * -2)
+        let len = size.checked_mul(-2).ok_or_else(|| AttributeError::TooBigString(size))?;
+        bits.read_bytes(len)
             .and_then(|data| decode_utf16(&data[..]).map(Cow::into_owned).ok())
-            .ok_or_else(|| AttributeError::TooBigString(size * -2))
+            .ok_or_else(|| AttributeError::TooBigString(len))
     } else {
         bits.read_bytes(size)
             .and_then(|data| decode_windows1252(&data[..]).map(Cow::into_owned).ok())
@@ -1121,7 +1122,7 @@ fn decode_unique_id_with_system_id(
             let name_bytes = bits
                 .read_bytes(16)
                 .ok_or_else(|| AttributeError::NotEnoughDataFor("PS4 Name"))?
-                .into_iter()
+                .iter()
                 .take_while(|&&x| x != 0)
                 .cloned()
                 .collect::<Vec<u8>>();

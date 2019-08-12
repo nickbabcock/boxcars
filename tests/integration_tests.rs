@@ -57,3 +57,5 @@ frame_len_test!(test_c4abb_replay, "../assets/replays/good/c4abb.replay", 9093);
 frame_len_test!(test_70204_replay, "../assets/replays/good/70204.replay", 9574);
 frame_len_test!(test_74936_replay, "../assets/replays/good/74936.replay", 10609);
 frame_len_test!(test_1ec9_replay, "../assets/replays/good/1ec9.replay", 332);
+frame_len_test!(test_9a2cd_replay, "../assets/replays/good/9a2cd.replay", 2616);
+frame_len_test!(test_9e35b_replay, "../assets/replays/good/9e35b.replay", 12859);

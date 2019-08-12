@@ -113,7 +113,9 @@ pub(crate) fn parse(header: &Header<'_>, body: &ReplayBody<'_>) -> Result<Networ
         // We are going to recursively resolve an object's name to find their direct parent.
         // Parents have parents as well (etc), so we repeatedly walk up the chain picking up
         // attributes on parent objects until we reach an object with no parent (`Core.Object`)
-        let mut object_name: &str = &*body.objects[cache.object_ind as usize];
+        let mut object_name: &str = &*body.objects.get(cache.object_ind as usize)
+            .ok_or_else(|| NetworkError::ObjectIdOutOfRange(ObjectId(cache.object_ind)))?;
+
         while let Some(parent_name) = PARENT_CLASSES.get(object_name) {
             had_parent = true;
             if let Some(parent_ind) = name_obj_ind.get(parent_name) {
@@ -191,6 +193,10 @@ pub(crate) fn parse(header: &Header<'_>, body: &ReplayBody<'_>) -> Result<Networ
     let num_frames = header.num_frames();
 
     if let Some(frame_len) = num_frames {
+        if frame_len as usize > body.network_data.len() {
+            return Err(Error::from(NetworkError::TooManyFrames(frame_len)));
+        }
+
         let frame_decoder = FrameDecoder {
             frames_len: frame_len as usize,
             product_decoder,
