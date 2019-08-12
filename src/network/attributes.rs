@@ -1005,9 +1005,10 @@ fn decode_text(bits: &mut BitGet<'_>) -> Result<String, AttributeError> {
     if size == 0 {
         Ok(String::from(""))
     } else if size < 0 {
-        bits.read_bytes(size * -2)
+        let len = size.checked_mul(-2).ok_or_else(|| AttributeError::TooBigString(size))?;
+        bits.read_bytes(len)
             .and_then(|data| decode_utf16(&data[..]).map(Cow::into_owned).ok())
-            .ok_or_else(|| AttributeError::TooBigString(size * -2))
+            .ok_or_else(|| AttributeError::TooBigString(len))
     } else {
         bits.read_bytes(size)
             .and_then(|data| decode_windows1252(&data[..]).map(Cow::into_owned).ok())

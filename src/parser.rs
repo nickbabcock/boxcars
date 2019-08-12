@@ -508,6 +508,17 @@ mod tests {
     }
 
     #[test]
+    fn test_the_parsing_text_too_long2() {
+        let data = include_bytes!("../assets/replays/bad/fuzz-string-too-long2.replay");
+        let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Always);
+        let err = parser.parse().unwrap_err();
+        assert_eq!(
+            "Attribute error: Unexpected size for string: -1912602609",
+            format!("{}", err)
+        );
+    }
+
+    #[test]
     fn test_fuzz_corpus_slice_index() {
         let data = include_bytes!("../assets/replays/bad/fuzz-slice-index.replay");
         let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Never);
