@@ -1121,7 +1121,7 @@ fn decode_unique_id_with_system_id(
             let name_bytes = bits
                 .read_bytes(16)
                 .ok_or_else(|| AttributeError::NotEnoughDataFor("PS4 Name"))?
-                .into_iter()
+                .iter()
                 .take_while(|&&x| x != 0)
                 .cloned()
                 .collect::<Vec<u8>>();
