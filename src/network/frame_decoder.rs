@@ -281,6 +281,18 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                             last_update.attribute.clone(),
                         ))?;
                     }
+
+                    if let Some(last_new) = frame.new_actors.last() {
+                        return Err(NetworkError::TimeOutOfRangeNew(
+                            frames.len(),
+                            i,
+                            last_new.actor_id,
+                            last_new.name_id,
+                            last_new.object_id,
+                            self.object_ind_to_string(last_new.object_id),
+                            last_new.initial_trajectory,
+                        ))?;
+                    }
                 }
 
                 return Err(NetworkError::TimeOutOfRange(time))?;
@@ -291,6 +303,30 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                 .ok_or_else(|| NetworkError::NotEnoughDataFor("Delta"))?;
 
             if delta < 0.0 || (delta > 0.0 && delta < 1e-10) {
+                for (i, frame) in frames.iter().enumerate().rev() {
+                    if let Some(last_update) = frame.updated_actors.last() {
+                        return Err(NetworkError::TimeOutOfRangeUpdate(
+                            frames.len(),
+                            i,
+                            last_update.actor_id,
+                            last_update.stream_id,
+                            last_update.attribute.clone(),
+                        ))?;
+                    }
+
+                    if let Some(last_new) = frame.new_actors.last() {
+                        return Err(NetworkError::TimeOutOfRangeNew(
+                            frames.len(),
+                            i,
+                            last_new.actor_id,
+                            last_new.name_id,
+                            last_new.object_id,
+                            self.object_ind_to_string(last_new.object_id),
+                            last_new.initial_trajectory,
+                        ))?;
+                    }
+                }
+
                 return Err(NetworkError::DeltaOutOfRange(delta))?;
             }
 

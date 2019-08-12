@@ -1,4 +1,4 @@
-use crate::network::{ActorId, Attribute, ObjectId, StreamId};
+use crate::network::{ActorId, Attribute, ObjectId, StreamId, Trajectory};
 use std::str;
 
 #[derive(PartialEq, Debug, Clone, Fail)]
@@ -62,6 +62,12 @@ pub enum NetworkError {
         _0, _1, _2, _3, _4
     )]
     TimeOutOfRangeUpdate(usize, usize, ActorId, StreamId, Attribute),
+
+    #[fail(
+        display = "Time was out of range. Backtracking from frame: {} to {}, the last actor ({}) had a name id of {:?}, object id: {} ({}), and trajectory: {:?}. This may mean that a new update of Rocket League updated this object.",
+        _0, _1, _2, _3, _4, _5, _6
+    )]
+    TimeOutOfRangeNew(usize, usize, ActorId, Option<i32>, ObjectId, String, Trajectory),
 
     #[fail(display = "Delta is out of range: {}", _0)]
     DeltaOutOfRange(f32),
