@@ -1,3 +1,12 @@
+# v0.3.5 - August 12th, 2019
+
+- Support for haunted and rugby games.
+- Improvement to error handling that gives detailed error messages on what new / updated actor may have received changes in the RL update. These error messages should only be helpful debugging new updates.
+- Several security fixes:
+  - Malicious user could craft NumFrames property to be obscenely high and run the machine out of memory. An error is now thrown if the requested number of frames is greater than the number of bytes remaining.
+  - A class's network cache that referenced an out of range object id would cause a index out of bound panic. Now an error is raised.
+  - Other fixes are for panics in debug builds
+
 # v0.3.4 - June 5th, 2019
 
 * Update network parser to be compatible with v1.63 rocket league replays
