@@ -20,7 +20,7 @@ phf = "0.7"
 fnv = "1.0"
 if_chain = "1.0"
 bitter = "0.3.1"
-multimap = "0.5"
+multimap = "0.6"
 
 [dev-dependencies]
 serde_json = "1"
