@@ -29,17 +29,18 @@
 //! ```
 //! extern crate boxcars;
 //! extern crate serde_json;
-//! extern crate failure;
 //!
 //! use std::fs::File;
 //! use std::io::{self, Read};
+//! use std::error::Error;
+//!
 //! # fn main() {
 //! #    let filename = "assets/replays/good/rumble.replay";
 //! #    run(filename).unwrap();
 //! # }
 //!
-//! fn run(filename: &str) -> Result<(), ::failure::Error> {
-//!     let mut f = File::open(filename)?;
+//! fn run(filename: &str) -> Result<(), Box<dyn Error>> {
+//! let mut f = File::open(filename)?;
 //!     let mut buffer = vec![];
 //!     f.read_to_end(&mut buffer)?;
 //!     let replay = boxcars::ParserBuilder::new(&buffer)

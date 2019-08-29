@@ -46,7 +46,7 @@ pub enum ParseError {
     InsufficientData(i32, i32),
     UnexpectedProperty(String),
     CrcMismatch(u32, u32),
-    CorruptReplay(String, &'static ParseError),
+    CorruptReplay(String),
     ListTooLarge(usize),
     NetworkError(NetworkError)
 }
@@ -60,7 +60,7 @@ impl Display for ParseError{
             ParseError::InsufficientData(expected, left) => write!(f, "Insufficient data. Expected {} bytes, but only {} left", expected, left),
             ParseError::UnexpectedProperty(property) => write!(f, "Did not expect a property of: {}", property),
             ParseError::CrcMismatch(expected, found) => write!(f, "Crc mismatch. Expected {} but received {}", expected, found),
-            ParseError::CorruptReplay(section, _) => write!(f, "Failed to parse {} and crc check failed. Replay is corrupt", section),
+            ParseError::CorruptReplay(section) => write!(f, "Failed to parse {} and crc check failed. Replay is corrupt", section),
             ParseError::ListTooLarge(size) => write!(f, "list of size {} is too large", size),
             ParseError::ParseError(message) => write!(f, "{}", message),
             ParseError::NetworkError(network_error) => write!(f, "{}", network_error)
@@ -72,7 +72,7 @@ impl Error for ParseError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             ParseError::Utf8Error(utf8_error) => Some(utf8_error),
-            ParseError::CorruptReplay(_, error) => Some(*error),
+//            ParseError::CorruptReplay(_, error) => Some(*error),
             _ => None
         }
     }
