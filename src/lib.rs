@@ -54,9 +54,6 @@
 #![recursion_limit = "1000"]
 
 #[macro_use]
-extern crate failure;
-
-#[macro_use]
 extern crate if_chain;
 
 #[macro_use]

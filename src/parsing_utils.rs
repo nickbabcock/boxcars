@@ -59,7 +59,7 @@ pub fn decode_windows1252(input: &[u8]) -> Result<Cow<'_, str>, ParseError> {
     }
 }
 
-pub fn err_str(bytes_read: i32, desc: &'static str, e: &ParseError) -> String {
+pub fn err_str(desc: &'static str, bytes_read: i32, e: &ParseError) -> String {
     format!(
         "Could not decode replay {} at offset ({}): {}",
         desc, bytes_read, e

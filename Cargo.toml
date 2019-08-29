@@ -13,7 +13,6 @@ include = ["src/**/*.rs", "Cargo.toml", "build.rs"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
-failure = "0.1.1"
 encoding_rs = "0.8"
 byteorder = "1"
 phf = "0.7"
