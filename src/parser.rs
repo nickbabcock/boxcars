@@ -308,7 +308,7 @@ impl<'a> Parser<'a> {
                 result.map_err(|e| -> ParseError {
                     let actual = calc_crc(data);
                     if actual != crc as u32 {
-                        ParseError::CorruptReplay(String::from(section))
+                        ParseError::CorruptReplay(String::from(section), Box::new(e))
                     } else {
                         e
                     }
