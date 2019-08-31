@@ -39,7 +39,7 @@ use std::fmt;
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum ParseError {
-    ParseError(String),
+    ParseError(&'static str, i32, Box<ParseError>),
     ZeroSize,
     Utf8Error(str::Utf8Error),
     TextTooLarge(i32),
@@ -62,7 +62,7 @@ impl Display for ParseError{
             ParseError::CrcMismatch(expected, found) => write!(f, "Crc mismatch. Expected {} but received {}", expected, found),
             ParseError::CorruptReplay(section, _) => write!(f, "Failed to parse {} and crc check failed. Replay is corrupt", section),
             ParseError::ListTooLarge(size) => write!(f, "list of size {} is too large", size),
-            ParseError::ParseError(message) => write!(f, "{}", message),
+            ParseError::ParseError(section, bytes_read, parse_error) => write!(f, "Could not decode replay {} at offset ({}): {}", section, bytes_read, parse_error),
             ParseError::NetworkError(network_error) => write!(f, "{}", network_error)
         }
     }
@@ -73,6 +73,7 @@ impl Error for ParseError {
         match self {
             ParseError::Utf8Error(utf8_error) => Some(utf8_error),
             ParseError::CorruptReplay(_, error) => Some(error),
+            ParseError::ParseError(_, _, error) => Some(error),
             _ => None
         }
     }

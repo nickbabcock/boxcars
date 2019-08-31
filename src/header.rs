@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use crate::core_parser::CoreParser;
 use crate::errors::ParseError;
 use crate::models::HeaderProp;
-use crate::parsing_utils::{le_f32, le_i32, le_u64, err_str};
+use crate::parsing_utils::{le_f32, le_i32, le_u64};
 
 /// Intermediate parsing structure for the header
 #[derive(Debug, PartialEq)]
@@ -46,16 +46,16 @@ impl<'a> Header<'a> {
 pub fn parse_header<'a>(rlp: &mut CoreParser<'a>) -> Result<Header<'a>, ParseError> {
     let major_version = rlp
         .take(4, le_i32)
-        .map_err(|e| ParseError::ParseError(err_str("major version", rlp.bytes_read(), &e)))?;
+        .map_err(|e| ParseError::ParseError("major version", rlp.bytes_read(), Box::new(e)))?;
 
     let minor_version = rlp
         .take(4, le_i32)
-        .map_err(|e| ParseError::ParseError(err_str("minor version", rlp.bytes_read(), &e)))?;
+        .map_err(|e| ParseError::ParseError("minor version", rlp.bytes_read(), Box::new(e)))?;
 
     let net_version = if major_version > 865 && minor_version > 17 {
         Some(
             rlp.take(4, le_i32)
-                .map_err(|e| ParseError::ParseError(err_str("net version", rlp.bytes_read(), &e)))?,
+                .map_err(|e| ParseError::ParseError("net version", rlp.bytes_read(), Box::new(e)))?,
         )
     } else {
         None
@@ -63,10 +63,10 @@ pub fn parse_header<'a>(rlp: &mut CoreParser<'a>) -> Result<Header<'a>, ParseErr
 
     let game_type = rlp
         .parse_text()
-        .map_err(|e| ParseError::ParseError(err_str("game type", rlp.bytes_read(), &e)))?;
+        .map_err(|e| ParseError::ParseError("game type", rlp.bytes_read(), Box::new(e)))?;
 
     let properties =
-        parse_rdict(rlp).map_err(|e| ParseError::ParseError(err_str("header properties", rlp.bytes_read(), &e)))?;
+        parse_rdict(rlp).map_err(|e| ParseError::ParseError("header properties", rlp.bytes_read(), Box::new(e)))?;
 
     Ok(Header {
         major_version,

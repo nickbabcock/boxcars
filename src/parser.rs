@@ -60,7 +60,7 @@ use crate::errors::{ParseError, NetworkError};
 use crate::header::{self, Header};
 use crate::models::*;
 use crate::network;
-use crate::parsing_utils::{le_f32, le_i32, err_str};
+use crate::parsing_utils::{le_f32, le_i32};
 use std::borrow::Cow;
 
 /// Determines under what circumstances the parser should perform the crc check for replay
@@ -204,36 +204,36 @@ impl<'a> Parser<'a> {
         let header_size = self
             .core
             .take(4, le_i32)
-            .map_err(|e| ParseError::ParseError(err_str("header size", self.core.bytes_read(), &e)))?;
+            .map_err(|e| ParseError::ParseError("header size", self.core.bytes_read(), Box::new(e)))?;
 
         let header_crc = self
             .core
             .take(4, le_i32)
             .map(|x| x as u32)
-            .map_err(|e| ParseError::ParseError(err_str("header crc", self.core.bytes_read(), &e)))?;
+            .map_err(|e| ParseError::ParseError("header crc", self.core.bytes_read(), Box::new(e)))?;
 
         let header_data = self
             .core
             .view_data(header_size as usize)
-            .map_err(|e| ParseError::ParseError(err_str("header data", self.core.bytes_read(), &e)))?;
+            .map_err(|e| ParseError::ParseError("header data", self.core.bytes_read(), Box::new(e)))?;
 
         let header = self.crc_section(header_data, header_crc as u32, "header", Self::parse_header)?;
 
         let content_size = self
             .core
             .take(4, le_i32)
-            .map_err(|e| ParseError::ParseError(err_str("content size", self.core.bytes_read(), &e)))? ;
+            .map_err(|e| ParseError::ParseError("content size", self.core.bytes_read(), Box::new(e)))? ;
 
         let content_crc = self
             .core
             .take(4, le_i32)
             .map(|x| x as u32)
-            .map_err(|e| ParseError::ParseError(err_str("content crc", self.core.bytes_read(), &e)))?;
+            .map_err(|e| ParseError::ParseError("content crc", self.core.bytes_read(), Box::new(e)))?;
 
         let content_data = self
             .core
             .view_data(content_size as usize)
-            .map_err(|e| ParseError::ParseError(err_str("content data", self.core.bytes_read(), &e)))?;
+            .map_err(|e| ParseError::ParseError("content data", self.core.bytes_read(), Box::new(e)))?;
 
         let body = self.crc_section(content_data, content_crc as u32, "body", Self::parse_body)?;
 
@@ -322,50 +322,50 @@ impl<'a> Parser<'a> {
         let levels = self
             .core
             .text_list()
-            .map_err(|e| ParseError::ParseError(err_str("levels", self.core.bytes_read(), &e)))?;
+            .map_err(|e| ParseError::ParseError("levels", self.core.bytes_read(), Box::new(e)))?;
 
         let keyframes = self
             .parse_keyframe()
-            .map_err(|e| ParseError::ParseError(err_str("keyframes", self.core.bytes_read(), &e)))?;
+            .map_err(|e| ParseError::ParseError("keyframes", self.core.bytes_read(), Box::new(e)))?;
 
         let network_size = self
             .core
             .take(4, le_i32)
-            .map_err(|e| ParseError::ParseError(err_str("network size", self.core.bytes_read(), &e)))?;
+            .map_err(|e| ParseError::ParseError("network size", self.core.bytes_read(), Box::new(e)))?;
 
         let network_data = self
             .core
             .take(network_size as usize, |d| d)
-            .map_err(|e| ParseError::ParseError(err_str("network data", self.core.bytes_read(), &e)))?;
+            .map_err(|e| ParseError::ParseError("network data", self.core.bytes_read(), Box::new(e)))?;
 
         let debug_infos = self
             .parse_debuginfo()
-            .map_err(|e| ParseError::ParseError(err_str("debug info", self.core.bytes_read(), &e)))?;
+            .map_err(|e| ParseError::ParseError("debug info", self.core.bytes_read(), Box::new(e)))?;
 
         let tickmarks = self
             .parse_tickmarks()
-            .map_err(|e| ParseError::ParseError(err_str("tickmarks", self.core.bytes_read(), &e)))?;
+            .map_err(|e| ParseError::ParseError("tickmarks", self.core.bytes_read(), Box::new(e)))?;
 
         let packages = self
             .core
             .text_list()
-            .map_err(|e| ParseError::ParseError(err_str("packages", self.core.bytes_read(), &e)))?;
+            .map_err(|e| ParseError::ParseError("packages", self.core.bytes_read(), Box::new(e)))?;
         let objects = self
             .core
             .text_list()
-            .map_err(|e| ParseError::ParseError(err_str("objects", self.core.bytes_read(), &e)))?;
+            .map_err(|e| ParseError::ParseError("objects", self.core.bytes_read(), Box::new(e)))?;
         let names = self
             .core
             .text_list()
-            .map_err(|e| ParseError::ParseError(err_str("names", self.core.bytes_read(), &e)))?;
+            .map_err(|e| ParseError::ParseError("names", self.core.bytes_read(), Box::new(e)))?;
 
         let class_index = self
             .parse_classindex()
-            .map_err(|e| ParseError::ParseError(err_str("class index", self.core.bytes_read(), &e)))?;
+            .map_err(|e| ParseError::ParseError("class index", self.core.bytes_read(), Box::new(e)))?;
 
         let net_cache = self
             .parse_classcache()
-            .map_err(|e| ParseError::ParseError(err_str("net cache", self.core.bytes_read(), &e)))?;
+            .map_err(|e| ParseError::ParseError("net cache", self.core.bytes_read(), Box::new(e)))?;
 
         Ok(ReplayBody {
             levels,
