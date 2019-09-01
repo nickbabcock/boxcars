@@ -41,6 +41,7 @@ impl Error for ParseError {
             ParseError::Utf8Error(utf8_error) => Some(utf8_error),
             ParseError::CorruptReplay(_, error) => Some(error),
             ParseError::ParseError(_, _, error) => Some(error),
+            ParseError::NetworkError(error) => Some(error),
             _ => None
         }
     }
