@@ -239,10 +239,10 @@ impl<'a> Parser<'a> {
 
         let network: Option<NetworkFrames> = match self.network_parse {
             NetworkParse::Always => {
-                Some(self.parse_network(&header, &body).map_err(|e| ParseError::NetworkError(e))?)
+                Some(self.parse_network(&header, &body).map_err(ParseError::NetworkError)?)
             }
             NetworkParse::IgnoreOnError => {
-                self.parse_network(&header, &body).map_err(|e| ParseError::NetworkError(e)).ok()
+                self.parse_network(&header, &body).map_err(ParseError::NetworkError).ok()
             }
             NetworkParse::Never => None,
         };
