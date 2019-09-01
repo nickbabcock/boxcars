@@ -102,6 +102,7 @@ fn main() {
         .entry("TheWorld:PersistentLevel.InMapScoreboard_TA", "SpawnTrajectory::Location")
         .entry("TheWorld:PersistentLevel.VehiclePickup_Boost_TA", "SpawnTrajectory::Location")
         .entry("TAGame.HauntedBallTrapTrigger_TA", "SpawnTrajectory::Location")
+        .entry("ProjectX.Default__NetModeReplicator_X", "SpawnTrajectory::Location")
         .build(&mut file)
         .unwrap();
 
