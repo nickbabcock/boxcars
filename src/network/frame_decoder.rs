@@ -1,15 +1,18 @@
+use std::collections::HashMap;
+use std::ops::Deref;
+
+use bitter::BitGet;
+use fnv::FnvHashMap;
+
 use crate::errors::{AttributeError, NetworkError};
 use crate::hashes::ATTRIBUTES;
+use crate::network::{CacheInfo, ObjectAttribute, VersionTriplet};
 use crate::network::attributes::{AttributeDecoder, ProductValueDecoder};
 use crate::network::models::{
     ActorId, Frame, NewActor, ObjectId, SpawnTrajectory, StreamId, Trajectory, UpdatedAttribute,
 };
-use crate::network::{CacheInfo, ObjectAttribute, VersionTriplet};
 use crate::parser::ReplayBody;
-use bitter::BitGet;
-use fnv::FnvHashMap;
-use std::collections::HashMap;
-use std::ops::Deref;
+use core::iter::Iterator;
 use core::convert::From;
 
 pub(crate) struct FrameDecoder<'a, 'b: 'a> {
@@ -271,7 +274,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                 .ok_or_else(|| NetworkError::NotEnoughDataFor("Time"))?;
 
             if time < 0.0 || (time > 0.0 && time < 1e-10) {
-                return Err(self.time_network_error(frames).unwrap_or(NetworkError::TimeOutOfRange(time)))
+                return Err(self.time_network_error(&frames).unwrap_or(NetworkError::TimeOutOfRange(time)))
             }
 
             let delta = bits
@@ -279,7 +282,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                 .ok_or_else(|| NetworkError::NotEnoughDataFor("Delta"))?;
 
             if delta < 0.0 || (delta > 0.0 && delta < 1e-10) {
-                return Err(self.time_network_error(frames).unwrap_or(NetworkError::DeltaOutOfRange(delta)))
+                return Err(self.time_network_error(&frames).unwrap_or(NetworkError::DeltaOutOfRange(delta)))
             }
 
             if time == 0.0 && delta == 0.0 {
@@ -298,29 +301,33 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
         Ok(frames)
     }
 
-    fn time_network_error(&self, frames: Vec<Frame>) -> Option<NetworkError> {
-        frames.iter().enumerate().rev().next().and_then(|(i, frame)| {
-            frame.updated_actors.last().map(|last_update| {
-                NetworkError::TimeOutOfRangeUpdate(
-                    frames.len(),
-                    i,
-                    last_update.actor_id,
-                    last_update.stream_id,
-                    last_update.attribute.clone(),
-                )
-            }).or_else(|| {
-                frame.new_actors.last().map(|last_new| -> NetworkError {
-                    NetworkError::TimeOutOfRangeNew(
+    fn time_network_error(&self, frames: &[Frame]) -> Option<NetworkError> {
+        frames.iter().enumerate().rev()
+            .find(|(_, frame)| {
+                frame.updated_actors.last().is_some() || frame.new_actors.last().is_some()
+            })
+            .and_then(|(i, frame)| {
+                frame.updated_actors.last().map(|last_update| {
+                    NetworkError::TimeOutOfRangeUpdate(
                         frames.len(),
                         i,
-                        last_new.actor_id,
-                        last_new.name_id,
-                        last_new.object_id,
-                        self.object_ind_to_string(last_new.object_id),
-                        last_new.initial_trajectory,
+                        last_update.actor_id,
+                        last_update.stream_id,
+                        last_update.attribute.clone(),
                     )
-                })
+                }).or_else(|| {
+                    frame.new_actors.last().map(|last_new| -> NetworkError {
+                        NetworkError::TimeOutOfRangeNew(
+                            frames.len(),
+                            i,
+                            last_new.actor_id,
+                            last_new.name_id,
+                            last_new.object_id,
+                            self.object_ind_to_string(last_new.object_id),
+                            last_new.initial_trajectory,
+                        )
+                    })
+                 })
             })
-        })
     }
 }

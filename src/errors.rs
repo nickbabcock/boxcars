@@ -4,39 +4,6 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::fmt;
 
-//#[derive(PartialEq, Debug, Clone)]
-//pub enum BoxcarError {
-//    ParseError(String, i32, ParseError),
-//    NetworkError(NetworkError),
-//    AttributeError(AttributeError),
-//}
-
-//impl BoxcarError {
-//    pub fn create_parse_error(bytes_read: i32, desc: &'static str, e: ParseError) -> BoxcarError::ParseError {
-//        BoxcarError::ParseError(desc, bytes_read, e)
-//    }
-//}
-//
-//impl Display for BoxcarError {
-//    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-//        match self {
-//            BoxcarError::ParseError(desc, bytes_read, error) => write!(f, "Could not decode replay {} at offset ({}): {}", desc, bytes_read, error),
-//            BoxcarError::NetworkError(network_error) => write!(f, "network error: {}", network_error),
-//            BoxcarError::AttributeError(attribute_error) => write!(f, "attribute error: {}", attribute_error),
-//        }
-//    }
-//}
-//
-//impl Error for BoxcarError {
-//    fn source(&self) -> Option<&(dyn Error + 'static)> {
-//        match self {
-//            BoxcarError::ParseError(_, _, parse_error) => Some(parse_error),
-//            _ => None
-//        }
-//    }
-//}
-
-
 #[derive(PartialEq, Debug, Clone)]
 pub enum ParseError {
     ParseError(&'static str, i32, Box<ParseError>),

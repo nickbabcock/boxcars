@@ -16,7 +16,6 @@ use fnv::FnvHashMap;
 use multimap::MultiMap;
 use std::collections::HashMap;
 use std::ops::Deref;
-use core::convert::From;
 
 pub(crate) struct CacheInfo {
     max_prop_id: i32,
