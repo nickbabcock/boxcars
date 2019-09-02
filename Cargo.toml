@@ -26,6 +26,7 @@ serde_json = "1"
 criterion = "0.3"
 
 [[bench]]
+path = "benches/bench_boxcars.rs"
 name = "bench_boxcars"
 harness = false
 
