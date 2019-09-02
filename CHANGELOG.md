@@ -1,3 +1,8 @@
+# v0.4.0 - September 2nd, 2019
+
+* Update network parser to be compatible with v1.66 rocket league replays
+* `Boxcars::ParserBuilder::parse` no longer returns a `failure::Error` as the failure dependency has been removed. Instead a `ParseError` is returned. The same error enums are available as well as the same string representation.
+
 # v0.3.5 - August 12th, 2019
 
 - Support for haunted and rugby games.
