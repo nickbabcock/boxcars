@@ -27,9 +27,6 @@
 //! Below is an example to output the replay structure to json:
 //!
 //! ```
-//! extern crate boxcars;
-//! extern crate serde_json;
-//!
 //! use std::fs::File;
 //! use std::io::{self, Read};
 //! use std::error::Error;
