@@ -1,9 +1,9 @@
+use std::borrow::Cow;
+
 use crate::core_parser::CoreParser;
 use crate::errors::ParseError;
 use crate::models::HeaderProp;
-use crate::parsing_utils::{err_str, le_f32, le_i32, le_u64};
-use failure::{Error, ResultExt};
-use std::borrow::Cow;
+use crate::parsing_utils::{le_f32, le_i32, le_u64};
 
 /// Intermediate parsing structure for the header
 #[derive(Debug, PartialEq)]
@@ -43,19 +43,19 @@ impl<'a> Header<'a> {
     }
 }
 
-pub fn parse_header<'a>(rlp: &mut CoreParser<'a>) -> Result<Header<'a>, Error> {
+pub fn parse_header<'a>(rlp: &mut CoreParser<'a>) -> Result<Header<'a>, ParseError> {
     let major_version = rlp
         .take(4, le_i32)
-        .with_context(|e| err_str(rlp.bytes_read(), "major version", e))?;
+        .map_err(|e| ParseError::ParseError("major version", rlp.bytes_read(), Box::new(e)))?;
 
     let minor_version = rlp
         .take(4, le_i32)
-        .with_context(|e| err_str(rlp.bytes_read(), "minor version", e))?;
+        .map_err(|e| ParseError::ParseError("minor version", rlp.bytes_read(), Box::new(e)))?;
 
     let net_version = if major_version > 865 && minor_version > 17 {
         Some(
             rlp.take(4, le_i32)
-                .with_context(|e| err_str(rlp.bytes_read(), "net version", e))?,
+                .map_err(|e| ParseError::ParseError("net version", rlp.bytes_read(), Box::new(e)))?,
         )
     } else {
         None
@@ -63,10 +63,10 @@ pub fn parse_header<'a>(rlp: &mut CoreParser<'a>) -> Result<Header<'a>, Error> {
 
     let game_type = rlp
         .parse_text()
-        .with_context(|e| err_str(rlp.bytes_read(), "game type", e))?;
+        .map_err(|e| ParseError::ParseError("game type", rlp.bytes_read(), Box::new(e)))?;
 
     let properties =
-        parse_rdict(rlp).with_context(|e| err_str(rlp.bytes_read(), "header properties", e))?;
+        parse_rdict(rlp).map_err(|e| ParseError::ParseError("header properties", rlp.bytes_read(), Box::new(e)))?;
 
     Ok(Header {
         major_version,
@@ -132,7 +132,7 @@ fn str_property<'a>(rlp: &mut CoreParser<'a>) -> Result<HeaderProp<'a>, ParseErr
     Ok(HeaderProp::Str(rlp.parse_text()?))
 }
 
-fn name_property<'a>(rlp: &mut CoreParser<'a>) -> Result<HeaderProp<'a>, ParseError> {
+fn name_property<'a>(rlp: & mut CoreParser<'a>) -> Result<HeaderProp<'a>, ParseError> {
     rlp.take(8, |_d| ())?;
     Ok(HeaderProp::Name(rlp.parse_text()?))
 }
@@ -161,9 +161,11 @@ fn array_property<'a>(rlp: &mut CoreParser<'a>) -> Result<HeaderProp<'a>, ParseE
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::core_parser::CoreParser;
     use std::borrow::Cow;
+
+    use crate::core_parser::CoreParser;
+
+    use super::*;
 
     #[test]
     fn rdict_no_elements() {

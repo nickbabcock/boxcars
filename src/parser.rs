@@ -56,12 +56,11 @@
 
 use crate::core_parser::CoreParser;
 use crate::crc::calc_crc;
-use crate::errors::ParseError;
+use crate::errors::{ParseError, NetworkError};
 use crate::header::{self, Header};
 use crate::models::*;
 use crate::network;
 use crate::parsing_utils::{le_f32, le_i32};
-use failure::{Error, ResultExt};
 use std::borrow::Cow;
 
 /// Determines under what circumstances the parser should perform the crc check for replay
@@ -159,7 +158,7 @@ impl<'a> ParserBuilder<'a> {
         self
     }
 
-    pub fn parse(self) -> Result<Replay<'a>, Error> {
+    pub fn parse(self) -> Result<Replay<'a>, ParseError> {
         let mut parser = Parser::new(
             self.data,
             self.crc_check.unwrap_or(CrcCheck::OnError),
@@ -201,65 +200,52 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn err_str(&self, desc: &'static str, e: &ParseError) -> String {
-        format!(
-            "Could not decode replay {} at offset ({}): {}",
-            desc,
-            self.core.bytes_read(),
-            e
-        )
-    }
-
-    fn parse(&mut self) -> Result<Replay<'a>, Error> {
+    fn parse(&mut self) -> Result<Replay<'a>, ParseError> {
         let header_size = self
             .core
             .take(4, le_i32)
-            .with_context(|e| self.err_str("header size", e))?;
+            .map_err(|e| ParseError::ParseError("header size", self.core.bytes_read(), Box::new(e)))?;
 
         let header_crc = self
             .core
             .take(4, le_i32)
             .map(|x| x as u32)
-            .with_context(|e| self.err_str("header crc", e))?;
+            .map_err(|e| ParseError::ParseError("header crc", self.core.bytes_read(), Box::new(e)))?;
 
         let header_data = self
             .core
             .view_data(header_size as usize)
-            .with_context(|e| self.err_str("header data", e))?;
+            .map_err(|e| ParseError::ParseError("header data", self.core.bytes_read(), Box::new(e)))?;
 
-        let header =
-            self.crc_section(header_data, header_crc as u32, "header", Self::parse_header)?;
+        let header = self.crc_section(header_data, header_crc as u32, "header", Self::parse_header)?;
 
         let content_size = self
             .core
             .take(4, le_i32)
-            .with_context(|e| self.err_str("content size", e))?;
+            .map_err(|e| ParseError::ParseError("content size", self.core.bytes_read(), Box::new(e)))? ;
 
         let content_crc = self
             .core
             .take(4, le_i32)
             .map(|x| x as u32)
-            .with_context(|e| self.err_str("content crc", e))?;
+            .map_err(|e| ParseError::ParseError("content crc", self.core.bytes_read(), Box::new(e)))?;
 
         let content_data = self
             .core
             .view_data(content_size as usize)
-            .with_context(|e| self.err_str("content data", e))?;
+            .map_err(|e| ParseError::ParseError("content data", self.core.bytes_read(), Box::new(e)))?;
 
         let body = self.crc_section(content_data, content_crc as u32, "body", Self::parse_body)?;
 
-        let mut network: Option<NetworkFrames> = None;
-        match self.network_parse {
+        let network: Option<NetworkFrames> = match self.network_parse {
             NetworkParse::Always => {
-                network = Some(self.parse_network(&header, &body)?);
+                Some(self.parse_network(&header, &body).map_err(|e| ParseError::NetworkError(e))?)
             }
             NetworkParse::IgnoreOnError => {
-                if let Ok(v) = self.parse_network(&header, &body) {
-                    network = Some(v);
-                }
+                self.parse_network(&header, &body).map_err(|e| ParseError::NetworkError(e)).ok()
             }
-            NetworkParse::Never => network = None,
-        }
+            NetworkParse::Never => None,
+        };
 
         Ok(Replay {
             header_size,
@@ -288,11 +274,11 @@ impl<'a> Parser<'a> {
         &mut self,
         header: &Header<'_>,
         body: &ReplayBody<'_>,
-    ) -> Result<NetworkFrames, Error> {
+    ) -> Result<NetworkFrames, NetworkError> {
         network::parse(header, body)
     }
 
-    fn parse_header(&mut self) -> Result<Header<'a>, Error> {
+    fn parse_header(&mut self) -> Result<Header<'a>, ParseError> {
         header::parse_header(&mut self.core)
     }
 
@@ -303,85 +289,83 @@ impl<'a> Parser<'a> {
         crc: u32,
         section: &str,
         mut f: F,
-    ) -> Result<T, Error>
-    where
-        F: FnMut(&mut Self) -> Result<T, Error>,
+    ) -> Result<T, ParseError>
+        where
+            F: FnMut(&mut Self) -> Result<T, ParseError>,
     {
-        match (self.crc_check, f(self)) {
-            (CrcCheck::Always, res) => {
+        let result = f(self);
+
+        match self.crc_check {
+            CrcCheck::Always => {
                 let actual = calc_crc(data);
                 if actual != crc as u32 {
-                    Err(Error::from(ParseError::CrcMismatch(crc, actual)))
+                    Err(ParseError::CrcMismatch(crc, actual))
                 } else {
-                    res
+                    result
                 }
             }
-            (CrcCheck::OnError, Err(e)) => {
-                let actual = calc_crc(data);
-                if actual != crc as u32 {
-                    Err(e
-                        .context(format!(
-                            "Failed to parse {} and crc check failed. Replay is corrupt",
-                            section
-                        ))
-                        .into())
-                } else {
-                    Err(e)
-                }
+            CrcCheck::OnError => {
+                result.map_err(|e| -> ParseError {
+                    let actual = calc_crc(data);
+                    if actual != crc as u32 {
+                        ParseError::CorruptReplay(String::from(section), Box::new(e))
+                    } else {
+                        e
+                    }
+                })
             }
-            (CrcCheck::OnError, Ok(s)) => Ok(s),
-            (CrcCheck::Never, res) => res,
+            CrcCheck::Never => result,
         }
     }
 
-    fn parse_body(&mut self) -> Result<ReplayBody<'a>, Error> {
+    fn parse_body(&mut self) -> Result<ReplayBody<'a>, ParseError> {
         let levels = self
             .core
             .text_list()
-            .with_context(|e| self.err_str("levels", e))?;
+            .map_err(|e| ParseError::ParseError("levels", self.core.bytes_read(), Box::new(e)))?;
 
         let keyframes = self
             .parse_keyframe()
-            .with_context(|e| self.err_str("keyframes", e))?;
+            .map_err(|e| ParseError::ParseError("keyframes", self.core.bytes_read(), Box::new(e)))?;
 
         let network_size = self
             .core
             .take(4, le_i32)
-            .with_context(|e| self.err_str("network size", e))?;
+            .map_err(|e| ParseError::ParseError("network size", self.core.bytes_read(), Box::new(e)))?;
 
         let network_data = self
             .core
             .take(network_size as usize, |d| d)
-            .with_context(|e| self.err_str("network data", e))?;
+            .map_err(|e| ParseError::ParseError("network data", self.core.bytes_read(), Box::new(e)))?;
 
         let debug_infos = self
             .parse_debuginfo()
-            .with_context(|e| self.err_str("debug info", e))?;
+            .map_err(|e| ParseError::ParseError("debug info", self.core.bytes_read(), Box::new(e)))?;
 
         let tickmarks = self
             .parse_tickmarks()
-            .with_context(|e| self.err_str("tickmarks", e))?;
+            .map_err(|e| ParseError::ParseError("tickmarks", self.core.bytes_read(), Box::new(e)))?;
 
         let packages = self
             .core
             .text_list()
-            .with_context(|e| self.err_str("packages", e))?;
+            .map_err(|e| ParseError::ParseError("packages", self.core.bytes_read(), Box::new(e)))?;
         let objects = self
             .core
             .text_list()
-            .with_context(|e| self.err_str("objects", e))?;
+            .map_err(|e| ParseError::ParseError("objects", self.core.bytes_read(), Box::new(e)))?;
         let names = self
             .core
             .text_list()
-            .with_context(|e| self.err_str("names", e))?;
+            .map_err(|e| ParseError::ParseError("names", self.core.bytes_read(), Box::new(e)))?;
 
         let class_index = self
             .parse_classindex()
-            .with_context(|e| self.err_str("class index", e))?;
+            .map_err(|e| ParseError::ParseError("class index", self.core.bytes_read(), Box::new(e)))?;
 
         let net_cache = self
             .parse_classcache()
-            .with_context(|e| self.err_str("net cache", e))?;
+            .map_err(|e| ParseError::ParseError("net cache", self.core.bytes_read(), Box::new(e)))?;
 
         Ok(ReplayBody {
             levels,
@@ -457,6 +441,7 @@ mod tests {
     use super::*;
     use crate::models::TickMark;
     use std::borrow::Cow;
+    use std::error::Error;
 
     #[test]
     fn key_frame_list() {
@@ -538,7 +523,7 @@ mod tests {
         let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Never);
         let err = parser.parse().unwrap_err();
         assert!(format!("{}", err)
-            .starts_with("Could not decode replay debug info at offset (1010894): list of size",));
+            .starts_with("Could not decode replay debug info at offset (1010894): list of size"));
     }
 
     #[test]
@@ -551,8 +536,8 @@ mod tests {
             format!("{}", err)
         );
 
-        assert!(format!("{}", err.as_fail().cause().unwrap())
-            .starts_with("Could not decode replay debug info at offset (1010894): list of size",));
+        assert!(format!("{}", err.source().unwrap())
+            .starts_with("Could not decode replay debug info at offset (1010894): list of size"));
     }
 
     #[test]
@@ -564,7 +549,7 @@ mod tests {
             "Crc mismatch. Expected 3765941959 but received 1314727725",
             format!("{}", err)
         );
-        assert!(err.as_fail().cause().is_none());
+        assert!(err.source().is_none());
     }
 
     #[test]
@@ -576,7 +561,7 @@ mod tests {
             "Object Id of 1547 exceeds range",
             format!("{}", err)
         );
-        assert!(err.as_fail().cause().is_none());
+        assert!(err.source().is_some());
     }
 
     #[test]
@@ -588,7 +573,7 @@ mod tests {
             "Too many frames to decode: 738197735",
             format!("{}", err)
         );
-        assert!(err.as_fail().cause().is_none());
+        assert!(err.source().is_some());
     }
 
     #[test]

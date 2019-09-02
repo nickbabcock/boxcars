@@ -12,7 +12,6 @@ use crate::models::*;
 use crate::network::frame_decoder::FrameDecoder;
 use crate::parser::ReplayBody;
 use crate::parsing_utils::log2;
-use failure::Error;
 use fnv::FnvHashMap;
 use multimap::MultiMap;
 use std::collections::HashMap;
@@ -39,7 +38,7 @@ impl VersionTriplet {
     }
 }
 
-pub(crate) fn parse(header: &Header<'_>, body: &ReplayBody<'_>) -> Result<NetworkFrames, Error> {
+pub(crate) fn parse<'a>(header: &Header<'a>, body: &ReplayBody<'a>) -> Result<NetworkFrames, NetworkError> {
     let version = VersionTriplet(
         header.major_version,
         header.minor_version,
@@ -194,7 +193,7 @@ pub(crate) fn parse(header: &Header<'_>, body: &ReplayBody<'_>) -> Result<Networ
 
     if let Some(frame_len) = num_frames {
         if frame_len as usize > body.network_data.len() {
-            return Err(Error::from(NetworkError::TooManyFrames(frame_len)));
+            return Err(NetworkError::TooManyFrames(frame_len));
         }
 
         let frame_decoder = FrameDecoder {
