@@ -561,7 +561,7 @@ mod tests {
             "Object Id of 1547 exceeds range",
             format!("{}", err)
         );
-        assert!(err.source().is_none());
+        assert!(err.source().is_some());
     }
 
     #[test]
@@ -573,7 +573,7 @@ mod tests {
             "Too many frames to decode: 738197735",
             format!("{}", err)
         );
-        assert!(err.source().is_none());
+        assert!(err.source().is_some());
     }
 
     #[test]
