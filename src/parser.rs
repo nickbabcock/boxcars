@@ -56,7 +56,7 @@
 
 use crate::core_parser::CoreParser;
 use crate::crc::calc_crc;
-use crate::errors::{ParseError, NetworkError};
+use crate::errors::{NetworkError, ParseError};
 use crate::header::{self, Header};
 use crate::models::*;
 use crate::network;
@@ -201,49 +201,44 @@ impl<'a> Parser<'a> {
     }
 
     fn parse(&mut self) -> Result<Replay<'a>, ParseError> {
-        let header_size = self
-            .core
-            .take(4, le_i32)
-            .map_err(|e| ParseError::ParseError("header size", self.core.bytes_read(), Box::new(e)))?;
+        let header_size = self.core.take(4, le_i32).map_err(|e| {
+            ParseError::ParseError("header size", self.core.bytes_read(), Box::new(e))
+        })?;
 
-        let header_crc = self
-            .core
-            .take(4, le_i32)
-            .map(|x| x as u32)
-            .map_err(|e| ParseError::ParseError("header crc", self.core.bytes_read(), Box::new(e)))?;
+        let header_crc = self.core.take(4, le_i32).map(|x| x as u32).map_err(|e| {
+            ParseError::ParseError("header crc", self.core.bytes_read(), Box::new(e))
+        })?;
 
-        let header_data = self
-            .core
-            .view_data(header_size as usize)
-            .map_err(|e| ParseError::ParseError("header data", self.core.bytes_read(), Box::new(e)))?;
+        let header_data = self.core.view_data(header_size as usize).map_err(|e| {
+            ParseError::ParseError("header data", self.core.bytes_read(), Box::new(e))
+        })?;
 
-        let header = self.crc_section(header_data, header_crc as u32, "header", Self::parse_header)?;
+        let header =
+            self.crc_section(header_data, header_crc as u32, "header", Self::parse_header)?;
 
-        let content_size = self
-            .core
-            .take(4, le_i32)
-            .map_err(|e| ParseError::ParseError("content size", self.core.bytes_read(), Box::new(e)))? ;
+        let content_size = self.core.take(4, le_i32).map_err(|e| {
+            ParseError::ParseError("content size", self.core.bytes_read(), Box::new(e))
+        })?;
 
-        let content_crc = self
-            .core
-            .take(4, le_i32)
-            .map(|x| x as u32)
-            .map_err(|e| ParseError::ParseError("content crc", self.core.bytes_read(), Box::new(e)))?;
+        let content_crc = self.core.take(4, le_i32).map(|x| x as u32).map_err(|e| {
+            ParseError::ParseError("content crc", self.core.bytes_read(), Box::new(e))
+        })?;
 
-        let content_data = self
-            .core
-            .view_data(content_size as usize)
-            .map_err(|e| ParseError::ParseError("content data", self.core.bytes_read(), Box::new(e)))?;
+        let content_data = self.core.view_data(content_size as usize).map_err(|e| {
+            ParseError::ParseError("content data", self.core.bytes_read(), Box::new(e))
+        })?;
 
         let body = self.crc_section(content_data, content_crc as u32, "body", Self::parse_body)?;
 
         let network: Option<NetworkFrames> = match self.network_parse {
-            NetworkParse::Always => {
-                Some(self.parse_network(&header, &body).map_err(ParseError::NetworkError)?)
-            }
-            NetworkParse::IgnoreOnError => {
-                self.parse_network(&header, &body).map_err(ParseError::NetworkError).ok()
-            }
+            NetworkParse::Always => Some(
+                self.parse_network(&header, &body)
+                    .map_err(ParseError::NetworkError)?,
+            ),
+            NetworkParse::IgnoreOnError => self
+                .parse_network(&header, &body)
+                .map_err(ParseError::NetworkError)
+                .ok(),
             NetworkParse::Never => None,
         };
 
@@ -290,8 +285,8 @@ impl<'a> Parser<'a> {
         section: &str,
         mut f: F,
     ) -> Result<T, ParseError>
-        where
-            F: FnMut(&mut Self) -> Result<T, ParseError>,
+    where
+        F: FnMut(&mut Self) -> Result<T, ParseError>,
     {
         let result = f(self);
 
@@ -304,16 +299,14 @@ impl<'a> Parser<'a> {
                     result
                 }
             }
-            CrcCheck::OnError => {
-                result.map_err(|e| -> ParseError {
-                    let actual = calc_crc(data);
-                    if actual != crc as u32 {
-                        ParseError::CorruptReplay(String::from(section), Box::new(e))
-                    } else {
-                        e
-                    }
-                })
-            }
+            CrcCheck::OnError => result.map_err(|e| -> ParseError {
+                let actual = calc_crc(data);
+                if actual != crc as u32 {
+                    ParseError::CorruptReplay(String::from(section), Box::new(e))
+                } else {
+                    e
+                }
+            }),
             CrcCheck::Never => result,
         }
     }
@@ -324,27 +317,25 @@ impl<'a> Parser<'a> {
             .text_list()
             .map_err(|e| ParseError::ParseError("levels", self.core.bytes_read(), Box::new(e)))?;
 
-        let keyframes = self
-            .parse_keyframe()
-            .map_err(|e| ParseError::ParseError("keyframes", self.core.bytes_read(), Box::new(e)))?;
+        let keyframes = self.parse_keyframe().map_err(|e| {
+            ParseError::ParseError("keyframes", self.core.bytes_read(), Box::new(e))
+        })?;
 
-        let network_size = self
-            .core
-            .take(4, le_i32)
-            .map_err(|e| ParseError::ParseError("network size", self.core.bytes_read(), Box::new(e)))?;
+        let network_size = self.core.take(4, le_i32).map_err(|e| {
+            ParseError::ParseError("network size", self.core.bytes_read(), Box::new(e))
+        })?;
 
-        let network_data = self
-            .core
-            .take(network_size as usize, |d| d)
-            .map_err(|e| ParseError::ParseError("network data", self.core.bytes_read(), Box::new(e)))?;
+        let network_data = self.core.take(network_size as usize, |d| d).map_err(|e| {
+            ParseError::ParseError("network data", self.core.bytes_read(), Box::new(e))
+        })?;
 
-        let debug_infos = self
-            .parse_debuginfo()
-            .map_err(|e| ParseError::ParseError("debug info", self.core.bytes_read(), Box::new(e)))?;
+        let debug_infos = self.parse_debuginfo().map_err(|e| {
+            ParseError::ParseError("debug info", self.core.bytes_read(), Box::new(e))
+        })?;
 
-        let tickmarks = self
-            .parse_tickmarks()
-            .map_err(|e| ParseError::ParseError("tickmarks", self.core.bytes_read(), Box::new(e)))?;
+        let tickmarks = self.parse_tickmarks().map_err(|e| {
+            ParseError::ParseError("tickmarks", self.core.bytes_read(), Box::new(e))
+        })?;
 
         let packages = self
             .core
@@ -359,13 +350,13 @@ impl<'a> Parser<'a> {
             .text_list()
             .map_err(|e| ParseError::ParseError("names", self.core.bytes_read(), Box::new(e)))?;
 
-        let class_index = self
-            .parse_classindex()
-            .map_err(|e| ParseError::ParseError("class index", self.core.bytes_read(), Box::new(e)))?;
+        let class_index = self.parse_classindex().map_err(|e| {
+            ParseError::ParseError("class index", self.core.bytes_read(), Box::new(e))
+        })?;
 
-        let net_cache = self
-            .parse_classcache()
-            .map_err(|e| ParseError::ParseError("net cache", self.core.bytes_read(), Box::new(e)))?;
+        let net_cache = self.parse_classcache().map_err(|e| {
+            ParseError::ParseError("net cache", self.core.bytes_read(), Box::new(e))
+        })?;
 
         Ok(ReplayBody {
             levels,
@@ -557,10 +548,7 @@ mod tests {
         let data = include_bytes!("../assets/replays/bad/fuzz-large-object-id.replay");
         let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Always);
         let err = parser.parse().unwrap_err();
-        assert_eq!(
-            "Object Id of 1547 exceeds range",
-            format!("{}", err)
-        );
+        assert_eq!("Object Id of 1547 exceeds range", format!("{}", err));
         assert!(err.source().is_some());
     }
 
@@ -569,10 +557,7 @@ mod tests {
         let data = include_bytes!("../assets/replays/bad/fuzz-too-many-frames.replay");
         let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Always);
         let err = parser.parse().unwrap_err();
-        assert_eq!(
-            "Too many frames to decode: 738197735",
-            format!("{}", err)
-        );
+        assert_eq!("Too many frames to decode: 738197735", format!("{}", err));
         assert!(err.source().is_some());
     }
 

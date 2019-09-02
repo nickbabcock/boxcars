@@ -1,8 +1,8 @@
 use crate::network::{ActorId, Attribute, ObjectId, StreamId, Trajectory};
-use std::str;
 use std::error::Error;
-use std::fmt::{Display, Formatter};
 use std::fmt;
+use std::fmt::{Display, Formatter};
+use std::str;
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum ParseError {
@@ -15,22 +15,42 @@ pub enum ParseError {
     CrcMismatch(u32, u32),
     CorruptReplay(String, Box<ParseError>),
     ListTooLarge(usize),
-    NetworkError(NetworkError)
+    NetworkError(NetworkError),
 }
 
-impl Display for ParseError{
+impl Display for ParseError {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
             ParseError::ZeroSize => write!(f, "A size of zero is not valid"),
-            ParseError::Utf8Error(utf8_error) => write!(f, "Unable decode data as utf8: {}", utf8_error),
+            ParseError::Utf8Error(utf8_error) => {
+                write!(f, "Unable decode data as utf8: {}", utf8_error)
+            }
             ParseError::TextTooLarge(size) => write!(f, "Text of size {} is too large", size),
-            ParseError::InsufficientData(expected, left) => write!(f, "Insufficient data. Expected {} bytes, but only {} left", expected, left),
-            ParseError::UnexpectedProperty(property) => write!(f, "Did not expect a property of: {}", property),
-            ParseError::CrcMismatch(expected, found) => write!(f, "Crc mismatch. Expected {} but received {}", expected, found),
-            ParseError::CorruptReplay(section, _) => write!(f, "Failed to parse {} and crc check failed. Replay is corrupt", section),
+            ParseError::InsufficientData(expected, left) => write!(
+                f,
+                "Insufficient data. Expected {} bytes, but only {} left",
+                expected, left
+            ),
+            ParseError::UnexpectedProperty(property) => {
+                write!(f, "Did not expect a property of: {}", property)
+            }
+            ParseError::CrcMismatch(expected, found) => write!(
+                f,
+                "Crc mismatch. Expected {} but received {}",
+                expected, found
+            ),
+            ParseError::CorruptReplay(section, _) => write!(
+                f,
+                "Failed to parse {} and crc check failed. Replay is corrupt",
+                section
+            ),
             ParseError::ListTooLarge(size) => write!(f, "list of size {} is too large", size),
-            ParseError::ParseError(section, bytes_read, parse_error) => write!(f, "Could not decode replay {} at offset ({}): {}", section, bytes_read, parse_error),
-            ParseError::NetworkError(network_error) => write!(f, "{}", network_error)
+            ParseError::ParseError(section, bytes_read, parse_error) => write!(
+                f,
+                "Could not decode replay {} at offset ({}): {}",
+                section, bytes_read, parse_error
+            ),
+            ParseError::NetworkError(network_error) => write!(f, "{}", network_error),
         }
     }
 }
@@ -42,7 +62,7 @@ impl Error for ParseError {
             ParseError::CorruptReplay(_, error) => Some(error),
             ParseError::ParseError(_, _, error) => Some(error),
             ParseError::NetworkError(error) => Some(error),
-            _ => None
+            _ => None,
         }
     }
 }
@@ -70,8 +90,12 @@ impl Error for AttributeError {
 impl Display for AttributeError {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            AttributeError::NotEnoughDataFor(message) => write!(f, "Not enough data to decode attribute {}", message),
-            AttributeError::UnrecognizedRemoteId(id) => write!(f, "Unrecognized remote id of {}", id),
+            AttributeError::NotEnoughDataFor(message) => {
+                write!(f, "Not enough data to decode attribute {}", message)
+            }
+            AttributeError::UnrecognizedRemoteId(id) => {
+                write!(f, "Unrecognized remote id of {}", id)
+            }
             AttributeError::Unimplemented => write!(f, "Does not have an attribute implementation"),
             AttributeError::TooBigString(size) => write!(f, "Unexpected size for string: {}", size),
         }
@@ -83,7 +107,15 @@ pub enum NetworkError {
     NotEnoughDataFor(&'static str),
     TimeOutOfRange(f32),
     TimeOutOfRangeUpdate(usize, usize, ActorId, StreamId, Attribute),
-    TimeOutOfRangeNew(usize, usize, ActorId, Option<i32>, ObjectId, String, Trajectory),
+    TimeOutOfRangeNew(
+        usize,
+        usize,
+        ActorId,
+        Option<i32>,
+        ObjectId,
+        String,
+        Trajectory,
+    ),
     DeltaOutOfRange(f32),
     MaxStreamIdTooLarge(i32, ObjectId),
     ChannelsTooLarge(i32),
@@ -103,7 +135,7 @@ impl Error for NetworkError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             NetworkError::AttributeError(attribute_error) => Some(attribute_error),
-            _ => None
+            _ => None,
         }
     }
 }

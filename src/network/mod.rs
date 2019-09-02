@@ -38,7 +38,10 @@ impl VersionTriplet {
     }
 }
 
-pub(crate) fn parse<'a>(header: &Header<'a>, body: &ReplayBody<'a>) -> Result<NetworkFrames, NetworkError> {
+pub(crate) fn parse<'a>(
+    header: &Header<'a>,
+    body: &ReplayBody<'a>,
+) -> Result<NetworkFrames, NetworkError> {
     let version = VersionTriplet(
         header.major_version,
         header.minor_version,
@@ -112,7 +115,9 @@ pub(crate) fn parse<'a>(header: &Header<'a>, body: &ReplayBody<'a>) -> Result<Ne
         // We are going to recursively resolve an object's name to find their direct parent.
         // Parents have parents as well (etc), so we repeatedly walk up the chain picking up
         // attributes on parent objects until we reach an object with no parent (`Core.Object`)
-        let mut object_name: &str = &*body.objects.get(cache.object_ind as usize)
+        let mut object_name: &str = &*body
+            .objects
+            .get(cache.object_ind as usize)
             .ok_or_else(|| NetworkError::ObjectIdOutOfRange(ObjectId(cache.object_ind)))?;
 
         while let Some(parent_name) = PARENT_CLASSES.get(object_name) {

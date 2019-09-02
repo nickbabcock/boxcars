@@ -52,21 +52,21 @@ pub fn parse_header<'a>(rlp: &mut CoreParser<'a>) -> Result<Header<'a>, ParseErr
         .take(4, le_i32)
         .map_err(|e| ParseError::ParseError("minor version", rlp.bytes_read(), Box::new(e)))?;
 
-    let net_version = if major_version > 865 && minor_version > 17 {
-        Some(
-            rlp.take(4, le_i32)
-                .map_err(|e| ParseError::ParseError("net version", rlp.bytes_read(), Box::new(e)))?,
-        )
-    } else {
-        None
-    };
+    let net_version =
+        if major_version > 865 && minor_version > 17 {
+            Some(rlp.take(4, le_i32).map_err(|e| {
+                ParseError::ParseError("net version", rlp.bytes_read(), Box::new(e))
+            })?)
+        } else {
+            None
+        };
 
     let game_type = rlp
         .parse_text()
         .map_err(|e| ParseError::ParseError("game type", rlp.bytes_read(), Box::new(e)))?;
 
-    let properties =
-        parse_rdict(rlp).map_err(|e| ParseError::ParseError("header properties", rlp.bytes_read(), Box::new(e)))?;
+    let properties = parse_rdict(rlp)
+        .map_err(|e| ParseError::ParseError("header properties", rlp.bytes_read(), Box::new(e)))?;
 
     Ok(Header {
         major_version,
@@ -132,7 +132,7 @@ fn str_property<'a>(rlp: &mut CoreParser<'a>) -> Result<HeaderProp<'a>, ParseErr
     Ok(HeaderProp::Str(rlp.parse_text()?))
 }
 
-fn name_property<'a>(rlp: & mut CoreParser<'a>) -> Result<HeaderProp<'a>, ParseError> {
+fn name_property<'a>(rlp: &mut CoreParser<'a>) -> Result<HeaderProp<'a>, ParseError> {
     rlp.take(8, |_d| ())?;
     Ok(HeaderProp::Name(rlp.parse_text()?))
 }
@@ -216,7 +216,9 @@ mod tests {
     #[test]
     fn rdict_one_name_element() {
         // dd skip=$((0x1237)) count=$((0x1269 - 0x1237)) if=rumble.replay of=rdict_name.replay bs=1
-        let data = append_none(include_bytes!("../assets/replays/partial/rdict_name.replay"));
+        let data = append_none(include_bytes!(
+            "../assets/replays/partial/rdict_name.replay"
+        ));
         let mut parser = CoreParser::new(&data[..]);
         let res = parse_rdict(&mut parser).unwrap();
         assert_eq!(
@@ -228,7 +230,9 @@ mod tests {
     #[test]
     fn rdict_one_float_element() {
         // dd skip=$((0x10a2)) count=$((0x10ce - 0x10a2)) if=rumble.replay of=rdict_float.replay bs=1
-        let data = append_none(include_bytes!("../assets/replays/partial/rdict_float.replay"));
+        let data = append_none(include_bytes!(
+            "../assets/replays/partial/rdict_float.replay"
+        ));
         let mut parser = CoreParser::new(&data[..]);
         let res = parse_rdict(&mut parser).unwrap();
         assert_eq!(res, vec![("RecordFPS", HeaderProp::Float(30.0))]);
@@ -237,7 +241,9 @@ mod tests {
     #[test]
     fn rdict_one_qword_element() {
         // dd skip=$((0x576)) count=$((0x5a5 - 0x576)) if=rumble.replay of=rdict_qword.replay bs=1
-        let data = append_none(include_bytes!("../assets/replays/partial/rdict_qword.replay"));
+        let data = append_none(include_bytes!(
+            "../assets/replays/partial/rdict_qword.replay"
+        ));
         let mut parser = CoreParser::new(&data[..]);
         let res = parse_rdict(&mut parser).unwrap();
         assert_eq!(
@@ -249,7 +255,9 @@ mod tests {
     #[test]
     fn rdict_one_array_element() {
         // dd skip=$((0xab)) count=$((0x3f7 + 36)) if=rumble.replay of=rdict_array.replay bs=1
-        let data = append_none(include_bytes!("../assets/replays/partial/rdict_array.replay"));
+        let data = append_none(include_bytes!(
+            "../assets/replays/partial/rdict_array.replay"
+        ));
         let mut parser = CoreParser::new(&data[..]);
         let res = parse_rdict(&mut parser).unwrap();
         let expected = vec![
@@ -301,7 +309,9 @@ mod tests {
     #[test]
     fn rdict_one_byte_element() {
         // dd skip=$((0xdf0)) count=$((0xe41 - 0xdf0)) if=rumble.replay of=rdict_byte.replay bs=1
-        let data = append_none(include_bytes!("../assets/replays/partial/rdict_byte.replay"));
+        let data = append_none(include_bytes!(
+            "../assets/replays/partial/rdict_byte.replay"
+        ));
         let mut parser = CoreParser::new(&data[..]);
         let res = parse_rdict(&mut parser).unwrap();
         assert_eq!(res, vec![("Platform", HeaderProp::Byte)]);
