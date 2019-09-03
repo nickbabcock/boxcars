@@ -27,26 +27,32 @@
 //! Below is an example to output the replay structure to json:
 //!
 //! ```
+//! use boxcars::{ParseError, Replay};
+//! use std::error;
 //! use std::fs::File;
 //! use std::io::{self, Read};
-//! use std::error::Error;
 //!
 //! # fn main() {
 //! #    let filename = "assets/replays/good/rumble.replay";
 //! #    run(filename).unwrap();
 //! # }
 //!
-//! fn run(filename: &str) -> Result<(), Box<dyn Error>> {
-//! let mut f = File::open(filename)?;
+//! fn parse_rl<'a>(data: &'a [u8]) -> Result<Replay<'a>, ParseError> {
+//!     boxcars::ParserBuilder::new(&data)
+//!         .on_error_check_crc()
+//!         .parse()
+//! }
+//!
+//! fn run(filename: &str) -> Result<(), Box<dyn error::Error>> {
+//!     let filename = "assets/replays/good/rumble.replay";
+//!     let mut f = File::open(filename)?;
 //!     let mut buffer = vec![];
 //!     f.read_to_end(&mut buffer)?;
-//!     let replay = boxcars::ParserBuilder::new(&buffer)
-//!         .on_error_check_crc()
-//!         .parse()?;
-//!
+//!     let replay = parse_rl(&buffer)?;
 //!     serde_json::to_writer(&mut io::stdout(), &replay)?;
 //!     Ok(())
 //! }
+//!
 //! ```
 
 #![recursion_limit = "1000"]
@@ -57,6 +63,7 @@ extern crate if_chain;
 #[macro_use]
 extern crate serde;
 
+pub use self::errors::{AttributeError, NetworkError, ParseError};
 pub use self::models::*;
 pub use self::network::attributes::Attribute;
 pub use self::network::*;

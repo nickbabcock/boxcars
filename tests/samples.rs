@@ -1,4 +1,4 @@
-use boxcars::{self, ParserBuilder};
+use boxcars::{self, AttributeError, NetworkError, ObjectId, ParseError, ParserBuilder};
 use std::borrow::Cow;
 
 #[test]
@@ -233,4 +233,31 @@ fn test_preserve_endian() {
         .collect::<Vec<_>>();
 
     assert_eq!(*new_paints.get(0).unwrap(), 11);
+}
+
+#[test]
+fn test_error_extraction() {
+    let data = include_bytes!("../assets/replays/bad/fuzz-large-object-id.replay");
+    let err = ParserBuilder::new(&data[..])
+        .never_check_crc()
+        .must_parse_network_data()
+        .parse()
+        .unwrap_err();
+
+    let ne = match err {
+        ParseError::NetworkError(e) => e,
+        _ => panic!("Expecting network error"),
+    };
+
+    match ne {
+        NetworkError::ObjectIdOutOfRange(id) => {
+            let new_id: ObjectId = id;
+            assert!(new_id.0 != 0);
+        }
+        NetworkError::AttributeError(ae) => match ae {
+            AttributeError::Unimplemented => panic!("Unexpected unimplemented attribute error"),
+            _ => panic!("Unexpected attribute error"),
+        },
+        _ => panic!("Expecting object id out of range"),
+    }
 }

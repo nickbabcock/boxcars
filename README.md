@@ -31,18 +31,23 @@ Serialization support is provided through [serde](https://github.com/serde-rs/se
 Below is an example to output the replay structure to json:
 
 ```rust
+use boxcars::{ParseError, Replay};
+use std::error;
 use std::fs::File;
 use std::io::{self, Read};
 
-fn run() -> Result<(), Box<dyn Error>> {
+fn parse_rl<'a>(data: &'a [u8]) -> Result<Replay<'a>, ParseError> {
+    boxcars::ParserBuilder::new(&data)
+        .on_error_check_crc()
+        .parse()
+}
+
+fn run() -> Result<(), Box<dyn error::Error>> {
     let filename = "assets/replays/good/rumble.replay";
     let mut f = File::open(filename)?;
     let mut buffer = vec![];
     f.read_to_end(&mut buffer)?;
-    let replay = boxcars::ParserBuilder::new(&buffer)
-        .on_error_check_crc()
-        .parse()?;
-
+    let replay = parse_rl(&buffer)?;
     serde_json::to_writer(&mut io::stdout(), &replay)?;
     Ok(())
 }
