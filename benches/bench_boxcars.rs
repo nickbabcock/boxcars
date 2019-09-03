@@ -5,7 +5,6 @@ use serde_json;
 use boxcars::crc::calc_crc;
 use boxcars::*;
 use criterion::{black_box, Criterion};
-use std::io;
 
 fn bench_crc(c: &mut Criterion) {
     c.bench_function("bench_crc", |b| {
@@ -64,9 +63,13 @@ fn bench_parse_no_crc_no_body(c: &mut Criterion) {
 fn bench_parse_crc_json(c: &mut Criterion) {
     c.bench_function("bench_parse_crc_json", |b| {
         let data = include_bytes!("../assets/replays/good/3381.replay");
+
+        // allocate a buffer big enough to hold all of the serialized data
+        let mut bytes = Vec::with_capacity(2_usize.pow(25));
         b.iter(|| {
             let data = ParserBuilder::new(data).always_check_crc().parse().unwrap();
-            black_box(serde_json::to_writer(&mut io::sink(), &data).is_ok());
+            black_box(serde_json::to_writer(&mut bytes, &data).is_ok());
+            unsafe { bytes.set_len(0); }
         });
     });
 }
@@ -74,12 +77,16 @@ fn bench_parse_crc_json(c: &mut Criterion) {
 fn bench_parse_no_crc_json(c: &mut Criterion) {
     c.bench_function("bench_parse_no_crc_json", |b| {
         let data = include_bytes!("../assets/replays/good/3381.replay");
+
+        // allocate a buffer big enough to hold all of the serialized data
+        let mut bytes = Vec::with_capacity(2_usize.pow(25));
         b.iter(|| {
             let replay = ParserBuilder::new(data)
                 .on_error_check_crc()
                 .parse()
                 .unwrap();
-            black_box(serde_json::to_writer(&mut io::sink(), &replay).is_ok());
+            black_box(serde_json::to_writer(&mut bytes, &replay).is_ok());
+            unsafe { bytes.set_len(0); }
         });
     });
 }
