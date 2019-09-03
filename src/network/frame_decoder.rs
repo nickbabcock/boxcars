@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::ops::Deref;
 
 use bitter::BitGet;
@@ -10,7 +9,7 @@ use crate::network::attributes::{AttributeDecoder, ProductValueDecoder};
 use crate::network::models::{
     ActorId, Frame, NewActor, ObjectId, SpawnTrajectory, StreamId, Trajectory, UpdatedAttribute,
 };
-use crate::network::{CacheInfo, ObjectAttribute, VersionTriplet};
+use crate::network::{CacheInfo, VersionTriplet};
 use crate::parser::ReplayBody;
 
 pub(crate) struct FrameDecoder<'a, 'b: 'a> {
@@ -19,8 +18,7 @@ pub(crate) struct FrameDecoder<'a, 'b: 'a> {
     pub channel_bits: i32,
     pub body: &'a ReplayBody<'b>,
     pub spawns: &'a Vec<SpawnTrajectory>,
-    pub object_ind_attributes: FnvHashMap<ObjectId, CacheInfo>,
-    pub object_ind_attrs: HashMap<ObjectId, HashMap<StreamId, ObjectAttribute>>,
+    pub object_ind_attributes: FnvHashMap<ObjectId, CacheInfo<'a>>,
     pub version: VersionTriplet,
 }
 
@@ -113,9 +111,9 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
             object_id,
             self.object_ind_to_string(object_id),
             stream_id,
-            self.object_ind_attrs
+            self.object_ind_attributes
                 .get(&object_id)
-                .and_then(|x| x.get(&stream_id))
+                .and_then(|x| x.attributes.get(&stream_id))
                 .map(|x| self.object_ind_to_string(x.object_id))
                 .unwrap_or_else(|| "type id not recognized".to_string()),
             fm,
@@ -232,7 +230,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                         })?;
 
                         let attribute =
-                            attr_decoder.decode(*attr, &mut bits).map_err(|e| match e {
+                            attr_decoder.decode(attr.attribute, &mut bits).map_err(|e| match e {
                                 AttributeError::Unimplemented => {
                                     self.unimplemented_attribute(actor_id, *object_id, stream_id)
                                 }
@@ -242,6 +240,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                         updated_actors.push(UpdatedAttribute {
                             actor_id,
                             stream_id,
+                            object_id: attr.object_id,
                             attribute,
                         });
                     }
