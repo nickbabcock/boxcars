@@ -1,6 +1,12 @@
+# v0.4.1 - September 3rd, 2019
+
+* Expose error types as part of public API ([#54](https://github.com/nickbabcock/boxcars/pull/54)).
+* Include attribute object id on actor update, so now one can more easily derive the attribute's name with `replay.objects[attribute.object_id]` ([#56](https://github.com/nickbabcock/boxcars/pull/56))
+
 # v0.4.0 - September 2nd, 2019
 
 * Update network parser to be compatible with v1.66 rocket league replays
+* Update to multimap 0.6
 * `Boxcars::ParserBuilder::parse` no longer returns a `failure::Error` as the failure dependency has been removed. Instead a `ParseError` is returned. The same error enums are available as well as the same string representation.
 
 # v0.3.5 - August 12th, 2019
