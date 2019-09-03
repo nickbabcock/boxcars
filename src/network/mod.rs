@@ -17,10 +17,10 @@ use multimap::MultiMap;
 use std::collections::HashMap;
 use std::ops::Deref;
 
-pub(crate) struct CacheInfo {
+pub(crate) struct CacheInfo<'a> {
     max_prop_id: i32,
     prop_id_bits: i32,
-    attributes: FnvHashMap<StreamId, AttributeTag>,
+    attributes: &'a FnvHashMap<StreamId, ObjectAttribute>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -90,10 +90,10 @@ pub(crate) fn parse<'a>(
         .map(|(i, name)| (name.deref(), ObjectId(i as i32)))
         .collect();
 
-    let mut object_ind_attrs: HashMap<ObjectId, HashMap<StreamId, ObjectAttribute>> =
-        HashMap::new();
+    let mut object_ind_attrs: FnvHashMap<ObjectId, FnvHashMap<StreamId, ObjectAttribute>> =
+        Default::default();
     for cache in &body.net_cache {
-        let mut all_props: HashMap<StreamId, ObjectAttribute> = cache
+        let mut all_props: FnvHashMap<StreamId, ObjectAttribute> = cache
             .properties
             .iter()
             .map(|x| {
@@ -108,7 +108,7 @@ pub(crate) fn parse<'a>(
                     },
                 ))
             })
-            .collect::<Result<HashMap<_, _>, NetworkError>>()?;
+            .collect::<Result<FnvHashMap<_, _>, NetworkError>>()?;
 
         let mut had_parent = false;
 
@@ -158,7 +158,7 @@ pub(crate) fn parse<'a>(
             })?;
 
             for i in object_ids {
-                let parent_attrs: HashMap<_, _> = object_ind_attrs
+                let parent_attrs: FnvHashMap<_, _> = object_ind_attrs
                     .get(parent_id)
                     .ok_or_else(|| NetworkError::ParentHasNoAttributes(*parent_id, *i))?
                     .clone();
@@ -180,7 +180,7 @@ pub(crate) fn parse<'a>(
                 CacheInfo {
                     max_prop_id: max,
                     prop_id_bits: log2(next_max) as i32,
-                    attributes: attrs.iter().map(|(k, o)| (*k, o.attribute)).collect(),
+                    attributes: attrs,
                 },
             ))
         })
@@ -208,7 +208,6 @@ pub(crate) fn parse<'a>(
             body,
             spawns: &spawns,
             object_ind_attributes,
-            object_ind_attrs,
             version,
         };
         Ok(NetworkFrames {

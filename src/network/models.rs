@@ -102,6 +102,9 @@ pub struct UpdatedAttribute {
     /// The attribute stream id that was decoded
     pub stream_id: StreamId,
 
+    /// The attribute's object id
+    pub object_id: ObjectId,
+
     /// The actual data from the decoded attribute
     pub attribute: Attribute,
 }
