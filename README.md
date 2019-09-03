@@ -196,3 +196,47 @@ x: 1952
 y: -2464
 z: 17
 ```
+
+---
+
+Attribute updates:
+
+rattletrap:
+
+```json
+{
+  "actor_id": {
+    "limit": 2047,
+    "value": 7
+  },
+  "value": {
+    "updated": [
+      {
+        "id": {
+          "limit": 98,
+          "value": 34
+        },
+        "name": "Engine.PlayerReplicationInfo:PlayerName",
+        "value": {
+          "string": "Nadir"
+        }
+      }
+    ]
+  }
+}
+```
+
+boxcars:
+
+```json
+{
+  "actor_id": 7,
+  "stream_id": 34,
+  "object_id": 161,
+  "attribute": {
+    "String": "Nadir"
+  }
+}
+```
+
+To derive rattletrap's `name` for the attribute use `replay.objects[attribute.object_id]`
