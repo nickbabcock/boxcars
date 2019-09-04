@@ -36,9 +36,6 @@ matrix:
       rust: nightly
     - env: TARGET=x86_64-unknown-linux-gnu
       rust: beta
-    - env: TARGET=x86_64-apple-darwin
-      os: osx
-      rust: nightly
 
 before_install:
   - set -e
@@ -50,8 +47,3 @@ install:
 
 script:
   - bash ci/script.sh
-
-cache: cargo
-before_cache:
-  # Travis can't cache files that are not readable by "others"
-  - chmod -R a+r $HOME/.cargo
