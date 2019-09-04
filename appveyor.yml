@@ -8,17 +8,10 @@ environment:
   matrix:
     - TARGET: x86_64-pc-windows-gnu
     - TARGET: x86_64-pc-windows-msvc
-    - TARGET: x86_64-pc-windows-gnu
-      RUST_VERSION: beta
     - TARGET: x86_64-pc-windows-msvc
       RUST_VERSION: beta
-    - TARGET: x86_64-pc-windows-gnu
-      RUST_VERSION: nightly
     - TARGET: x86_64-pc-windows-msvc
       RUST_VERSION: nightly
-
-cache:
-  - 'C:\Users\appveyor\.cargo'
 
 install:
   - ps: >-
