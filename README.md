@@ -60,11 +60,11 @@ with the following options and the estimated elapsed time.
 
 | Header | Corruption Check | Body | Output JSON | Elapsed |
 | -      | -                | -    | -           | -       |
-| ✔      |                  |      |             | 40 µs   |
-| ✔      | ✔                | ✔    |             | 24ms    |
-| ✔      |                  | ✔    |             | 20ms    |
-| ✔      | ✔                | ✔    | ✔           | 38ms    |
-| ✔      |                  | ✔    | ✔           | 35ms    |
+| ✔      |                  |      |             | 58 µs   |
+| ✔      | ✔                | ✔    |             | 22ms    |
+| ✔      |                  | ✔    |             | 19ms    |
+| ✔      | ✔                | ✔    | ✔           | 90ms    |
+| ✔      |                  | ✔    | ✔           | 86ms    |
 
 ## Special Thanks
 
