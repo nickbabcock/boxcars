@@ -55,6 +55,16 @@ fn run() -> Result<(), Box<dyn error::Error>> {
 
 ## Benchmarks
 
+To run the boxcar benchmarks:
+
+```
+cargo bench
+
+# Or if you want to see if compiling for the
+# given cpu eeks out tangible improvements:
+# RUSTFLAGS="-C target-cpu=native" cargo bench
+```
+
 Since Boxcars allows you to pick and choose what to parse, below is a table
 with the following options and the estimated elapsed time.
 
