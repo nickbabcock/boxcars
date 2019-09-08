@@ -37,8 +37,8 @@
 //! #    run(filename).unwrap();
 //! # }
 //!
-//! fn parse_rl<'a>(data: &'a [u8]) -> Result<Replay, ParseError> {
-//!     boxcars::ParserBuilder::new(&data)
+//! fn parse_rl(data: &[u8]) -> Result<Replay, ParseError> {
+//!     boxcars::ParserBuilder::new(data)
 //!         .on_error_check_crc()
 //!         .parse()
 //! }
