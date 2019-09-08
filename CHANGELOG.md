@@ -1,6 +1,6 @@
 # v0.5.0 - September 8th, 2019
 
-* Checking against corrupt replays using a new crc algorithm improved crc performance by 4x. This translates to a potential 5-10% overall performance improvement when the crc is needed / requested to be calculated when decoding a replay
+* Checking against corrupt replays using a new crc algorithm improved crc performance by 8x. This translates to a potential 20% overall performance improvement when the crc is needed / requested to be calculated when decoding a replay
 * The `Replay` structure now owns all parsing data, there is no more lifetime parameter that is tied to the original raw data slice. For instance, `replay.game_type` is now a `String`, not a `Cow<'a, str>`. The impetus of this change stems from the difficulty of making a replay long lived when it's tied to the lifetime of another object. See [issue 61 for more info](https://github.com/nickbabcock/boxcars/issues/61). The result of this change should be an API that is more ergonomic. While performance decreased for those only interested in parsing the header, there was an overall performance win by moving to the new API.
 
 # v0.4.1 - September 3rd, 2019
