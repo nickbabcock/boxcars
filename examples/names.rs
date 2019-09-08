@@ -5,15 +5,14 @@
 //! demonstrated is minimal, relying on stringly typed errors. In practice, prefer a richer error
 //! type.
 use boxcars::{HeaderProp, ParserBuilder};
-use std::borrow::Cow;
 use std::error;
 use std::io::{self, Read};
 
 /// Given an array of objects (represented as a slice of key-value pairs), find all the instances
 /// of the "Name" key and extract the string value
-fn names_in_header<'a, 'b>(
-    stats: &'b [Vec<(&'a str, HeaderProp<'a>)>],
-) -> impl Iterator<Item = &'b Cow<'a, str>> {
+fn names_in_header(
+    stats: &[Vec<(String, HeaderProp)>],
+) -> impl Iterator<Item = &String> {
     stats
         .iter()
         .flat_map(|v| v.iter())

@@ -11,34 +11,33 @@
 use crate::network::Frame;
 use serde::ser::{SerializeMap, SerializeSeq};
 use serde::{Serialize, Serializer};
-use std::borrow::Cow;
 use std::collections::HashMap;
 
 /// The structure that a rocket league replay is parsed into.
 #[derive(Serialize, PartialEq, Debug, Clone)]
-pub struct Replay<'a> {
+pub struct Replay {
     pub header_size: i32,
     pub header_crc: u32,
     pub major_version: i32,
     pub minor_version: i32,
     pub net_version: Option<i32>,
-    pub game_type: Cow<'a, str>,
+    pub game_type: String,
 
     /// Could use a map to represent properties but I don't want to assume that duplicate keys
     /// can't exist, so to be safe, use a traditional vector.
     #[serde(serialize_with = "pair_vec")]
-    pub properties: Vec<(&'a str, HeaderProp<'a>)>,
+    pub properties: Vec<(String, HeaderProp)>,
     pub content_size: i32,
     pub content_crc: u32,
     pub network_frames: Option<NetworkFrames>,
-    pub levels: Vec<Cow<'a, str>>,
+    pub levels: Vec<String>,
     pub keyframes: Vec<KeyFrame>,
-    pub debug_info: Vec<DebugInfo<'a>>,
-    pub tick_marks: Vec<TickMark<'a>>,
-    pub packages: Vec<Cow<'a, str>>,
-    pub objects: Vec<Cow<'a, str>>,
-    pub names: Vec<Cow<'a, str>>,
-    pub class_indices: Vec<ClassIndex<'a>>,
+    pub debug_info: Vec<DebugInfo>,
+    pub tick_marks: Vec<TickMark>,
+    pub packages: Vec<String>,
+    pub objects: Vec<String>,
+    pub names: Vec<String>,
+    pub class_indices: Vec<ClassIndex>,
     pub net_cache: Vec<ClassNetCache>,
 }
 
@@ -53,8 +52,8 @@ pub struct NetworkFrames {
 /// time. For instance, a tickmark could be at frame 396 for a goal at frame 441. At 30 fps, this
 /// would be 1.5 seconds of ramp up time.
 #[derive(Serialize, PartialEq, Debug, Clone)]
-pub struct TickMark<'a> {
-    pub description: Cow<'a, str>,
+pub struct TickMark {
+    pub description: String,
     pub frame: i32,
 }
 
@@ -79,30 +78,30 @@ pub struct KeyFrame {
 /// A property can be a number, string, or a more complex object such as an array containing
 /// additional properties.
 #[derive(PartialEq, Debug, Clone)]
-pub enum HeaderProp<'a> {
-    Array(Vec<Vec<(&'a str, HeaderProp<'a>)>>),
+pub enum HeaderProp {
+    Array(Vec<Vec<(String, HeaderProp)>>),
     Bool(bool),
     Byte,
     Float(f32),
     Int(i32),
-    Name(Cow<'a, str>),
+    Name(String),
     QWord(u64),
-    Str(Cow<'a, str>),
+    Str(String),
 }
 
 /// Debugging info stored in the replay if debugging is enabled.
 #[derive(Serialize, PartialEq, Debug, Clone)]
-pub struct DebugInfo<'a> {
+pub struct DebugInfo {
     pub frame: i32,
-    pub user: Cow<'a, str>,
-    pub text: Cow<'a, str>,
+    pub user: String,
+    pub text: String,
 }
 
 /// A mapping between an object's name and its index. Largely redundant
 #[derive(Serialize, PartialEq, Debug, Clone)]
-pub struct ClassIndex<'a> {
+pub struct ClassIndex {
     /// Should be equivalent to `Replay::objects(self.index)`
-    pub class: &'a str,
+    pub class: String,
 
     /// The index that the object appears in the `Replay::objects`
     pub index: i32,
@@ -160,7 +159,7 @@ where
 /// enum value. Since header values are self describing in JSON, we do not need to serialize the
 /// enum type. This is slightly lossy as in the serialized format it will be ambiguous if a value
 /// is a `Name` or `Str`, as well as `Byte`, `Float`, `Int`, or `QWord`.
-impl<'a> Serialize for HeaderProp<'a> {
+impl Serialize for HeaderProp {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -171,7 +170,7 @@ impl<'a> Serialize for HeaderProp<'a> {
                 for inner in x {
                     // Look for a better way to do this instead of allocating the intermediate map
                     let mut els = HashMap::new();
-                    for &(key, ref val) in inner.iter() {
+                    for (key, val) in inner.iter() {
                         els.insert(key, val);
                     }
                     state.serialize_element(&els)?;
@@ -194,7 +193,6 @@ mod tests {
     use serde;
     use serde_json;
     use std;
-    use std::borrow::Cow;
 
     fn to_json<T: serde::Serialize>(input: &T) -> std::string::String {
         serde_json::to_string(input).unwrap()
@@ -204,15 +202,15 @@ mod tests {
     fn serialize_header_array() {
         let data = vec![
             vec![
-                ("frame", HeaderProp::Int(441)),
+                (String::from("frame"), HeaderProp::Int(441)),
                 (
-                    "PlayerName",
-                    HeaderProp::Str(Cow::Borrowed("rust is awesome")),
+                    String::from("PlayerName"),
+                    HeaderProp::Str(String::from("rust is awesome")),
                 ),
             ],
             vec![
-                ("frame", HeaderProp::Int(1738)),
-                ("PlayerName", HeaderProp::Str(Cow::Borrowed("rusty"))),
+                (String::from("frame"), HeaderProp::Int(1738)),
+                (String::from("PlayerName"), HeaderProp::Str(String::from("rusty"))),
             ],
         ];
         let actual = to_json(&HeaderProp::Array(data));
@@ -240,11 +238,11 @@ mod tests {
     fn serialize_header_str() {
         let val = "hello world";
         assert_eq!(
-            to_json(&HeaderProp::Str(Cow::Borrowed(val))),
+            to_json(&HeaderProp::Str(String::from(val))),
             "\"hello world\""
         );
         assert_eq!(
-            to_json(&HeaderProp::Name(Cow::Borrowed(val))),
+            to_json(&HeaderProp::Name(String::from(val))),
             "\"hello world\""
         );
     }

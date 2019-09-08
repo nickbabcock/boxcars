@@ -53,7 +53,7 @@ fn test_sample1() {
 }
 
 fn extract_online_id(
-    replay: &boxcars::Replay<'_>,
+    replay: &boxcars::Replay,
     user: &str,
 ) -> (u64, boxcars::attributes::RemoteId) {
     let (_, stats) = replay
@@ -70,7 +70,7 @@ fn extract_online_id(
                     properties
                         .iter()
                         .find(|(prop, val)| {
-                            *prop == "Name" && *val == boxcars::HeaderProp::Str(Cow::Borrowed(user))
+                            *prop == "Name" && *val == boxcars::HeaderProp::Str(String::from(user))
                         })
                         .is_some()
                 })
