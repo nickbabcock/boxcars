@@ -63,9 +63,8 @@ use crate::network;
 use crate::parsing_utils::{le_f32, le_i32};
 
 /// Determines under what circumstances the parser should perform the crc check for replay
-/// corruption. Since the crc check is the most time consuming check for parsing (causing
-/// microseconds to turn into milliseconds), clients should choose under what circumstances a crc
-/// check is performed.
+/// corruption. Since the crc check is the most time consuming part when parsing the header,
+/// clients should choose under what circumstances a crc check is performed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CrcCheck {
     /// Always perform the crc check. Useful when the replay has had its contents modified. This

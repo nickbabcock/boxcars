@@ -190,9 +190,6 @@ impl Serialize for HeaderProp {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde;
-    use serde_json;
-    use std;
 
     fn to_json<T: serde::Serialize>(input: &T) -> std::string::String {
         serde_json::to_string(input).unwrap()
