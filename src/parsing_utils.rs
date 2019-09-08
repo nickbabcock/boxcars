@@ -1,7 +1,6 @@
 use crate::errors::ParseError;
 use byteorder::{ByteOrder, LittleEndian};
 use encoding_rs::{UTF_16LE, WINDOWS_1252};
-use std::borrow::Cow;
 
 #[inline]
 pub fn le_i32(d: &[u8]) -> i32 {
@@ -41,20 +40,20 @@ pub fn decode_str(input: &[u8]) -> Result<&str, ParseError> {
     }
 }
 
-pub fn decode_utf16(input: &[u8]) -> Result<Cow<'_, str>, ParseError> {
+pub fn decode_utf16(input: &[u8]) -> Result<String, ParseError> {
     if input.len() < 2 {
         Err(ParseError::ZeroSize)
     } else {
         let (s, _) = UTF_16LE.decode_without_bom_handling(&input[..input.len() - 2]);
-        Ok(s)
+        Ok(String::from(s))
     }
 }
 
-pub fn decode_windows1252(input: &[u8]) -> Result<Cow<'_, str>, ParseError> {
+pub fn decode_windows1252(input: &[u8]) -> Result<String, ParseError> {
     if input.is_empty() {
         Err(ParseError::ZeroSize)
     } else {
         let (s, _) = WINDOWS_1252.decode_without_bom_handling(&input[..input.len() - 1]);
-        Ok(s)
+        Ok(String::from(s))
     }
 }

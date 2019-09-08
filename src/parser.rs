@@ -61,7 +61,6 @@ use crate::header::{self, Header};
 use crate::models::*;
 use crate::network;
 use crate::parsing_utils::{le_f32, le_i32};
-use std::borrow::Cow;
 
 /// Determines under what circumstances the parser should perform the crc check for replay
 /// corruption. Since the crc check is the most time consuming check for parsing (causing
@@ -158,7 +157,7 @@ impl<'a> ParserBuilder<'a> {
         self
     }
 
-    pub fn parse(self) -> Result<Replay<'a>, ParseError> {
+    pub fn parse(self) -> Result<Replay, ParseError> {
         let mut parser = Parser::new(
             self.data,
             self.crc_check.unwrap_or(CrcCheck::OnError),
@@ -171,14 +170,14 @@ impl<'a> ParserBuilder<'a> {
 /// Intermediate parsing structure for the body / footer
 #[derive(Debug, PartialEq)]
 pub struct ReplayBody<'a> {
-    pub levels: Vec<Cow<'a, str>>,
+    pub levels: Vec<String>,
     pub keyframes: Vec<KeyFrame>,
-    pub debug_info: Vec<DebugInfo<'a>>,
-    pub tick_marks: Vec<TickMark<'a>>,
-    pub packages: Vec<Cow<'a, str>>,
-    pub objects: Vec<Cow<'a, str>>,
-    pub names: Vec<Cow<'a, str>>,
-    pub class_indices: Vec<ClassIndex<'a>>,
+    pub debug_info: Vec<DebugInfo>,
+    pub tick_marks: Vec<TickMark>,
+    pub packages: Vec<String>,
+    pub objects: Vec<String>,
+    pub names: Vec<String>,
+    pub class_indices: Vec<ClassIndex>,
     pub net_cache: Vec<ClassNetCache>,
     pub network_data: &'a [u8],
 }
@@ -200,7 +199,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse(&mut self) -> Result<Replay<'a>, ParseError> {
+    fn parse(&mut self) -> Result<Replay, ParseError> {
         let header_size = self.core.take(4, le_i32).map_err(|e| {
             ParseError::ParseError("header size", self.core.bytes_read(), Box::new(e))
         })?;
@@ -267,13 +266,13 @@ impl<'a> Parser<'a> {
 
     fn parse_network(
         &mut self,
-        header: &Header<'_>,
+        header: &Header,
         body: &ReplayBody<'_>,
     ) -> Result<NetworkFrames, NetworkError> {
         network::parse(header, body)
     }
 
-    fn parse_header(&mut self) -> Result<Header<'a>, ParseError> {
+    fn parse_header(&mut self) -> Result<Header, ParseError> {
         header::parse_header(&mut self.core)
     }
 
@@ -372,7 +371,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_tickmarks(&mut self) -> Result<Vec<TickMark<'a>>, ParseError> {
+    fn parse_tickmarks(&mut self) -> Result<Vec<TickMark>, ParseError> {
         self.core.list_of(|s| {
             Ok(TickMark {
                 description: s.parse_text()?,
@@ -391,7 +390,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_debuginfo(&mut self) -> Result<Vec<DebugInfo<'a>>, ParseError> {
+    fn parse_debuginfo(&mut self) -> Result<Vec<DebugInfo>, ParseError> {
         self.core.list_of(|s| {
             Ok(DebugInfo {
                 frame: s.take(4, le_i32)?,
@@ -401,10 +400,10 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_classindex(&mut self) -> Result<Vec<ClassIndex<'a>>, ParseError> {
+    fn parse_classindex(&mut self) -> Result<Vec<ClassIndex>, ParseError> {
         self.core.list_of(|s| {
             Ok(ClassIndex {
-                class: s.parse_str()?,
+                class: s.parse_str().map(|s| String::from(s))?,
                 index: s.take(4, le_i32)?,
             })
         })
@@ -431,7 +430,6 @@ impl<'a> Parser<'a> {
 mod tests {
     use super::*;
     use crate::models::TickMark;
-    use std::borrow::Cow;
     use std::error::Error;
 
     #[test]
@@ -464,7 +462,7 @@ mod tests {
         assert_eq!(
             ticks[0],
             TickMark {
-                description: Cow::Borrowed("Team1Goal"),
+                description: String::from("Team1Goal"),
                 frame: 396,
             }
         );

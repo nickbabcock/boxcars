@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use crate::core_parser::CoreParser;
 use crate::errors::ParseError;
 use crate::models::HeaderProp;
@@ -7,19 +5,19 @@ use crate::parsing_utils::{le_f32, le_i32, le_u64};
 
 /// Intermediate parsing structure for the header
 #[derive(Debug, PartialEq)]
-pub struct Header<'a> {
+pub struct Header {
     pub major_version: i32,
     pub minor_version: i32,
     pub net_version: Option<i32>,
-    pub game_type: Cow<'a, str>,
-    pub properties: Vec<(&'a str, HeaderProp<'a>)>,
+    pub game_type: String,
+    pub properties: Vec<(String, HeaderProp)>,
 }
 
-impl<'a> Header<'a> {
+impl Header {
     pub fn num_frames(&self) -> Option<i32> {
         self.properties
             .iter()
-            .find(|&&(key, _)| key == "NumFrames")
+            .find(|&(key, _)| key == "NumFrames")
             .and_then(|&(_, ref prop)| {
                 if let HeaderProp::Int(v) = *prop {
                     Some(v)
@@ -32,7 +30,7 @@ impl<'a> Header<'a> {
     pub fn max_channels(&self) -> Option<i32> {
         self.properties
             .iter()
-            .find(|&&(key, _)| key == "MaxChannels")
+            .find(|&(key, _)| key == "MaxChannels")
             .and_then(|&(_, ref prop)| {
                 if let HeaderProp::Int(v) = *prop {
                     Some(v)
@@ -43,7 +41,7 @@ impl<'a> Header<'a> {
     }
 }
 
-pub fn parse_header<'a>(rlp: &mut CoreParser<'a>) -> Result<Header<'a>, ParseError> {
+pub fn parse_header(rlp: &mut CoreParser) -> Result<Header, ParseError> {
     let major_version = rlp
         .take(4, le_i32)
         .map_err(|e| ParseError::ParseError("major version", rlp.bytes_read(), Box::new(e)))?;
@@ -77,7 +75,7 @@ pub fn parse_header<'a>(rlp: &mut CoreParser<'a>) -> Result<Header<'a>, ParseErr
     })
 }
 
-fn parse_rdict<'a>(rlp: &mut CoreParser<'a>) -> Result<Vec<(&'a str, HeaderProp<'a>)>, ParseError> {
+fn parse_rdict(rlp: &mut CoreParser) -> Result<Vec<(String, HeaderProp)>, ParseError> {
     // Other the actual network data, the header property associative array is the hardest to parse.
     // The format is to:
     // - Read string
@@ -106,7 +104,7 @@ fn parse_rdict<'a>(rlp: &mut CoreParser<'a>) -> Result<Vec<(&'a str, HeaderProp<
             x => Err(ParseError::UnexpectedProperty(String::from(x))),
         }?;
 
-        res.push((key, val));
+        res.push((String::from(key), val));
     }
 
     Ok(res)
@@ -118,7 +116,7 @@ fn parse_rdict<'a>(rlp: &mut CoreParser<'a>) -> Result<Vec<(&'a str, HeaderProp<
 // 32bits unknown. Doesn't matter to us, we throw it out anyways. The rest of the bytes are
 // decoded property type specific.
 
-fn byte_property<'a>(rlp: &mut CoreParser<'a>) -> Result<HeaderProp<'a>, ParseError> {
+fn byte_property(rlp: &mut CoreParser) -> Result<HeaderProp, ParseError> {
     // It's unknown (to me at least) why the byte property has two strings in it.
     rlp.take(8, |_d| ())?;
     if rlp.parse_str()? != "OnlinePlatform_Steam" {
@@ -127,33 +125,33 @@ fn byte_property<'a>(rlp: &mut CoreParser<'a>) -> Result<HeaderProp<'a>, ParseEr
     Ok(HeaderProp::Byte)
 }
 
-fn str_property<'a>(rlp: &mut CoreParser<'a>) -> Result<HeaderProp<'a>, ParseError> {
+fn str_property(rlp: &mut CoreParser) -> Result<HeaderProp, ParseError> {
     rlp.take(8, |_d| ())?;
     Ok(HeaderProp::Str(rlp.parse_text()?))
 }
 
-fn name_property<'a>(rlp: &mut CoreParser<'a>) -> Result<HeaderProp<'a>, ParseError> {
+fn name_property(rlp: &mut CoreParser) -> Result<HeaderProp, ParseError> {
     rlp.take(8, |_d| ())?;
     Ok(HeaderProp::Name(rlp.parse_text()?))
 }
 
-fn int_property<'a>(rlp: &mut CoreParser<'a>) -> Result<HeaderProp<'a>, ParseError> {
+fn int_property(rlp: &mut CoreParser) -> Result<HeaderProp, ParseError> {
     rlp.take(12, |d| HeaderProp::Int(le_i32(&d[8..])))
 }
 
-fn bool_property<'a>(rlp: &mut CoreParser<'a>) -> Result<HeaderProp<'a>, ParseError> {
+fn bool_property(rlp: &mut CoreParser) -> Result<HeaderProp, ParseError> {
     rlp.take(9, |d| HeaderProp::Bool(d[8] == 1))
 }
 
-fn float_property<'a>(rlp: &mut CoreParser<'a>) -> Result<HeaderProp<'a>, ParseError> {
+fn float_property(rlp: &mut CoreParser) -> Result<HeaderProp, ParseError> {
     rlp.take(12, |d| HeaderProp::Float(le_f32(&d[8..])))
 }
 
-fn qword_property<'a>(rlp: &mut CoreParser<'a>) -> Result<HeaderProp<'a>, ParseError> {
+fn qword_property(rlp: &mut CoreParser) -> Result<HeaderProp, ParseError> {
     rlp.take(16, |d| HeaderProp::QWord(le_u64(&d[8..])))
 }
 
-fn array_property<'a>(rlp: &mut CoreParser<'a>) -> Result<HeaderProp<'a>, ParseError> {
+fn array_property(rlp: &mut CoreParser) -> Result<HeaderProp, ParseError> {
     let size = rlp.take(12, |d| le_i32(&d[8..]))?;
     let arr = CoreParser::repeat(size as usize, || parse_rdict(rlp))?;
     Ok(HeaderProp::Array(arr))
@@ -161,8 +159,6 @@ fn array_property<'a>(rlp: &mut CoreParser<'a>) -> Result<HeaderProp<'a>, ParseE
 
 #[cfg(test)]
 mod tests {
-    use std::borrow::Cow;
-
     use crate::core_parser::CoreParser;
 
     use super::*;
@@ -183,7 +179,7 @@ mod tests {
         let res = parse_rdict(&mut parser).unwrap();
         assert_eq!(
             res,
-            vec![("PlayerName", HeaderProp::Str(Cow::Borrowed("comagoosie")))]
+            vec![(String::from("PlayerName"), HeaderProp::Str(String::from("comagoosie")))]
         );
     }
 
@@ -193,7 +189,7 @@ mod tests {
         let data = include_bytes!("../assets/replays/partial/rdict_int.replay");
         let mut parser = CoreParser::new(&data[..]);
         let res = parse_rdict(&mut parser).unwrap();
-        assert_eq!(res, vec![("PlayerTeam", HeaderProp::Int(0))]);
+        assert_eq!(res, vec![(String::from("PlayerTeam"), HeaderProp::Int(0))]);
     }
 
     #[test]
@@ -202,7 +198,7 @@ mod tests {
         let data = include_bytes!("../assets/replays/partial/rdict_bool.replay");
         let mut parser = CoreParser::new(&data[..]);
         let res = parse_rdict(&mut parser).unwrap();
-        assert_eq!(res, vec![("bBot", HeaderProp::Bool(false))]);
+        assert_eq!(res, vec![(String::from("bBot"), HeaderProp::Bool(false))]);
     }
 
     fn append_none(input: &[u8]) -> Vec<u8> {
@@ -223,7 +219,7 @@ mod tests {
         let res = parse_rdict(&mut parser).unwrap();
         assert_eq!(
             res,
-            vec![("MatchType", HeaderProp::Name(Cow::Borrowed("Online")))]
+            vec![(String::from("MatchType"), HeaderProp::Name(String::from("Online")))]
         );
     }
 
@@ -235,7 +231,7 @@ mod tests {
         ));
         let mut parser = CoreParser::new(&data[..]);
         let res = parse_rdict(&mut parser).unwrap();
-        assert_eq!(res, vec![("RecordFPS", HeaderProp::Float(30.0))]);
+        assert_eq!(res, vec![(String::from("RecordFPS"), HeaderProp::Float(30.0))]);
     }
 
     #[test]
@@ -248,7 +244,7 @@ mod tests {
         let res = parse_rdict(&mut parser).unwrap();
         assert_eq!(
             res,
-            vec![("OnlineID", HeaderProp::QWord(76561198101748375))]
+            vec![(String::from("OnlineID"), HeaderProp::QWord(76561198101748375))]
         );
     }
 
@@ -262,48 +258,48 @@ mod tests {
         let res = parse_rdict(&mut parser).unwrap();
         let expected = vec![
             vec![
-                ("frame", HeaderProp::Int(441)),
-                ("PlayerName", HeaderProp::Str(Cow::Borrowed("Cakeboss"))),
-                ("PlayerTeam", HeaderProp::Int(1)),
+                (String::from("frame"), HeaderProp::Int(441)),
+                (String::from("PlayerName"), HeaderProp::Str(String::from("Cakeboss"))),
+                (String::from("PlayerTeam"), HeaderProp::Int(1)),
             ],
             vec![
-                ("frame", HeaderProp::Int(1738)),
-                ("PlayerName", HeaderProp::Str(Cow::Borrowed("Sasha Kaun"))),
-                ("PlayerTeam", HeaderProp::Int(0)),
+                (String::from("frame"), HeaderProp::Int(1738)),
+                (String::from("PlayerName"), HeaderProp::Str(String::from("Sasha Kaun"))),
+                (String::from("PlayerTeam"), HeaderProp::Int(0)),
             ],
             vec![
-                ("frame", HeaderProp::Int(3504)),
+                (String::from("frame"), HeaderProp::Int(3504)),
                 (
-                    "PlayerName",
-                    HeaderProp::Str(Cow::Borrowed("SilentWarrior")),
+                    String::from("PlayerName"),
+                    HeaderProp::Str(String::from("SilentWarrior")),
                 ),
-                ("PlayerTeam", HeaderProp::Int(0)),
+                (String::from("PlayerTeam"), HeaderProp::Int(0)),
             ],
             vec![
-                ("frame", HeaderProp::Int(5058)),
-                ("PlayerName", HeaderProp::Str(Cow::Borrowed("jeffreyj1"))),
-                ("PlayerTeam", HeaderProp::Int(1)),
+                (String::from("frame"), HeaderProp::Int(5058)),
+                (String::from("PlayerName"), HeaderProp::Str(String::from("jeffreyj1"))),
+                (String::from("PlayerTeam"), HeaderProp::Int(1)),
             ],
             vec![
-                ("frame", HeaderProp::Int(5751)),
-                ("PlayerName", HeaderProp::Str(Cow::Borrowed("GOOSE LORD"))),
-                ("PlayerTeam", HeaderProp::Int(0)),
+                (String::from("frame"), HeaderProp::Int(5751)),
+                (String::from("PlayerName"), HeaderProp::Str(String::from("GOOSE LORD"))),
+                (String::from("PlayerTeam"), HeaderProp::Int(0)),
             ],
             vec![
-                ("frame", HeaderProp::Int(6083)),
-                ("PlayerName", HeaderProp::Str(Cow::Borrowed("GOOSE LORD"))),
-                ("PlayerTeam", HeaderProp::Int(0)),
+                (String::from("frame"), HeaderProp::Int(6083)),
+                (String::from("PlayerName"), HeaderProp::Str(String::from("GOOSE LORD"))),
+                (String::from("PlayerTeam"), HeaderProp::Int(0)),
             ],
             vec![
-                ("frame", HeaderProp::Int(7021)),
+                (String::from("frame"), HeaderProp::Int(7021)),
                 (
-                    "PlayerName",
-                    HeaderProp::Str(Cow::Borrowed("SilentWarrior")),
+                    String::from("PlayerName"),
+                    HeaderProp::Str(String::from("SilentWarrior")),
                 ),
-                ("PlayerTeam", HeaderProp::Int(0)),
+                (String::from("PlayerTeam"), HeaderProp::Int(0)),
             ],
         ];
-        assert_eq!(res, vec![("Goals", HeaderProp::Array(expected))]);
+        assert_eq!(res, vec![(String::from("Goals"), HeaderProp::Array(expected))]);
     }
 
     #[test]
@@ -314,6 +310,6 @@ mod tests {
         ));
         let mut parser = CoreParser::new(&data[..]);
         let res = parse_rdict(&mut parser).unwrap();
-        assert_eq!(res, vec![("Platform", HeaderProp::Byte)]);
+        assert_eq!(res, vec![(String::from("Platform"), HeaderProp::Byte)]);
     }
 }

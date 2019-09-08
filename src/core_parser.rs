@@ -1,6 +1,5 @@
 use crate::errors::ParseError;
 use crate::parsing_utils::{decode_str, decode_utf16, decode_windows1252, le_i32};
-use std::borrow::Cow;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct CoreParser<'a> {
@@ -82,7 +81,7 @@ impl<'a> CoreParser<'a> {
         CoreParser::repeat(size as usize, || f(self))
     }
 
-    pub fn text_list(&mut self) -> Result<Vec<Cow<'a, str>>, ParseError> {
+    pub fn text_list(&mut self) -> Result<Vec<String>, ParseError> {
         self.list_of(CoreParser::parse_text)
     }
 
@@ -101,7 +100,7 @@ impl<'a> CoreParser<'a> {
     }
 
     /// Parses either UTF-16 or Windows-1252 encoded strings
-    pub fn parse_text(&mut self) -> Result<Cow<'a, str>, ParseError> {
+    pub fn parse_text(&mut self) -> Result<String, ParseError> {
         // The number of bytes that the string is composed of. If negative, the string is UTF-16,
         // else the string is windows 1252 encoded.
         let characters = self.take(4, le_i32)?;

@@ -39,7 +39,7 @@ impl VersionTriplet {
 }
 
 pub(crate) fn parse<'a>(
-    header: &Header<'a>,
+    header: &Header,
     body: &ReplayBody<'a>,
 ) -> Result<NetworkFrames, NetworkError> {
     let version = VersionTriplet(
