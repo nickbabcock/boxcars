@@ -1,18 +1,19 @@
-#[macro_use]
-extern crate criterion;
-use serde_json;
-
 use boxcars::crc::calc_crc;
 use boxcars::*;
-use criterion::{black_box, Criterion};
+use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
+use serde_json;
 
 fn bench_crc(c: &mut Criterion) {
-    c.bench_function("bench_crc", |b| {
+    let data = include_bytes!("../assets/replays/good/rumble.replay");
+    let mut group = c.benchmark_group("crc_throughput");
+    group.throughput(Throughput::Bytes(data.len() as u64));
+    group.bench_function("bench_crc", |b| {
         let data = include_bytes!("../assets/replays/good/rumble.replay");
         b.iter(|| {
             black_box(calc_crc(&data[..]));
         })
     });
+    group.finish();
 }
 
 fn bench_parse_crc_body(c: &mut Criterion) {
