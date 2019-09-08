@@ -403,7 +403,7 @@ impl<'a> Parser<'a> {
     fn parse_classindex(&mut self) -> Result<Vec<ClassIndex>, ParseError> {
         self.core.list_of(|s| {
             Ok(ClassIndex {
-                class: s.parse_str().map(|s| String::from(s))?,
+                class: s.parse_str().map(String::from)?,
                 index: s.take(4, le_i32)?,
             })
         })
