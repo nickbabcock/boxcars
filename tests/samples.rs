@@ -1,5 +1,4 @@
 use boxcars::{self, AttributeError, NetworkError, ObjectId, ParseError, ParserBuilder};
-use std::borrow::Cow;
 
 #[test]
 fn test_sample1() {

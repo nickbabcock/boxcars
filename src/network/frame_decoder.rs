@@ -133,7 +133,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                     Some(None)
                 };
 
-            if let Some(_) = bits.read_bit();
+            if let Some(_unused) = bits.read_bit();
             if let Some(object_id) = bits.read_i32().map(ObjectId);
             let spawn = self.spawns.get(usize::from(object_id))
                 .ok_or_else(|| NetworkError::ObjectIdOutOfRange(object_id))?;
