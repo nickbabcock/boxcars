@@ -53,7 +53,7 @@ fn main() {
     write!(&mut file, "use crate::network::AttributeTag;\n ").unwrap();
     write!(&mut file, "use crate::network::SpawnTrajectory;\n ").unwrap();
 
-    write!(&mut file, "pub static SPAWN_STATS: phf::Map<&'static str, SpawnTrajectory> = ").unwrap();
+    writeln!(&mut file, "pub static SPAWN_STATS: phf::Map<&'static str, SpawnTrajectory> = \n{};",
     phf_codegen::Map::new()
         .entry("TAGame.Ball_Breakout_TA", "SpawnTrajectory::LocationAndRotation")
         .entry("Archetypes.Ball.Ball_Breakout", "SpawnTrajectory::LocationAndRotation")
@@ -142,13 +142,10 @@ fn main() {
         .entry("TheWorld:PersistentLevel.VehiclePickup_Boost_TA", "SpawnTrajectory::Location")
         .entry("TAGame.HauntedBallTrapTrigger_TA", "SpawnTrajectory::Location")
         .entry("ProjectX.Default__NetModeReplicator_X", "SpawnTrajectory::Location")
-        .build(&mut file)
-        .unwrap();
+        .build()
+    ).unwrap();
 
-    write!(&mut file, ";\n").unwrap();
-
-
-    write!(&mut file, "pub (crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = ").unwrap();
+    writeln!(&mut file, "pub (crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = \n{};",
     phf_codegen::Map::new()
         .entry("Engine.Actor:bBlockActors", "AttributeTag::Boolean")
         .entry("Engine.Actor:bCollideActors", "AttributeTag::Boolean")
@@ -313,20 +310,18 @@ fn main() {
         .entry("TAGame.Vehicle_TA:ReplicatedThrottle", "AttributeTag::Byte")
         .entry("TAGame.VehiclePickup_TA:bNoPickup", "AttributeTag::Boolean")
         .entry("TAGame.VehiclePickup_TA:ReplicatedPickupData", "AttributeTag::Pickup")
+        .entry("TAGame.VehiclePickup_TA:NewReplicatedPickupData", "AttributeTag::PickupNew")
         .entry("TAGame.Ball_Haunted_TA:LastTeamTouch", "AttributeTag::Byte")
         .entry("TAGame.Ball_Haunted_TA:TotalActiveBeams", "AttributeTag::Byte")
         .entry("TAGame.Ball_Haunted_TA:DeactivatedGoalIndex", "AttributeTag::Byte")
         .entry("TAGame.Ball_Haunted_TA:ReplicatedBeamBrokenValue", "AttributeTag::Byte")
         .entry("TAGame.Ball_Haunted_TA:bIsBallBeamed", "AttributeTag::Boolean")
         .entry("TAGame.SpecialPickup_Rugby_TA:bBallWelded", "AttributeTag::Boolean")
-        .build(&mut file)
-        .unwrap();
-
-    write!(&mut file, ";\n").unwrap();
+        .build()
+    ).unwrap();
 
 
-    write!(&mut file, "pub static OBJECT_CLASSES: phf::Map<&'static str, &'static str> = ").unwrap();
-
+    writeln!(&mut file, "pub static OBJECT_CLASSES: phf::Map<&'static str, &'static str> = \n{};",
     phf_codegen::Map::new()
         .entry("Archetypes.Ball.Ball_BasketBall_Mutator", "\"TAGame.Ball_TA\"")
         .entry("Archetypes.Ball.Ball_Basketball", "\"TAGame.Ball_TA\"")
@@ -387,14 +382,11 @@ fn main() {
         .entry("TheWorld:PersistentLevel.VehiclePickup_Boost_TA", "\"TAGame.VehiclePickup_Boost_TA\"")
         .entry("Haunted_TrainStation_P.TheWorld:PersistentLevel.HauntedBallTrapTrigger_TA_1", "\"TAGame.HauntedBallTrapTrigger_TA\"")
         .entry("Haunted_TrainStation_P.TheWorld:PersistentLevel.HauntedBallTrapTrigger_TA_0", "\"TAGame.HauntedBallTrapTrigger_TA\"")
-        .build(&mut file)
-        .unwrap();
-
-    write!(&mut file, ";\n").unwrap();
+        .build()
+    ).unwrap();
 
 
-    write!(&mut file, "pub static PARENT_CLASSES: phf::Map<&'static str, &'static str> = ").unwrap();
-
+    writeln!(&mut file, "pub static PARENT_CLASSES: phf::Map<&'static str, &'static str> = \n{};",
     phf_codegen::Map::new()
         .entry("Engine.Actor", "\"Core.Object\"")
         .entry("Engine.GameReplicationInfo", "\"Engine.ReplicationInfo\"")
@@ -449,8 +441,6 @@ fn main() {
         .entry("TAGame.VehiclePickup_TA", "\"Engine.ReplicationInfo\"")
         .entry("TAGame.VehiclePickup_Boost_TA", "\"TAGame.VehiclePickup_TA\"")
         .entry("TAGame.SpecialPickup_HauntedBallBeam_TA", "\"TAGame.SpecialPickup_TA\"")
-        .build(&mut file)
-        .unwrap();
-
-    write!(&mut file, ";\n").unwrap();
+        .build()
+    ).unwrap();
 }

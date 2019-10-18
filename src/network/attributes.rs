@@ -29,6 +29,7 @@ pub(crate) enum AttributeTag {
     Location,
     MusicStinger,
     Pickup,
+    PickupNew,
     PlayerHistoryKey,
     QWord,
     Welded,
@@ -72,6 +73,7 @@ pub enum Attribute {
     MusicStinger(MusicStinger),
     PlayerHistoryKey(u16),
     Pickup(Pickup),
+    PickupNew(PickupNew),
 
     #[serde(serialize_with = "crate::serde_utils::display_it")]
     QWord(u64),
@@ -160,6 +162,12 @@ pub struct MusicStinger {
 pub struct Pickup {
     pub instigator_id: Option<u32>,
     pub picked_up: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct PickupNew {
+    pub instigator_id: Option<u32>,
+    pub picked_up: u8,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
@@ -397,6 +405,7 @@ impl AttributeDecoder {
             AttributeTag::Location => self.decode_location(bits),
             AttributeTag::MusicStinger => self.decode_music_stinger(bits),
             AttributeTag::Pickup => self.decode_pickup(bits),
+            AttributeTag::PickupNew => self.decode_pickup_new(bits),
             AttributeTag::PlayerHistoryKey => self.decode_player_history_key(bits),
             AttributeTag::QWord => self.decode_qword(bits),
             AttributeTag::Welded => self.decode_welded(bits),
@@ -690,6 +699,21 @@ impl AttributeDecoder {
                 }))
             } else {
                 Err(AttributeError::NotEnoughDataFor("Pickup"))
+            }
+        }
+    }
+
+    pub fn decode_pickup_new(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
+        if_chain! {
+            if let Some(instigator_id) = bits.if_get(BitGet::read_u32);
+            if let Some(picked_up) = bits.read_u8();
+            then {
+                Ok(Attribute::PickupNew(PickupNew {
+                    instigator_id,
+                    picked_up,
+                }))
+            } else {
+                Err(AttributeError::NotEnoughDataFor("PickupNew"))
             }
         }
     }
