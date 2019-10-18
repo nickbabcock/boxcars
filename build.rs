@@ -310,6 +310,7 @@ fn main() {
         .entry("TAGame.Vehicle_TA:ReplicatedThrottle", "AttributeTag::Byte")
         .entry("TAGame.VehiclePickup_TA:bNoPickup", "AttributeTag::Boolean")
         .entry("TAGame.VehiclePickup_TA:ReplicatedPickupData", "AttributeTag::Pickup")
+        .entry("TAGame.VehiclePickup_TA:NewReplicatedPickupData", "AttributeTag::PickupNew")
         .entry("TAGame.Ball_Haunted_TA:LastTeamTouch", "AttributeTag::Byte")
         .entry("TAGame.Ball_Haunted_TA:TotalActiveBeams", "AttributeTag::Byte")
         .entry("TAGame.Ball_Haunted_TA:DeactivatedGoalIndex", "AttributeTag::Byte")
