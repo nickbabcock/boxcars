@@ -1,3 +1,8 @@
+# v0.5.1 - October 18th, 2019
+
+* Update network parser to be compatible with v1.68 rocket league replays
+* Update internal phf dependency from 0.7 to 0.8
+
 # v0.5.0 - September 8th, 2019
 
 * Checking against corrupt replays using a new crc algorithm improved crc performance by 8x. This translates to a potential 20% overall performance improvement when the crc is needed / requested to be calculated when decoding a replay
