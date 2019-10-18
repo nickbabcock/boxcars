@@ -31,4 +31,4 @@ name = "bench_boxcars"
 harness = false
 
 [build-dependencies]
-phf_codegen = "0.7"
+phf_codegen = "0.8"
