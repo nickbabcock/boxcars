@@ -240,6 +240,9 @@ pub enum RemoteId {
 
     #[serde(serialize_with = "crate::serde_utils::display_it")]
     Xbox(u64),
+
+    #[serde(serialize_with = "crate::serde_utils::display_it")]
+    QQ(u64),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -1175,6 +1178,10 @@ fn decode_unique_id_with_system_id(
             .read_u64()
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Xbox"))
             .map(RemoteId::Xbox),
+        5 => bits
+            .read_u64()
+            .ok_or_else(|| AttributeError::NotEnoughDataFor("QQ ID"))
+            .map(RemoteId::QQ),
         6 => {
             let online_id = bits
                 .read_u64()
