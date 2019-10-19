@@ -119,9 +119,10 @@ fn parse_rdict(rlp: &mut CoreParser) -> Result<Vec<(String, HeaderProp)>, ParseE
 fn byte_property(rlp: &mut CoreParser) -> Result<HeaderProp, ParseError> {
     // It's unknown (to me at least) why the byte property has two strings in it.
     rlp.take(8, |_d| ())?;
-    if rlp.parse_str()? != "OnlinePlatform_Steam" {
-        rlp.parse_str()?;
-    }
+    match rlp.parse_str()? {
+        "OnlinePlatform_Steam" | "OnlinePlatform_PS4" => Ok(()),
+        _ => rlp.parse_str().map(|_| ()),
+    }?;
     Ok(HeaderProp::Byte)
 }
 
@@ -311,5 +312,16 @@ mod tests {
         let mut parser = CoreParser::new(&data[..]);
         let res = parse_rdict(&mut parser).unwrap();
         assert_eq!(res, vec![(String::from("Platform"), HeaderProp::Byte)]);
+    }
+
+    #[test]
+    fn rdict_ps4_online_id() {
+        let data = append_none(include_bytes!(
+            "../assets/replays/partial/rdict_ps4_online_id.replay"
+        ));
+        let mut parser = CoreParser::new(&data[..]);
+        let res = parse_rdict(&mut parser).unwrap();
+        assert_eq!(res.len(), 14);
+        assert_eq!(res[0], (String::from("TeamSize"), HeaderProp::Int(3)));
     }
 }
