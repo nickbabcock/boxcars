@@ -45,6 +45,7 @@ pub(crate) enum AttributeTag {
     LoadoutOnline,
     LoadoutsOnline,
     StatEvent,
+    RotationTag,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -89,6 +90,7 @@ pub enum Attribute {
     LoadoutOnline(Vec<Vec<Product>>),
     LoadoutsOnline(LoadoutsOnline),
     StatEvent(bool, u32),
+    Rotation(Rotation),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
@@ -424,6 +426,7 @@ impl AttributeDecoder {
             AttributeTag::LoadoutOnline => self.decode_loadout_online(bits),
             AttributeTag::LoadoutsOnline => self.decode_loadouts_online(bits),
             AttributeTag::StatEvent => self.decode_stat_event(bits),
+            AttributeTag::RotationTag => self.decode_rotation(bits),
         }
     }
 
@@ -746,6 +749,11 @@ impl AttributeDecoder {
                 Err(AttributeError::NotEnoughDataFor("Welded"))
             }
         }
+    }
+
+    pub fn decode_rotation(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
+        let rot = Rotation::decode(bits).ok_or_else(|| AttributeError::NotEnoughDataFor("Rotation"))?;
+        Ok(Attribute::Rotation(rot))
     }
 
     pub fn decode_title(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
