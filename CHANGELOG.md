@@ -1,3 +1,10 @@
+# v0.5.2 - October 20th, 2019
+
+* Parse replays with QQ ids
+* Parse replays from the tutorial
+* Parse replays with the anniversary ball
+* Parse replays that contain a ps4 platform id in the header
+
 # v0.5.1 - October 18th, 2019
 
 * Update network parser to be compatible with v1.68 rocket league replays
