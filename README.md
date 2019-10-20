@@ -250,3 +250,17 @@ boxcars:
 ```
 
 To derive rattletrap's `name` for the attribute use `replay.objects[attribute.object_id]`
+
+## Fuzzing
+
+Boxcars contains a fuzzing suite. If you'd like to run it, first install [cargo-fuzz](https://github.com/rust-fuzz/cargo-fuzz)
+
+```
+cargo install cargo-fuzz
+```
+
+There are several scenarios to fuzz (`cargo fuzz list`), and the best one to run is `no-crc-body`, due to all aspects of the replay being fuzzed without a crc check:
+
+```
+cargo +nightly fuzz run no-crc-body
+```
