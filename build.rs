@@ -67,6 +67,7 @@ fn main() {
         .entry("Archetypes.Ball.Ball_Anniversary", "SpawnTrajectory::LocationAndRotation")
         .entry("Archetypes.Ball.CubeBall", "SpawnTrajectory::LocationAndRotation")
         .entry("Archetypes.Ball.Ball_Haunted", "SpawnTrajectory::LocationAndRotation")
+        .entry("Archetypes.Ball.Ball_Training", "SpawnTrajectory::LocationAndRotation")
         .entry("TAGame.Ball_Haunted_TA", "SpawnTrajectory::LocationAndRotation")
         .entry("TAGame.Car_Season_TA", "SpawnTrajectory::LocationAndRotation")
         .entry("TAGame.Car_TA", "SpawnTrajectory::LocationAndRotation")
@@ -135,6 +136,7 @@ fn main() {
         .entry("GameInfo_Items.GameInfo.GameInfo_Items:GameReplicationInfoArchetype", "SpawnTrajectory::Location")
         .entry("GameInfo_Season.GameInfo.GameInfo_Season:GameReplicationInfoArchetype", "SpawnTrajectory::Location")
         .entry("GameInfo_Soccar.GameInfo.GameInfo_Soccar:GameReplicationInfoArchetype", "SpawnTrajectory::Location")
+        .entry("GameInfo_Tutorial.GameInfo.GameInfo_Tutorial:GameReplicationInfoArchetype", "SpawnTrajectory::Location")
         .entry("TAGame.Default__CameraSettingsActor_TA", "SpawnTrajectory::Location")
         .entry("TAGame.Default__PRI_TA", "SpawnTrajectory::Location")
         .entry("TheWorld:PersistentLevel.BreakOutActor_Platform_TA", "SpawnTrajectory::Location")
@@ -144,6 +146,8 @@ fn main() {
         .entry("TheWorld:PersistentLevel.VehiclePickup_Boost_TA", "SpawnTrajectory::Location")
         .entry("TAGame.HauntedBallTrapTrigger_TA", "SpawnTrajectory::Location")
         .entry("ProjectX.Default__NetModeReplicator_X", "SpawnTrajectory::Location")
+        .entry("GameInfo_Tutorial.GameEvent.GameEvent_Tutorial_Aerial", "SpawnTrajectory::Location")
+        .entry("Archetypes.Tutorial.Cannon", "SpawnTrajectory::Location")
         .build()
     ).unwrap();
 
@@ -155,6 +159,7 @@ fn main() {
         .entry("Engine.Actor:DrawScale", "AttributeTag::Float")
         .entry("Engine.Actor:RemoteRole", "AttributeTag::Enum")
         .entry("Engine.Actor:Role", "AttributeTag::Enum")
+        .entry("Engine.Actor:Rotation", "AttributeTag::RotationTag")
         .entry("Engine.GameReplicationInfo:bMatchIsOver", "AttributeTag::Boolean")
         .entry("Engine.GameReplicationInfo:GameClass", "AttributeTag::Flagged")
         .entry("Engine.GameReplicationInfo:ServerName", "AttributeTag::String")
@@ -319,6 +324,8 @@ fn main() {
         .entry("TAGame.Ball_Haunted_TA:ReplicatedBeamBrokenValue", "AttributeTag::Byte")
         .entry("TAGame.Ball_Haunted_TA:bIsBallBeamed", "AttributeTag::Boolean")
         .entry("TAGame.SpecialPickup_Rugby_TA:bBallWelded", "AttributeTag::Boolean")
+        .entry("TAGame.Cannon_TA:Pitch", "AttributeTag::Float")
+        .entry("TAGame.Cannon_TA:FireCount", "AttributeTag::Byte")
         .build()
     ).unwrap();
 
@@ -336,6 +343,7 @@ fn main() {
         .entry("Archetypes.Ball.Ball_Puck", "\"TAGame.Ball_TA\"")
         .entry("Archetypes.Ball.Ball_Anniversary", "\"TAGame.Ball_TA\"")
         .entry("Archetypes.Ball.CubeBall", "\"TAGame.Ball_TA\"")
+        .entry("Archetypes.Ball.Ball_Training", "\"TAGame.Ball_TA\"")
         .entry("Archetypes.Car.Car_Default", "\"TAGame.Car_TA\"")
         .entry("Archetypes.CarComponents.CarComponent_Boost", "\"TAGame.CarComponent_Boost_TA\"")
         .entry("Archetypes.CarComponents.CarComponent_Dodge", "\"TAGame.CarComponent_Dodge_TA\"")
@@ -377,6 +385,8 @@ fn main() {
         .entry("GameInfo_Items.GameInfo.GameInfo_Items:GameReplicationInfoArchetype", "\"TAGame.GRI_TA\"")
         .entry("GameInfo_Season.GameInfo.GameInfo_Season:GameReplicationInfoArchetype", "\"TAGame.GRI_TA\"")
         .entry("GameInfo_Soccar.GameInfo.GameInfo_Soccar:GameReplicationInfoArchetype", "\"TAGame.GRI_TA\"")
+        .entry("GameInfo_Tutorial.GameInfo.GameInfo_Tutorial:GameReplicationInfoArchetype", "\"TAGame.GRI_TA\"")
+        .entry("GameInfo_Tutorial.GameEvent.GameEvent_Tutorial_Aerial", "\"TAGame.GameEvent_Tutorial_TA\"")
         .entry("TAGame.Default__CameraSettingsActor_TA", "\"TAGame.CameraSettingsActor_TA\"")
         .entry("TAGame.Default__PRI_TA", "\"TAGame.PRI_TA\"")
         .entry("TheWorld:PersistentLevel.BreakOutActor_Platform_TA", "\"TAGame.BreakOutActor_Platform_TA\"")
@@ -386,6 +396,7 @@ fn main() {
         .entry("TheWorld:PersistentLevel.VehiclePickup_Boost_TA", "\"TAGame.VehiclePickup_Boost_TA\"")
         .entry("Haunted_TrainStation_P.TheWorld:PersistentLevel.HauntedBallTrapTrigger_TA_1", "\"TAGame.HauntedBallTrapTrigger_TA\"")
         .entry("Haunted_TrainStation_P.TheWorld:PersistentLevel.HauntedBallTrapTrigger_TA_0", "\"TAGame.HauntedBallTrapTrigger_TA\"")
+        .entry("Archetypes.Tutorial.Cannon", "\"TAGame.Cannon_TA\"")
         .build()
     ).unwrap();
 
@@ -418,6 +429,7 @@ fn main() {
         .entry("TAGame.GameEvent_Soccar_TA", "\"TAGame.GameEvent_Team_TA\"")
         .entry("TAGame.GameEvent_SoccarPrivate_TA", "\"TAGame.GameEvent_Soccar_TA\"")
         .entry("TAGame.GameEvent_SoccarSplitscreen_TA", "\"TAGame.GameEvent_SoccarPrivate_TA\"")
+        .entry("TAGame.GameEvent_Tutorial_TA", "\"TAGame.GameEvent_Soccar_TA\"")
         .entry("TAGame.GameEvent_TA", "\"Engine.ReplicationInfo\"")
         .entry("TAGame.GameEvent_Team_TA", "\"TAGame.GameEvent_TA\"")
         .entry("TAGame.GRI_TA", "\"ProjectX.GRI_X\"")
@@ -445,6 +457,7 @@ fn main() {
         .entry("TAGame.VehiclePickup_TA", "\"Engine.ReplicationInfo\"")
         .entry("TAGame.VehiclePickup_Boost_TA", "\"TAGame.VehiclePickup_TA\"")
         .entry("TAGame.SpecialPickup_HauntedBallBeam_TA", "\"TAGame.SpecialPickup_TA\"")
+        .entry("TAGame.Cannon_TA", "\"Engine.Actor\"")
         .build()
     ).unwrap();
 }
