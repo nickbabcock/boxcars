@@ -65,3 +65,4 @@ frame_len_test!(test_7588d_replay, "../assets/replays/good/7588d.replay", 0);
 frame_len_test!(test_42f2_replay, "../assets/replays/good/42f2.replay", 11642);
 frame_len_test!(test_qq_platform_0ca5_replay, "../assets/replays/good/0ca5.replay", 472);
 frame_len_test!(test_tutorial_43a9_replay, "../assets/replays/good/43a9.replay", 9143);
+frame_len_test!(test_dedicated_server_ip_43a9_replay, "../assets/replays/good/160c.replay", 9408);
