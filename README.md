@@ -82,7 +82,7 @@ Special thanks needs to be given to everyone in the Rocket League community who 
 
 ## Difference between rattletrap and boxcars
 
-- Rattletrap can binary that ingests rocket league replays and outputs, while boxcars is a lower level parsing library for rocket league. Boxcars underpins Rrrocket, a cli binary that outputs JSON similar to Rattletrap
+- Rattletrap is a binary that ingests rocket league replays and outputs JSON, while boxcars is a lower level parsing library. Boxcars underpins Rrrocket, a cli binary that outputs JSON similar to Rattletrap
 - Rattletrap can roundtrip replays (convert them into JSON and then write them out back to a replay losslessly). Boxcars is focussed on parsing replays.
 - In part due to allowing roundtrip parsing, rattletrap JSON output is 2x larger than boxcars (rrrocket) even when accounting for output minification.
 
