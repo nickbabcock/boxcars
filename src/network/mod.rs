@@ -13,7 +13,6 @@ use crate::network::frame_decoder::FrameDecoder;
 use crate::parser::ReplayBody;
 use crate::parsing_utils::log2;
 use fnv::FnvHashMap;
-use multimap::MultiMap;
 use std::collections::HashMap;
 use std::ops::Deref;
 
@@ -76,11 +75,14 @@ pub(crate) fn parse<'a>(
 
     // Create a map of an object's normalized name to a list of indices in the object
     // vector that have that same normalized name
-    let normalized_name_obj_ind: MultiMap<&str, ObjectId> = normalized_objects
-        .iter()
-        .enumerate()
-        .map(|(i, name)| (*name, ObjectId(i as i32)))
-        .collect();
+    let mut normalized_name_obj_ind: HashMap<&str, Vec<ObjectId>> =
+        HashMap::with_capacity(normalized_objects.len());
+    for (i, name) in normalized_objects.iter().enumerate() {
+        normalized_name_obj_ind
+            .entry(*name)
+            .or_insert_with(|| vec![])
+            .push(ObjectId(i as i32));
+    }
 
     // Map each object's name to it's index
     let name_obj_ind: HashMap<&str, ObjectId> = body
@@ -152,7 +154,7 @@ pub(crate) fn parse<'a>(
     for (obj, parent) in OBJECT_CLASSES.entries() {
         // It's ok if an object class doesn't appear in our replay. For instance, basketball
         // objects don't appear in a soccer replay.
-        if let Some(object_ids) = normalized_name_obj_ind.get_vec(obj) {
+        if let Some(object_ids) = normalized_name_obj_ind.get(obj) {
             let parent_id = name_obj_ind.get(parent).ok_or_else(|| {
                 NetworkError::MissingParentClass(String::from(*obj), String::from(*parent))
             })?;
