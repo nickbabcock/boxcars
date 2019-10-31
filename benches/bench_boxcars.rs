@@ -17,18 +17,20 @@ fn bench_crc(c: &mut Criterion) {
 
 fn bench_json_serialization(c: &mut Criterion) {
     let data = include_bytes!("../assets/replays/good/3381.replay");
-    let mut bytes = Vec::new();
-    let replay = ParserBuilder::new(data)
-        .on_error_check_crc()
-        .parse()
-        .unwrap();
-    serde_json::to_writer(&mut bytes, &replay).unwrap();
+    let json_data_bytes = 19525895_u64;
 
     let mut group = c.benchmark_group("json_throughput");
-    group.throughput(Throughput::Bytes(bytes.len() as u64));
-    unsafe { bytes.set_len(0); };
-
+    group.throughput(Throughput::Bytes(json_data_bytes));
     group.bench_function("bench_json_serialization", |b| {
+        let mut bytes = Vec::new();
+        let replay = ParserBuilder::new(data)
+            .on_error_check_crc()
+            .parse()
+            .unwrap();
+        serde_json::to_writer(&mut bytes, &replay).unwrap();
+        assert!(json_data_bytes == bytes.len() as u64);
+        unsafe { bytes.set_len(0); };
+
         b.iter(|| {
             black_box(serde_json::to_writer(&mut bytes, &replay).is_ok());
             unsafe { bytes.set_len(0); };
