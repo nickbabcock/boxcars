@@ -89,6 +89,130 @@ pub enum HeaderProp {
     Str(String),
 }
 
+impl HeaderProp {
+    /// If the `HeaderProp` is an array of properties, returns the array
+    /// ```
+    /// # use boxcars::HeaderProp;
+    /// let v = HeaderProp::Array(vec![
+    ///     vec![("abc".to_string(), HeaderProp::Byte)]
+    /// ]);
+    ///
+    /// assert_eq!(v.as_array().unwrap().len(), 1);
+    /// assert_eq!(v.as_array().unwrap()[0][0].1.as_array(), None);
+    /// ```
+    pub fn as_array(&self) -> Option<&Vec<Vec<(String, HeaderProp)>>> {
+        if let HeaderProp::Array(arr) = self {
+            Some(arr)
+        } else {
+            None
+        }
+    }
+
+    /// If the `HeaderProp` is a boolean, returns the value
+    /// ```
+    /// # use boxcars::HeaderProp;
+    /// let v = HeaderProp::Bool(true);
+    /// let b = HeaderProp::Byte;
+    ///
+    /// assert_eq!(v.as_bool(), Some(true));
+    /// assert_eq!(b.as_bool(), None);
+    /// ```
+    pub fn as_bool(&self) -> Option<bool> {
+        if let HeaderProp::Bool(val) = self {
+            Some(*val)
+        } else {
+            None
+        }
+    }
+
+    /// If the `HeaderProp` is a float, returns the value
+    /// ```
+    /// # use boxcars::HeaderProp;
+    /// let v = HeaderProp::Float(2.50);
+    /// let b = HeaderProp::Byte;
+    ///
+    /// assert_eq!(v.as_float(), Some(2.50));
+    /// assert_eq!(b.as_float(), None);
+    /// ```
+    pub fn as_float(&self) -> Option<f32> {
+        if let HeaderProp::Float(val) = self {
+            Some(*val)
+        } else {
+            None
+        }
+    }
+
+    /// If the `HeaderProp` is a QWord, returns the value
+    /// ```
+    /// # use boxcars::HeaderProp;
+    /// let v = HeaderProp::QWord(250);
+    /// let b = HeaderProp::Byte;
+    ///
+    /// assert_eq!(v.as_u64(), Some(250));
+    /// assert_eq!(b.as_u64(), None);
+    /// ```
+    pub fn as_u64(&self) -> Option<u64> {
+        if let HeaderProp::QWord(val) = self {
+            Some(*val)
+        } else {
+            None
+        }
+    }
+
+    /// If the `HeaderProp` is an int, returns the value
+    /// ```
+    /// # use boxcars::HeaderProp;
+    /// let v = HeaderProp::Int(-250);
+    /// let b = HeaderProp::Byte;
+    ///
+    /// assert_eq!(v.as_i32(), Some(-250));
+    /// assert_eq!(b.as_i32(), None);
+    /// ```
+    pub fn as_i32(&self) -> Option<i32> {
+        if let HeaderProp::Int(val) = self {
+            Some(*val)
+        } else {
+            None
+        }
+    }
+
+    /// If the `HeaderProp` is an string, returns the value
+    /// ```
+    /// # use boxcars::HeaderProp;
+    /// let v = HeaderProp::Name("abc".to_string());
+    /// let x = HeaderProp::Str("def".to_string());
+    /// let b = HeaderProp::Byte;
+    ///
+    /// assert_eq!(v.as_string(), Some("abc"));
+    /// assert_eq!(x.as_string(), Some("def"));
+    /// assert_eq!(b.as_i32(), None);
+    /// ```
+    pub fn as_string(&self) -> Option<&str> {
+        match self {
+            HeaderProp::Name(val) => Some(val.as_str()),
+            HeaderProp::Str(val) => Some(val.as_str()),
+            _ => None,
+        }
+    }
+
+    /// Returns if the `HeaderProp` is a byte
+    /// ```
+    /// # use boxcars::HeaderProp;
+    /// let v = HeaderProp::Name("abc".to_string());
+    /// let b = HeaderProp::Byte;
+    ///
+    /// assert_eq!(v.is_byte(), false);
+    /// assert_eq!(b.is_byte(), true);
+    /// ```
+    pub fn is_byte(&self) -> bool {
+        if let HeaderProp::Byte = self {
+            true
+        } else {
+            false
+        }
+    }
+}
+
 /// Debugging info stored in the replay if debugging is enabled.
 #[derive(Serialize, PartialEq, Debug, Clone)]
 pub struct DebugInfo {
