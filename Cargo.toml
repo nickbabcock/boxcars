@@ -15,7 +15,6 @@ include = ["src/**/*.rs", "Cargo.toml", "build.rs"]
 serde = { version = "1", features = ["derive"] }
 encoding_rs = "0.8"
 byteorder = "1"
-phf = "0.8"
 fnv = "1.0"
 if_chain = "1.0"
 bitter = "0.3.1"
@@ -28,6 +27,3 @@ criterion = "0.3"
 path = "benches/bench_boxcars.rs"
 name = "bench_boxcars"
 harness = false
-
-[build-dependencies]
-phf_codegen = "0.8"

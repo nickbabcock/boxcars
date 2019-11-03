@@ -70,6 +70,7 @@ pub use self::network::*;
 pub use self::parser::{CrcCheck, NetworkParse, ParserBuilder};
 mod core_parser;
 pub mod crc;
+mod data;
 mod errors;
 mod header;
 mod models;
@@ -77,8 +78,3 @@ mod network;
 mod parser;
 mod parsing_utils;
 mod serde_utils;
-
-#[cfg_attr(feature = "cargo-clippy", allow(clippy::all))]
-mod hashes {
-    include!(concat!(env!("OUT_DIR"), "/generated.rs"));
-}

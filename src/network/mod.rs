@@ -5,8 +5,8 @@ pub mod attributes;
 mod frame_decoder;
 mod models;
 
+use crate::data::{attributes, object_classes, parent_class, spawn_stats};
 use crate::errors::NetworkError;
-use crate::hashes::{ATTRIBUTES, OBJECT_CLASSES, PARENT_CLASSES, SPAWN_STATS};
 use crate::header::Header;
 use crate::models::*;
 use crate::network::frame_decoder::FrameDecoder;
@@ -56,9 +56,7 @@ pub(crate) fn parse<'a>(
         .objects
         .iter()
         .map(|x| {
-            SPAWN_STATS
-                .get(x.deref())
-                .cloned()
+            spawn_stats(x.deref())
                 .unwrap_or(SpawnTrajectory::None)
         })
         .collect();
@@ -66,9 +64,7 @@ pub(crate) fn parse<'a>(
     let attrs: Vec<_> = normalized_objects
         .iter()
         .map(|x| {
-            ATTRIBUTES
-                .get(x.deref())
-                .cloned()
+            attributes(x.deref())
                 .unwrap_or(AttributeTag::NotImplemented)
         })
         .collect();
@@ -122,7 +118,7 @@ pub(crate) fn parse<'a>(
             .get(cache.object_ind as usize)
             .ok_or_else(|| NetworkError::ObjectIdOutOfRange(ObjectId(cache.object_ind)))?;
 
-        while let Some(parent_name) = PARENT_CLASSES.get(object_name) {
+        while let Some(parent_name) = parent_class(object_name) {
             had_parent = true;
             if let Some(parent_ind) = name_obj_ind.get(parent_name) {
                 if let Some(parent_attrs) = object_ind_attrs.get(parent_ind) {
@@ -151,7 +147,8 @@ pub(crate) fn parse<'a>(
         object_ind_attrs.insert(ObjectId(cache.object_ind), all_props);
     }
 
-    for (obj, parent) in OBJECT_CLASSES.entries() {
+    let clses = object_classes();
+    for (obj, parent) in clses.iter() {
         // It's ok if an object class doesn't appear in our replay. For instance, basketball
         // objects don't appear in a soccer replay.
         if let Some(object_ids) = normalized_name_obj_ind.get(obj) {
