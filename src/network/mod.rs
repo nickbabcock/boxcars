@@ -5,8 +5,8 @@ pub mod attributes;
 mod frame_decoder;
 mod models;
 
+use crate::data::{ATTRIBUTES, object_classes, PARENT_CLASSES, SPAWN_STATS};
 use crate::errors::NetworkError;
-use crate::hashes::{ATTRIBUTES, OBJECT_CLASSES, PARENT_CLASSES, SPAWN_STATS};
 use crate::header::Header;
 use crate::models::*;
 use crate::network::frame_decoder::FrameDecoder;
@@ -55,22 +55,7 @@ pub(crate) fn parse<'a>(
     let spawns: Vec<SpawnTrajectory> = body
         .objects
         .iter()
-        .map(|x| {
-            SPAWN_STATS
-                .get(x.deref())
-                .cloned()
-                .unwrap_or(SpawnTrajectory::None)
-        })
-        .collect();
-
-    let attrs: Vec<_> = normalized_objects
-        .iter()
-        .map(|x| {
-            ATTRIBUTES
-                .get(x.deref())
-                .cloned()
-                .unwrap_or(AttributeTag::NotImplemented)
-        })
+        .map(|x| SPAWN_STATS.get(x.deref()).cloned().unwrap_or(SpawnTrajectory::None))
         .collect();
 
     // Create a map of an object's normalized name to a list of indices in the object
@@ -99,13 +84,14 @@ pub(crate) fn parse<'a>(
             .properties
             .iter()
             .map(|x| {
-                let attr = attrs
+                let attr = normalized_objects
                     .get(x.object_ind as usize)
+                    .map(|x| ATTRIBUTES.get(x.deref()).cloned().unwrap_or(AttributeTag::NotImplemented))
                     .ok_or_else(|| NetworkError::StreamTooLargeIndex(x.stream_id, x.object_ind))?;
                 Ok((
                     StreamId(x.stream_id),
                     ObjectAttribute {
-                        attribute: *attr,
+                        attribute: attr,
                         object_id: ObjectId(x.object_ind),
                     },
                 ))
@@ -151,7 +137,7 @@ pub(crate) fn parse<'a>(
         object_ind_attrs.insert(ObjectId(cache.object_ind), all_props);
     }
 
-    for (obj, parent) in OBJECT_CLASSES.entries() {
+    for (obj, parent) in object_classes().iter() {
         // It's ok if an object class doesn't appear in our replay. For instance, basketball
         // objects don't appear in a soccer replay.
         if let Some(object_ids) = normalized_name_obj_ind.get(obj) {

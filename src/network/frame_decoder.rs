@@ -3,8 +3,8 @@ use std::ops::Deref;
 use bitter::BitGet;
 use fnv::FnvHashMap;
 
+use crate::data::ATTRIBUTES;
 use crate::errors::{AttributeError, NetworkError};
-use crate::hashes::ATTRIBUTES;
 use crate::network::attributes::{AttributeDecoder, ProductValueDecoder};
 use crate::network::models::{
     ActorId, Frame, NewActor, ObjectId, SpawnTrajectory, StreamId, Trajectory, UpdatedAttribute,
