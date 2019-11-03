@@ -137,8 +137,7 @@ pub(crate) fn parse<'a>(
         object_ind_attrs.insert(ObjectId(cache.object_ind), all_props);
     }
 
-    let clses = object_classes();
-    for (obj, parent) in clses.iter() {
+    for (obj, parent) in object_classes().iter() {
         // It's ok if an object class doesn't appear in our replay. For instance, basketball
         // objects don't appear in a soccer replay.
         if let Some(object_ids) = normalized_name_obj_ind.get(obj) {
