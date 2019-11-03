@@ -5,7 +5,7 @@ pub mod attributes;
 mod frame_decoder;
 mod models;
 
-use crate::data::{attributes, object_classes, parent_class, spawn_stats};
+use crate::data::{ATTRIBUTES, object_classes, PARENT_CLASSES, SPAWN_STATS};
 use crate::errors::NetworkError;
 use crate::header::Header;
 use crate::models::*;
@@ -55,18 +55,7 @@ pub(crate) fn parse<'a>(
     let spawns: Vec<SpawnTrajectory> = body
         .objects
         .iter()
-        .map(|x| {
-            spawn_stats(x.deref())
-                .unwrap_or(SpawnTrajectory::None)
-        })
-        .collect();
-
-    let attrs: Vec<_> = normalized_objects
-        .iter()
-        .map(|x| {
-            attributes(x.deref())
-                .unwrap_or(AttributeTag::NotImplemented)
-        })
+        .map(|x| SPAWN_STATS.get(x.deref()).cloned().unwrap_or(SpawnTrajectory::None))
         .collect();
 
     // Create a map of an object's normalized name to a list of indices in the object
@@ -95,13 +84,14 @@ pub(crate) fn parse<'a>(
             .properties
             .iter()
             .map(|x| {
-                let attr = attrs
+                let attr = normalized_objects
                     .get(x.object_ind as usize)
+                    .map(|x| ATTRIBUTES.get(x.deref()).cloned().unwrap_or(AttributeTag::NotImplemented))
                     .ok_or_else(|| NetworkError::StreamTooLargeIndex(x.stream_id, x.object_ind))?;
                 Ok((
                     StreamId(x.stream_id),
                     ObjectAttribute {
-                        attribute: *attr,
+                        attribute: attr,
                         object_id: ObjectId(x.object_ind),
                     },
                 ))
@@ -118,7 +108,7 @@ pub(crate) fn parse<'a>(
             .get(cache.object_ind as usize)
             .ok_or_else(|| NetworkError::ObjectIdOutOfRange(ObjectId(cache.object_ind)))?;
 
-        while let Some(parent_name) = parent_class(object_name) {
+        while let Some(parent_name) = PARENT_CLASSES.get(object_name) {
             had_parent = true;
             if let Some(parent_ind) = name_obj_ind.get(parent_name) {
                 if let Some(parent_attrs) = object_ind_attrs.get(parent_ind) {

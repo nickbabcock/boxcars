@@ -3,7 +3,7 @@ use std::ops::Deref;
 use bitter::BitGet;
 use fnv::FnvHashMap;
 
-use crate::data::attributes;
+use crate::data::ATTRIBUTES;
 use crate::errors::{AttributeError, NetworkError};
 use crate::network::attributes::{AttributeDecoder, ProductValueDecoder};
 use crate::network::models::{
@@ -84,7 +84,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                     prop_name: self.object_ind_to_string(prop_id),
                 }
             })
-            .filter(|x| attributes(x.prop_name.as_str()).is_none())
+            .filter(|x| !ATTRIBUTES.contains_key(x.prop_name.as_str()))
             .collect()
     }
 
