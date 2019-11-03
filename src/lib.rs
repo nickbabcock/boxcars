@@ -32,11 +32,6 @@
 //! use std::fs::File;
 //! use std::io::{self, Read};
 //!
-//! # fn main() {
-//! #    let filename = "assets/replays/good/rumble.replay";
-//! #    run(filename).unwrap();
-//! # }
-//!
 //! fn parse_rl(data: &[u8]) -> Result<Replay, ParseError> {
 //!     boxcars::ParserBuilder::new(data)
 //!         .on_error_check_crc()
@@ -53,6 +48,8 @@
 //!     Ok(())
 //! }
 //!
+//! # let filename = "assets/replays/good/rumble.replay";
+//! # run(filename).unwrap();
 //! ```
 
 #![recursion_limit = "1000"]

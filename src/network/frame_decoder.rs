@@ -72,7 +72,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                     .map(|prop| (x.object_ind, prop.object_ind, prop.stream_id))
                     .collect::<Vec<(i32, i32, i32)>>()
             })
-            .flat_map(|x| x)
+            .flatten()
             .filter(|&(_obj_id, _prop_id, prop_stream_id)| StreamId(prop_stream_id) == stream_id)
             .map(|(obj_id, prop_id, _prop_stream_id)| {
                 let obj_id = ObjectId(obj_id);
