@@ -303,6 +303,17 @@ mod tests {
     }
 
     #[test]
+    fn rdict_unrecognized_property() {
+        // dd skip=$((0xdf0)) count=$((0xe41 - 0xdf0)) if=rumble.replay of=rdict_byte.replay bs=1
+        let data = append_none(include_bytes!(
+            "../assets/replays/partial/rdict_unrecognized.replay"
+        ));
+        let mut parser = CoreParser::new(&data[..]);
+        let res = parse_rdict(&mut parser).unwrap_err();
+        assert_eq!(res.to_string(), String::from("Did not expect a property of: BiteProperty"));
+    }
+
+    #[test]
     fn rdict_ps4_online_id() {
         let data = append_none(include_bytes!(
             "../assets/replays/partial/rdict_ps4_online_id.replay"
