@@ -156,6 +156,24 @@ mod tests {
     }
 
     #[test]
+    fn parse_text_zero_size2() {
+        let mut parser = CoreParser::new(&[0, 0, 0, 0, 0]);
+        let res = parser.parse_text();
+        assert!(res.is_err());
+        let error = res.unwrap_err();
+        assert_eq!(error, ParseError::ZeroSize);
+    }
+
+    #[test]
+    fn parse_text_too_large() {
+        let mut parser = CoreParser::new(&[0xcc, 0xcc, 0xcc, 0xcc, 0xcc]);
+        let res = parser.parse_text();
+        assert!(res.is_err());
+        let error = res.unwrap_err();
+        assert_eq!(error, ParseError::TextTooLarge(-858993460));
+    }
+
+    #[test]
     fn parse_text_encoding_bad_2() {
         // Test for when there is not enough data to decode text length
         // dd skip=16 count=28 if=rumble.replay of=text.replay bs=1
