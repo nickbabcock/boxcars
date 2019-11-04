@@ -18,26 +18,14 @@ impl Header {
         self.properties
             .iter()
             .find(|&(key, _)| key == "NumFrames")
-            .and_then(|&(_, ref prop)| {
-                if let HeaderProp::Int(v) = *prop {
-                    Some(v)
-                } else {
-                    None
-                }
-            })
+            .and_then(|&(_, ref prop)| prop.as_i32())
     }
 
     pub fn max_channels(&self) -> Option<i32> {
         self.properties
             .iter()
             .find(|&(key, _)| key == "MaxChannels")
-            .and_then(|&(_, ref prop)| {
-                if let HeaderProp::Int(v) = *prop {
-                    Some(v)
-                } else {
-                    None
-                }
-            })
+            .and_then(|&(_, ref prop)| prop.as_i32())
     }
 }
 
