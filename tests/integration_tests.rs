@@ -68,3 +68,4 @@ frame_len_test!(test_tutorial_43a9_replay, "../assets/replays/good/43a9.replay",
 frame_len_test!(test_dedicated_server_ip_43a9_replay, "../assets/replays/good/160c.replay", 9408);
 frame_len_test!(test_hoops_mutator_d044_replay, "../assets/replays/good/d044.replay", 10497);
 frame_len_test!(test_soccar_lan_replay, "../assets/replays/good/soccar-lan.replay", 7398);
+frame_len_test!(test_c62cb_replay, "../assets/replays/good/c62cb.replay", 7136);
