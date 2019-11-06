@@ -101,6 +101,7 @@ pub (crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = phf::phf_m
     "Engine.Actor:bBlockActors" => AttributeTag::Boolean,
     "Engine.Actor:bCollideActors" => AttributeTag::Boolean,
     "Engine.Actor:bHidden" => AttributeTag::Boolean,
+    "Engine.Actor:bTearOff" => AttributeTag::Boolean,
     "Engine.Actor:DrawScale" => AttributeTag::Float,
     "Engine.Actor:RemoteRole" => AttributeTag::Enum,
     "Engine.Actor:Role" => AttributeTag::Enum,
