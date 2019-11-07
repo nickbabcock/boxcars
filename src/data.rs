@@ -110,6 +110,7 @@ pub (crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = phf::phf_m
     "Engine.GameReplicationInfo:GameClass" => AttributeTag::Flagged,
     "Engine.GameReplicationInfo:ServerName" => AttributeTag::String,
     "Engine.Pawn:PlayerReplicationInfo" => AttributeTag::Flagged,
+    "Engine.Pawn:HealthMax" => AttributeTag::Int,
     "Engine.PlayerReplicationInfo:bBot" => AttributeTag::Boolean,
     "Engine.PlayerReplicationInfo:bIsSpectator" => AttributeTag::Boolean,
     "Engine.PlayerReplicationInfo:bReadyToPlay" => AttributeTag::Boolean,
