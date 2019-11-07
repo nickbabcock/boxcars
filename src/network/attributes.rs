@@ -46,6 +46,7 @@ pub(crate) enum AttributeTag {
     LoadoutsOnline,
     StatEvent,
     RotationTag,
+    RepStatTitle,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -91,6 +92,7 @@ pub enum Attribute {
     LoadoutsOnline(LoadoutsOnline),
     StatEvent(bool, u32),
     Rotation(Rotation),
+    RepStatTitle(RepStatTitle),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
@@ -296,6 +298,15 @@ pub enum ProductValue {
     NewTeamEdition(u32),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct RepStatTitle {
+    pub unknown: bool,
+    pub name: String,
+    pub unknown2: bool,
+    pub index: u32,
+    pub value: u32,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct ProductValueDecoder {
     version: VersionTriplet,
@@ -427,6 +438,7 @@ impl AttributeDecoder {
             AttributeTag::LoadoutsOnline => self.decode_loadouts_online(bits),
             AttributeTag::StatEvent => self.decode_stat_event(bits),
             AttributeTag::RotationTag => self.decode_rotation(bits),
+            AttributeTag::RepStatTitle => self.decode_rep_stat_title(bits),
         }
     }
 
@@ -588,6 +600,23 @@ impl AttributeDecoder {
                 Ok(Attribute::StatEvent(u1, id))
             } else {
                 Err(AttributeError::NotEnoughDataFor("Stat Event"))
+            }
+        }
+    }
+
+    pub fn decode_rep_stat_title(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
+        if_chain! {
+            if let Some(unknown) = bits.read_bit();
+            let name = decode_text(bits)?;
+            if let Some(unknown2) = bits.read_bit();
+            if let Some(index) = bits.read_u32();
+            if let Some(value) = bits.read_u32();
+            then {
+                Ok(Attribute::RepStatTitle(RepStatTitle {
+                    unknown, name, unknown2, index, value
+                }))
+            } else {
+                Err(AttributeError::NotEnoughDataFor("RepStatTitle"))
             }
         }
     }
