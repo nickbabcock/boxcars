@@ -1,3 +1,46 @@
+# v0.6.0 - November 7th, 2019
+
+* Remove the `multimap` dependency
+* Added convenience functions to extract properties from the header. Since properties in the header can be a multitude of types, one can extract the inside data if the type is known ahead of time. For instance, `MaxChannels` is a integer, so one can extract the integer with `HeaderProp::as_i32`
+
+Before:
+
+```rust
+replay.properties
+    .iter()
+    .find(|&(key, _)| key == "MaxChannels")
+    .and_then(|&(_, ref prop)| {
+        if let HeaderProp::Int(v) = *prop {
+            Some(v)
+        } else {
+            None
+        }
+    })
+```
+
+After:
+
+```rust
+self.properties
+    .iter()
+    .find(|&(key, _)| key == "MaxChannels")
+    .and_then(|&(_, ref prop)| prop.as_i32())
+```
+
+* Added support for a additional attributes:
+  * Archetypes.GameEvent.GameEvent_SoccarLan
+  * Engine.Actor:bTearOff
+  * Engine.Pawn:HealthMax
+  * TAGame.Car_TA:ReplicatedCarScale
+  * TAGame.GameEvent_Soccar_TA:bMatchEnded
+  * TAGame.GameEvent_Soccar_TA:bNoContest
+  * TAGame.GameEvent_Soccar_TA:GameWinner
+  * TAGame.GameEvent_Soccar_TA:MatchWinner
+  * TAGame.GameEvent_Soccar_TA:MVP
+  * TAGame.GameEvent_TA:bAllowReadyUp
+  * TAGame.PRI_TA:RepStatTitles
+  * TAGame.Vehicle_TA:bPodiumMode
+
 # v0.5.2 - October 20th, 2019
 
 * Parse replays with QQ ids
