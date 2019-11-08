@@ -12,18 +12,12 @@ use std::io::{self, Read};
 /// of the "Name" key and extract the string value
 fn names_in_header(
     stats: &[Vec<(String, HeaderProp)>],
-) -> impl Iterator<Item = &String> {
+) -> impl Iterator<Item = &str> {
     stats
         .iter()
         .flat_map(|v| v.iter())
         .filter(|(prop_name, _)| *prop_name == "Name")
-        .filter_map(|(_, prop_val)| {
-            if let HeaderProp::Str(name) = prop_val {
-                Some(name)
-            } else {
-                None
-            }
-        })
+        .filter_map(|(_, prop_val)| prop_val.as_string())
 }
 
 /// Given network frames and the object id to "Engine.PlayerReplicationInfo:PlayerName", comb
@@ -31,15 +25,15 @@ fn names_in_header(
 fn names_in_network(
     frames: &[boxcars::Frame],
     name_attribute_id: boxcars::ObjectId,
-) -> Vec<&String> {
+) -> Vec<&str> {
     let mut names = frames
         .iter()
         .flat_map(|x| x.updated_actors.iter())
         .filter(|attr| attr.object_id == name_attribute_id)
         .filter_map(|attr| {
             // PlayerName will be a string attribute
-            if let boxcars::Attribute::String(s) = &attr.attribute {
-                Some(s)
+            if let boxcars::Attribute::String(ref s) = attr.attribute {
+                Some(s.as_str())
             } else {
                 None
             }
