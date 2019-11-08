@@ -29,7 +29,7 @@
 //! ```
 //! use boxcars::{ParseError, Replay};
 //! use std::error;
-//! use std::fs::File;
+//! use std::fs;
 //! use std::io::{self, Read};
 //!
 //! fn parse_rl(data: &[u8]) -> Result<Replay, ParseError> {
@@ -40,9 +40,7 @@
 //!
 //! fn run(filename: &str) -> Result<(), Box<dyn error::Error>> {
 //!     let filename = "assets/replays/good/rumble.replay";
-//!     let mut f = File::open(filename)?;
-//!     let mut buffer = vec![];
-//!     f.read_to_end(&mut buffer)?;
+//!     let buffer = fs::read(filename)?;
 //!     let replay = parse_rl(&buffer)?;
 //!     serde_json::to_writer(&mut io::stdout(), &replay)?;
 //!     Ok(())
