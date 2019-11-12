@@ -47,14 +47,19 @@ impl<'a> CoreParser<'a> {
         Ok(res)
     }
 
-    /// Take the next `size` of bytes and interpret them, but this interpretation can fail
-    pub fn take_res<F, T>(&mut self, size: usize, mut f: F) -> Result<T, ParseError>
-    where
-        F: FnMut(&'a [u8]) -> Result<T, ParseError>,
-    {
-        let res = f(self.view_data(size)?)?;
-        self.advance(size);
-        Ok(res)
+    pub fn skip(&mut self, size: usize) -> Result<(), ParseError> {
+        self.take(size, |_| ())
+    }
+
+    pub fn take_i32(&mut self, section: &'static str) -> Result<i32, ParseError> {
+        self.take(4, le_i32)
+            .map_err(|e| ParseError::ParseError(section, self.bytes_read(), Box::new(e)))
+    }
+
+    pub fn take_u32(&mut self, section: &'static str) -> Result<u32, ParseError> {
+        self.take(4, le_i32)
+            .map(|x| x as u32)
+            .map_err(|e| ParseError::ParseError(section, self.bytes_read(), Box::new(e)))
     }
 
     /// Repeatedly parse the same elements from replay until `size` elements parsed
@@ -96,7 +101,7 @@ impl<'a> CoreParser<'a> {
         if size == 0x5_000_000 {
             size = 8;
         }
-        self.take_res(size, decode_str)
+        self.view_data(size).and_then(decode_str)
     }
 
     /// Parses either UTF-16 or Windows-1252 encoded strings
@@ -115,9 +120,10 @@ impl<'a> CoreParser<'a> {
             // multiply the size by 2. The last two bytes included in the count are
             // null terminators
             let size = characters * -2;
-            self.take_res(size as usize, |d| decode_utf16(d))
+            self.view_data(size as usize).and_then(decode_utf16)
         } else {
-            self.take_res(characters as usize, |d| decode_windows1252(d))
+            self.view_data(characters as usize)
+                .and_then(decode_windows1252)
         }
     }
 }

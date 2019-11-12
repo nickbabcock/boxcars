@@ -199,13 +199,8 @@ impl<'a> Parser<'a> {
     }
 
     fn parse(&mut self) -> Result<Replay, ParseError> {
-        let header_size = self.core.take(4, le_i32).map_err(|e| {
-            ParseError::ParseError("header size", self.core.bytes_read(), Box::new(e))
-        })?;
-
-        let header_crc = self.core.take(4, le_i32).map(|x| x as u32).map_err(|e| {
-            ParseError::ParseError("header crc", self.core.bytes_read(), Box::new(e))
-        })?;
+        let header_size = self.core.take_i32("header size")?;
+        let header_crc = self.core.take_u32("header crc")?;
 
         let header_data = self.core.view_data(header_size as usize).map_err(|e| {
             ParseError::ParseError("header data", self.core.bytes_read(), Box::new(e))
@@ -214,13 +209,8 @@ impl<'a> Parser<'a> {
         let header =
             self.crc_section(header_data, header_crc as u32, "header", Self::parse_header)?;
 
-        let content_size = self.core.take(4, le_i32).map_err(|e| {
-            ParseError::ParseError("content size", self.core.bytes_read(), Box::new(e))
-        })?;
-
-        let content_crc = self.core.take(4, le_i32).map(|x| x as u32).map_err(|e| {
-            ParseError::ParseError("content crc", self.core.bytes_read(), Box::new(e))
-        })?;
+        let content_size = self.core.take_i32("content size")?;
+        let content_crc = self.core.take_u32("content crc")?;
 
         let content_data = self.core.view_data(content_size as usize).map_err(|e| {
             ParseError::ParseError("content data", self.core.bytes_read(), Box::new(e))
@@ -319,9 +309,7 @@ impl<'a> Parser<'a> {
             ParseError::ParseError("keyframes", self.core.bytes_read(), Box::new(e))
         })?;
 
-        let network_size = self.core.take(4, le_i32).map_err(|e| {
-            ParseError::ParseError("network size", self.core.bytes_read(), Box::new(e))
-        })?;
+        let network_size = self.core.take_i32("network size")?;
 
         let network_data = self.core.take(network_size as usize, |d| d).map_err(|e| {
             ParseError::ParseError("network data", self.core.bytes_read(), Box::new(e))

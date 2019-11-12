@@ -1,7 +1,7 @@
 use crate::core_parser::CoreParser;
 use crate::errors::ParseError;
 use crate::models::HeaderProp;
-use crate::parsing_utils::{le_f32, le_i32, le_u64};
+use crate::parsing_utils::{le_f32, le_u64};
 
 /// Intermediate parsing structure for the header
 #[derive(Debug, PartialEq)]
@@ -30,22 +30,13 @@ impl Header {
 }
 
 pub fn parse_header(rlp: &mut CoreParser) -> Result<Header, ParseError> {
-    let major_version = rlp
-        .take(4, le_i32)
-        .map_err(|e| ParseError::ParseError("major version", rlp.bytes_read(), Box::new(e)))?;
-
-    let minor_version = rlp
-        .take(4, le_i32)
-        .map_err(|e| ParseError::ParseError("minor version", rlp.bytes_read(), Box::new(e)))?;
-
-    let net_version =
-        if major_version > 865 && minor_version > 17 {
-            Some(rlp.take(4, le_i32).map_err(|e| {
-                ParseError::ParseError("net version", rlp.bytes_read(), Box::new(e))
-            })?)
-        } else {
-            None
-        };
+    let major_version = rlp.take_i32("major version")?;
+    let minor_version = rlp.take_i32("minor version")?;
+    let net_version = if major_version > 865 && minor_version > 17 {
+        Some(rlp.take_i32("net version")?)
+    } else {
+        None
+    };
 
     let game_type = rlp
         .parse_text()
@@ -81,14 +72,14 @@ fn parse_rdict(rlp: &mut CoreParser) -> Result<Vec<(String, HeaderProp)>, ParseE
         }
 
         let val = match rlp.parse_str()? {
-            "ArrayProperty" => array_property(rlp),
-            "BoolProperty" => bool_property(rlp),
-            "ByteProperty" => byte_property(rlp),
-            "FloatProperty" => float_property(rlp),
-            "IntProperty" => int_property(rlp),
-            "NameProperty" => name_property(rlp),
-            "QWordProperty" => qword_property(rlp),
-            "StrProperty" => str_property(rlp),
+            "ArrayProperty" => decode_prop(rlp, array_property),
+            "BoolProperty" => decode_prop(rlp, bool_property),
+            "ByteProperty" => decode_prop(rlp, byte_property),
+            "FloatProperty" => decode_prop(rlp, float_property),
+            "IntProperty" => decode_prop(rlp, int_property),
+            "NameProperty" => decode_prop(rlp, name_property),
+            "QWordProperty" => decode_prop(rlp, qword_property),
+            "StrProperty" => decode_prop(rlp, str_property),
             x => Err(ParseError::UnexpectedProperty(String::from(x))),
         }?;
 
@@ -104,9 +95,16 @@ fn parse_rdict(rlp: &mut CoreParser) -> Result<Vec<(String, HeaderProp)>, ParseE
 // 32bits unknown. Doesn't matter to us, we throw it out anyways. The rest of the bytes are
 // decoded property type specific.
 
+fn decode_prop<F, T>(rlp: &mut CoreParser, mut f: F) -> Result<T, ParseError>
+where
+    F: FnMut(&mut CoreParser) -> Result<T, ParseError>,
+{
+    rlp.skip(8)?;
+    f(rlp)
+}
+
 fn byte_property(rlp: &mut CoreParser) -> Result<HeaderProp, ParseError> {
     // It's unknown (to me at least) why the byte property has two strings in it.
-    rlp.take(8, |_d| ())?;
     match rlp.parse_str()? {
         "OnlinePlatform_Steam" | "OnlinePlatform_PS4" => Ok(()),
         _ => rlp.parse_str().map(|_| ()),
@@ -115,33 +113,31 @@ fn byte_property(rlp: &mut CoreParser) -> Result<HeaderProp, ParseError> {
 }
 
 fn str_property(rlp: &mut CoreParser) -> Result<HeaderProp, ParseError> {
-    rlp.take(8, |_d| ())?;
     Ok(HeaderProp::Str(rlp.parse_text()?))
 }
 
 fn name_property(rlp: &mut CoreParser) -> Result<HeaderProp, ParseError> {
-    rlp.take(8, |_d| ())?;
     Ok(HeaderProp::Name(rlp.parse_text()?))
 }
 
 fn int_property(rlp: &mut CoreParser) -> Result<HeaderProp, ParseError> {
-    rlp.take(12, |d| HeaderProp::Int(le_i32(&d[8..])))
+    rlp.take_i32("int property").map(HeaderProp::Int)
 }
 
 fn bool_property(rlp: &mut CoreParser) -> Result<HeaderProp, ParseError> {
-    rlp.take(9, |d| HeaderProp::Bool(d[8] == 1))
+    rlp.take(1, |d| HeaderProp::Bool(d[0] == 1))
 }
 
 fn float_property(rlp: &mut CoreParser) -> Result<HeaderProp, ParseError> {
-    rlp.take(12, |d| HeaderProp::Float(le_f32(&d[8..])))
+    rlp.take(4, |d| HeaderProp::Float(le_f32(d)))
 }
 
 fn qword_property(rlp: &mut CoreParser) -> Result<HeaderProp, ParseError> {
-    rlp.take(16, |d| HeaderProp::QWord(le_u64(&d[8..])))
+    rlp.take(8, |d| HeaderProp::QWord(le_u64(d)))
 }
 
 fn array_property(rlp: &mut CoreParser) -> Result<HeaderProp, ParseError> {
-    let size = rlp.take(12, |d| le_i32(&d[8..]))?;
+    let size = rlp.take_i32("array property size")?;
     let arr = CoreParser::repeat(size as usize, || parse_rdict(rlp))?;
     Ok(HeaderProp::Array(arr))
 }
