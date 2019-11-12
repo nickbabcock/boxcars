@@ -1,7 +1,8 @@
-use crate::network::{ActorId, Attribute, Frame, ObjectId, StreamId, Trajectory};
+use crate::network::{ActorId, Attribute, Frame, ObjectId, StreamId, Trajectory, UpdatedAttribute, NewActor};
 use crate::data::ATTRIBUTES;
 use crate::models::ClassNetCache;
 use std::ops::Deref;
+use fnv::FnvHashMap;
 use std::error::Error;
 use std::fmt;
 use std::fmt::{Display, Formatter};
@@ -114,13 +115,16 @@ struct ContextObjectAttribute {
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub struct NetworkErrorContext {
-    objects: Vec<String>,
-    net_cache: Vec<ClassNetCache>,
-    frames: Vec<Frame>,
+pub struct FrameContext {
+    pub objects: Vec<String>,
+    pub net_cache: Vec<ClassNetCache>,
+    pub frames: Vec<Frame>,
+    pub actors: FnvHashMap<ActorId, ObjectId>,
+    pub new_actors: Vec<NewActor>,
+    pub updated_actors: Vec<UpdatedAttribute>,
 }
 
-impl NetworkErrorContext {
+impl FrameContext {
     fn object_ind_to_string(&self, object_id: ObjectId) -> String {
         String::from(
             self.objects
@@ -154,6 +158,115 @@ impl NetworkErrorContext {
             .filter(|x| !ATTRIBUTES.contains_key(x.prop_name.as_str()))
             .collect()
     }
+
+    fn display_new_actor(&self, f: &mut fmt::Formatter<'_>, actor: &NewActor) -> fmt::Result {
+        write!(
+            f,
+            "(id: {}, nameId: {}, objId: {}, objName: {}, initial trajectory: {:?})",
+            actor.actor_id,
+            actor.name_id.map(|x| x.to_string()).unwrap_or_else(|| String::from("<none>")),
+            actor.object_id,
+            self.object_ind_to_string(actor.object_id),
+            actor.initial_trajectory
+        )
+    }
+
+    fn display_update(&self, f: &mut fmt::Formatter<'_>, attr: &UpdatedAttribute) -> fmt::Result {
+        let actor_entry = self.actors.get(&attr.actor_id);
+        let actor_obj_name = actor_entry.and_then(|x| self.objects.get(usize::from(*x)));
+        let stream_obj_name = self.objects.get(usize::from(attr.object_id));
+
+        write!(f, "(actor stream id / object id / name: {} / ", attr.actor_id)?;
+        if let Some(actor_id) = actor_entry {
+            write!(f, "{} / ", actor_id)
+        } else {
+            write!(f, "{} / ", "<none>")
+        }?;
+
+        if let Some(name) = actor_obj_name {
+            write!(f, "{}, ", name)
+        } else {
+            write!(f, "{}, ", "<none>")
+        }?;
+
+        write!(f, "attribute stream id / object id / name: {} / {} / ", attr.stream_id, attr.object_id)?;
+
+        if let Some(name) = stream_obj_name {
+            write!(f, "{}", name)
+        } else {
+            write!(f, "{}", "<none>")
+        }?;
+
+        write!(f, ", attribute: {:?})", attr.attribute)
+    }
+
+    fn most_recent_frame_with_data(&self) -> Option<(usize, &Frame)> {
+        self.frames
+            .iter()
+            .enumerate()
+            .rev()
+            .find(|(_, frame)| !frame.updated_actors.is_empty() || !frame.new_actors.is_empty())
+    }
+}
+
+impl fmt::Display for FrameContext {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "on frame: {}, ", self.frames.len())?;
+        if let Some(updated) = self.updated_actors.last() {
+            write!(f, "last updated actor: ")?;
+            self.display_update(f, updated)
+        } else if let Some(new) = self.new_actors.last() {
+            write!(f, "last new actor: ")?;
+            self.display_new_actor(f, new)
+        } else if let Some((frame_idx, frame)) = self.most_recent_frame_with_data() {
+            write!(f, "backtracking to frame {}, ", frame_idx)?;
+            if let Some(updated) = frame.updated_actors.last() {
+                write!(f, "last updated actor: ")?;
+                self.display_update(f, updated)
+            } else if let Some(new) = frame.new_actors.last() {
+                write!(f, "last new actor: ")?;
+                self.display_new_actor(f, new)
+            } else {
+                write!(f, "it didn't decode anything")
+            }
+        } else {
+            write!(f, "it didn't decode anything")
+        }
+    }
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub enum FrameError {
+    NotEnoughDataFor(&'static str),
+    TimeOutOfRange { time: f32 },
+    DeltaOutOfRange { delta: f32 },
+    ObjectIdOutOfRange { obj: ObjectId },
+    MissingActor { actor: ActorId },
+    MissingCache { actor: ActorId, actor_object: ObjectId },
+    MissingAttribute { actor: ActorId, actor_object: ObjectId, attribute_stream: StreamId },
+    AttributeError { actor: ActorId, actor_object: ObjectId, attribute_stream: StreamId, error: AttributeError },
+}
+
+impl FrameError {
+    fn contextualize(&self, f: &mut fmt::Formatter<'_>, context: &FrameContext) -> fmt::Result {
+        unimplemented!()
+    }
+
+}
+
+impl Error for FrameError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            FrameError::AttributeError { error, .. } => Some(error),
+            _ => None,
+        }
+    }
+}
+
+impl Display for FrameError {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "frame error")
+    }
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -182,6 +295,7 @@ pub enum NetworkError {
     MissingAttribute(ActorId, ObjectId, String, StreamId, String),
     UnimplementedAttribute(ActorId, ObjectId, String, StreamId, String, String),
     AttributeError(AttributeError),
+    FrameError(FrameError, FrameContext),
     TooManyFrames(i32),
 }
 
@@ -189,6 +303,7 @@ impl Error for NetworkError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             NetworkError::AttributeError(attribute_error) => Some(attribute_error),
+            NetworkError::FrameError(err, _) => Some(err),
             _ => None,
         }
     }
@@ -219,6 +334,7 @@ impl Display for NetworkError {
                 write!(f, "Actor id: {} of object id: {} ({}) but stream id: {} ({}) was not implemented. Possible missing implementations for stream id {}\n{}", actor_id, object_id, object, steam_id, stream, object, attributes),
             NetworkError::AttributeError(attribute_error) => write!(f, "Attribute error: {}", attribute_error),
             NetworkError::TooManyFrames(size) => write!(f, "Too many frames to decode: {}", size),
+            NetworkError::FrameError(err, context) => unimplemented!(),
 
         }
     }
