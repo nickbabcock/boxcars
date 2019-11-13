@@ -36,6 +36,12 @@ impl<'a> CoreParser<'a> {
         }
     }
 
+    pub fn take_data(&mut self, size: usize) -> Result<&'a [u8], ParseError> {
+        let res = self.view_data(size)?;
+        self.advance(size);
+        Ok(res)
+    }
+
     /// Take the next `size` of bytes and interpret them in an infallible fashion
     #[inline]
     pub fn take<F, T>(&mut self, size: usize, mut f: F) -> Result<T, ParseError>
@@ -101,7 +107,7 @@ impl<'a> CoreParser<'a> {
         if size == 0x5_000_000 {
             size = 8;
         }
-        self.view_data(size).and_then(decode_str)
+        self.take_data(size).and_then(decode_str)
     }
 
     /// Parses either UTF-16 or Windows-1252 encoded strings
@@ -120,9 +126,9 @@ impl<'a> CoreParser<'a> {
             // multiply the size by 2. The last two bytes included in the count are
             // null terminators
             let size = characters * -2;
-            self.view_data(size as usize).and_then(decode_utf16)
+            self.take_data(size as usize).and_then(decode_utf16)
         } else {
-            self.view_data(characters as usize)
+            self.take_data(characters as usize)
                 .and_then(decode_windows1252)
         }
     }
