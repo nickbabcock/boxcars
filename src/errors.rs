@@ -1,4 +1,7 @@
-use crate::network::{ActorId, Attribute, ObjectId, StreamId, Trajectory};
+use crate::network::{ActorId, Attribute, Frame, ObjectId, StreamId, Trajectory};
+use crate::data::ATTRIBUTES;
+use crate::models::ClassNetCache;
+use std::ops::Deref;
 use std::error::Error;
 use std::fmt;
 use std::fmt::{Display, Formatter};
@@ -99,6 +102,57 @@ impl Display for AttributeError {
             AttributeError::Unimplemented => write!(f, "Does not have an attribute implementation"),
             AttributeError::TooBigString(size) => write!(f, "Unexpected size for string: {}", size),
         }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ContextObjectAttribute {
+    obj_id: ObjectId,
+    obj_name: String,
+    prop_id: ObjectId,
+    prop_name: String,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct NetworkErrorContext {
+    objects: Vec<String>,
+    net_cache: Vec<ClassNetCache>,
+    frames: Vec<Frame>,
+}
+
+impl NetworkErrorContext {
+    fn object_ind_to_string(&self, object_id: ObjectId) -> String {
+        String::from(
+            self.objects
+                .get(usize::from(object_id))
+                .map(Deref::deref)
+                .unwrap_or("Out of bounds"),
+        )
+    }
+
+    fn properties_with_stream_id(&self, stream_id: StreamId) -> Vec<ContextObjectAttribute> {
+        self.net_cache
+            .iter()
+            .map(|x| {
+                x.properties
+                    .iter()
+                    .map(|prop| (x.object_ind, prop.object_ind, prop.stream_id))
+                    .collect::<Vec<(i32, i32, i32)>>()
+            })
+            .flatten()
+            .filter(|&(_obj_id, _prop_id, prop_stream_id)| StreamId(prop_stream_id) == stream_id)
+            .map(|(obj_id, prop_id, _prop_stream_id)| {
+                let obj_id = ObjectId(obj_id);
+                let prop_id = ObjectId(prop_id);
+                ContextObjectAttribute {
+                    obj_id,
+                    prop_id,
+                    obj_name: self.object_ind_to_string(obj_id),
+                    prop_name: self.object_ind_to_string(prop_id),
+                }
+            })
+            .filter(|x| !ATTRIBUTES.contains_key(x.prop_name.as_str()))
+            .collect()
     }
 }
 
