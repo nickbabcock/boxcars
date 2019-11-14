@@ -318,27 +318,27 @@ pub(crate) struct ProductValueDecoder {
 }
 
 impl ProductValueDecoder {
-    pub fn create(version: VersionTriplet, name_obj_ind: &HashMap<&str, ObjectId>) -> Self {
+    pub fn create(version: VersionTriplet, name_obj_ind: &HashMap<&str, Vec<ObjectId>>) -> Self {
         let color_ind = name_obj_ind
             .get("TAGame.ProductAttribute_UserColor_TA")
-            .map(|&x| i32::from(x))
-            .unwrap_or(0) as u32;
+            .map(|x| usize::from(x[0]) as u32)
+            .unwrap_or(0);
         let painted_ind = name_obj_ind
             .get("TAGame.ProductAttribute_Painted_TA")
-            .map(|&x| i32::from(x))
-            .unwrap_or(0) as u32;
+            .map(|x| usize::from(x[0]) as u32)
+            .unwrap_or(0);
         let title_ind = name_obj_ind
             .get("TAGame.ProductAttribute_TitleID_TA")
-            .map(|&x| i32::from(x))
+            .map(|x| usize::from(x[0]) as u32)
             .unwrap_or(0) as u32;
         let special_edition_ind = name_obj_ind
             .get("TAGame.ProductAttribute_SpecialEdition_TA")
-            .map(|&x| i32::from(x))
-            .unwrap_or(0) as u32;
+            .map(|x| usize::from(x[0]) as u32)
+            .unwrap_or(0);
         let team_edition_ind = name_obj_ind
             .get("TAGame.ProductAttribute_TeamEdition_TA")
-            .map(|&x| i32::from(x))
-            .unwrap_or(0) as u32;
+            .map(|x| usize::from(x[0]) as u32)
+            .unwrap_or(0);
 
         ProductValueDecoder {
             version,
