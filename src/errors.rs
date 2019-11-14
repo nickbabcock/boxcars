@@ -1,11 +1,10 @@
-use crate::network::{ActorId, Attribute, Frame, ObjectId, StreamId, Trajectory, UpdatedAttribute, NewActor};
 use crate::data::ATTRIBUTES;
-use crate::models::ClassNetCache;
-use std::ops::Deref;
+use crate::network::{ActorId, Frame, NewActor, ObjectId, StreamId, UpdatedAttribute};
 use fnv::FnvHashMap;
 use std::error::Error;
 use std::fmt;
 use std::fmt::{Display, Formatter};
+use std::ops::Deref;
 use std::str;
 
 #[derive(PartialEq, Debug, Clone)]
@@ -19,7 +18,7 @@ pub enum ParseError {
     CrcMismatch(u32, u32),
     CorruptReplay(String, Box<ParseError>),
     ListTooLarge(usize),
-    NetworkError(NetworkError),
+    NetworkError(Box<NetworkError>),
 }
 
 impl Display for ParseError {
@@ -117,7 +116,7 @@ struct ContextObjectAttribute {
 #[derive(PartialEq, Debug, Clone)]
 pub struct FrameContext {
     pub objects: Vec<String>,
-    pub net_cache: Vec<ClassNetCache>,
+    pub object_attributes: FnvHashMap<ObjectId, FnvHashMap<StreamId, ObjectId>>,
     pub frames: Vec<Frame>,
     pub actors: FnvHashMap<ActorId, ObjectId>,
     pub new_actors: Vec<NewActor>,
@@ -134,37 +133,15 @@ impl FrameContext {
         )
     }
 
-    fn properties_with_stream_id(&self, stream_id: StreamId) -> Vec<ContextObjectAttribute> {
-        self.net_cache
-            .iter()
-            .map(|x| {
-                x.properties
-                    .iter()
-                    .map(|prop| (x.object_ind, prop.object_ind, prop.stream_id))
-                    .collect::<Vec<(i32, i32, i32)>>()
-            })
-            .flatten()
-            .filter(|&(_obj_id, _prop_id, prop_stream_id)| StreamId(prop_stream_id) == stream_id)
-            .map(|(obj_id, prop_id, _prop_stream_id)| {
-                let obj_id = ObjectId(obj_id);
-                let prop_id = ObjectId(prop_id);
-                ContextObjectAttribute {
-                    obj_id,
-                    prop_id,
-                    obj_name: self.object_ind_to_string(obj_id),
-                    prop_name: self.object_ind_to_string(prop_id),
-                }
-            })
-            .filter(|x| !ATTRIBUTES.contains_key(x.prop_name.as_str()))
-            .collect()
-    }
-
     fn display_new_actor(&self, f: &mut fmt::Formatter<'_>, actor: &NewActor) -> fmt::Result {
         write!(
             f,
             "(id: {}, nameId: {}, objId: {}, objName: {}, initial trajectory: {:?})",
             actor.actor_id,
-            actor.name_id.map(|x| x.to_string()).unwrap_or_else(|| String::from("<none>")),
+            actor
+                .name_id
+                .map(|x| x.to_string())
+                .unwrap_or_else(|| String::from("<none>")),
             actor.object_id,
             self.object_ind_to_string(actor.object_id),
             actor.initial_trajectory
@@ -176,25 +153,33 @@ impl FrameContext {
         let actor_obj_name = actor_entry.and_then(|x| self.objects.get(usize::from(*x)));
         let stream_obj_name = self.objects.get(usize::from(attr.object_id));
 
-        write!(f, "(actor stream id / object id / name: {} / ", attr.actor_id)?;
+        write!(
+            f,
+            "(actor stream id / object id / name: {} / ",
+            attr.actor_id
+        )?;
         if let Some(actor_id) = actor_entry {
             write!(f, "{} / ", actor_id)
         } else {
-            write!(f, "{} / ", "<none>")
+            write!(f, "<none> / ")
         }?;
 
         if let Some(name) = actor_obj_name {
             write!(f, "{}, ", name)
         } else {
-            write!(f, "{}, ", "<none>")
+            write!(f, "<none>, ")
         }?;
 
-        write!(f, "attribute stream id / object id / name: {} / {} / ", attr.stream_id, attr.object_id)?;
+        write!(
+            f,
+            "attribute stream id / object id / name: {} / {} / ",
+            attr.stream_id, attr.object_id
+        )?;
 
         if let Some(name) = stream_obj_name {
             write!(f, "{}", name)
         } else {
-            write!(f, "{}", "<none>")
+            write!(f, "<none>")
         }?;
 
         write!(f, ", attribute: {:?})", attr.attribute)
@@ -238,20 +223,152 @@ impl fmt::Display for FrameContext {
 #[derive(PartialEq, Debug, Clone)]
 pub enum FrameError {
     NotEnoughDataFor(&'static str),
-    TimeOutOfRange { time: f32 },
-    DeltaOutOfRange { delta: f32 },
-    ObjectIdOutOfRange { obj: ObjectId },
-    MissingActor { actor: ActorId },
-    MissingCache { actor: ActorId, actor_object: ObjectId },
-    MissingAttribute { actor: ActorId, actor_object: ObjectId, attribute_stream: StreamId },
-    AttributeError { actor: ActorId, actor_object: ObjectId, attribute_stream: StreamId, error: AttributeError },
+    TimeOutOfRange {
+        time: f32,
+    },
+    DeltaOutOfRange {
+        delta: f32,
+    },
+    ObjectIdOutOfRange {
+        obj: ObjectId,
+    },
+    MissingActor {
+        actor: ActorId,
+    },
+    MissingCache {
+        actor: ActorId,
+        actor_object: ObjectId,
+    },
+    MissingAttribute {
+        actor: ActorId,
+        actor_object: ObjectId,
+        attribute_stream: StreamId,
+    },
+    AttributeError {
+        actor: ActorId,
+        actor_object: ObjectId,
+        attribute_stream: StreamId,
+        error: AttributeError,
+    },
 }
 
 impl FrameError {
     fn contextualize(&self, f: &mut fmt::Formatter<'_>, context: &FrameContext) -> fmt::Result {
-        unimplemented!()
-    }
+        match self {
+            FrameError::MissingCache { actor_object, .. } => {
+                if let Some(name) = context.objects.get(usize::from(*actor_object)) {
+                    write!(f, "({})", name)
+                } else {
+                    Ok(())
+                }
+            }
+            FrameError::MissingAttribute {
+                actor_object,
+                attribute_stream,
+                ..
+            }
+            | FrameError::AttributeError {
+                actor_object,
+                attribute_stream,
+                ..
+            } => {
+                let actor_obj_name = context
+                    .objects
+                    .get(usize::from(*actor_object))
+                    .map(|x| x.to_string())
+                    .unwrap_or_else(|| String::from("<none>"));
 
+                let objs_with_attr = context
+                    .object_attributes
+                    .iter()
+                    .flat_map(|(obj_id, attrs)| {
+                        attrs
+                            .iter()
+                            .map(move |(attr_id, attr_obj_id)| (obj_id, attr_obj_id, attr_id))
+                    })
+                    .filter(|&(_, _, stream_id)| stream_id == attribute_stream)
+                    .collect::<Vec<_>>();
+
+                let obj = context
+                    .object_attributes
+                    .get(actor_object)
+                    .and_then(|x| x.get(attribute_stream));
+
+                if let Some(attr_obj_id) = obj {
+                    if let Some(name) = context.objects.get(usize::from(*attr_obj_id)) {
+                        if let Some(attr) = ATTRIBUTES.get(name.as_str()) {
+                            write!(
+                                f,
+                                "found attribute {} ({:?}) on {} in network cache data. ",
+                                name, attr, actor_obj_name
+                            )?;
+                        } else {
+                            write!(f, "found attribute {} (unknown to boxcars) on {} in network cache data. This is likely due to a rocket league update or an atypical replay. File a bug report!", name, actor_obj_name)?;
+
+                            // No need for further context so we return early.
+                            return Ok(());
+                        }
+                    } else {
+                        write!(f, "found attribute on {} in network cache data, but not in replay object data, ", actor_obj_name)?;
+                    }
+                } else {
+                    write!(
+                        f,
+                        "did not find attribute id ({}) on {} in object hierarchy: ",
+                        attribute_stream, actor_obj_name
+                    )?;
+                }
+
+                let mut obj_attr_names = objs_with_attr
+                    .iter()
+                    .filter_map(|&(obj_id, attr_obj_id, _)| {
+                        context
+                            .objects
+                            .get(usize::from(*obj_id))
+                            .and_then(|obj_name| {
+                                context
+                                    .objects
+                                    .get(usize::from(*attr_obj_id))
+                                    .map(|attr_name| (obj_name, attr_name))
+                            })
+                    })
+                    .collect::<Vec<_>>();
+
+                obj_attr_names.sort();
+                obj_attr_names.dedup();
+
+                let mut unknown_attributes = obj_attr_names
+                    .iter()
+                    .map(|(_obj_name, attr_name)| attr_name)
+                    .filter(|x| !ATTRIBUTES.contains_key(x.as_str()))
+                    .cloned()
+                    .cloned()
+                    .collect::<Vec<_>>();
+
+                unknown_attributes.sort();
+                unknown_attributes.dedup();
+
+                let stringify_names = obj_attr_names
+                    .iter()
+                    .map(|(obj_name, attr_name)| format!("({}: {})", obj_name, attr_name))
+                    .collect::<Vec<_>>();
+
+                write!(f, "searching all attributes with the same stream id, ")?;
+                write!(
+                    f,
+                    "unknown attributes: [{}], ",
+                    unknown_attributes.join(", ")
+                )?;
+                write!(
+                    f,
+                    "all attributes with that stream id: [{}]. ",
+                    stringify_names.join(", ")
+                )?;
+                Ok(())
+            }
+            _ => Ok(()),
+        }
+    }
 }
 
 impl Error for FrameError {
@@ -265,44 +382,35 @@ impl Error for FrameError {
 
 impl Display for FrameError {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "frame error")
+        match self {
+            FrameError::NotEnoughDataFor(message) => write!(f, "not enough data to decode {}", message),
+            FrameError::TimeOutOfRange {time} => write!(f, "time is out of range: {}", time),
+            FrameError::DeltaOutOfRange {delta} => write!(f, "delta is out of range: {}", delta),
+            FrameError::ObjectIdOutOfRange {obj} => write!(f, "new actor object id out of range: {}", obj),
+            FrameError::MissingActor {actor} => write!(f, "attribute update references unknown actor: {}", actor),
+            FrameError::MissingCache {actor, actor_object} => write!(f, "no known attributes found for actor id / object id: {} / {}", actor, actor_object),
+            FrameError::MissingAttribute {actor, actor_object, attribute_stream} => write!(f, "attribute unknown or not implemented: actor id / actor object id / attribute id: {} / {} / {}", actor, actor_object, attribute_stream),
+            FrameError::AttributeError {actor, actor_object, attribute_stream, error} => write!(f, "attribute decoding error encountered: {} for actor id / actor object id / attribute id: {} / {} / {}", error, actor, actor_object, attribute_stream),
+        }
     }
 }
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum NetworkError {
     NotEnoughDataFor(&'static str),
-    TimeOutOfRange(f32),
-    TimeOutOfRangeUpdate(usize, usize, ActorId, StreamId, Attribute),
-    TimeOutOfRangeNew(
-        usize,
-        usize,
-        ActorId,
-        Option<i32>,
-        ObjectId,
-        String,
-        Trajectory,
-    ),
-    DeltaOutOfRange(f32),
     MaxStreamIdTooLarge(i32, ObjectId),
     ChannelsTooLarge(i32),
     ObjectIdOutOfRange(ObjectId),
     StreamTooLargeIndex(i32, i32),
     MissingParentClass(String, String),
     ParentHasNoAttributes(ObjectId, ObjectId),
-    MissingActor(ActorId),
-    MissingCache(ActorId, ObjectId, String),
-    MissingAttribute(ActorId, ObjectId, String, StreamId, String),
-    UnimplementedAttribute(ActorId, ObjectId, String, StreamId, String, String),
-    AttributeError(AttributeError),
-    FrameError(FrameError, FrameContext),
+    FrameError(FrameError, Box<FrameContext>),
     TooManyFrames(i32),
 }
 
 impl Error for NetworkError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
-            NetworkError::AttributeError(attribute_error) => Some(attribute_error),
             NetworkError::FrameError(err, _) => Some(err),
             _ => None,
         }
@@ -312,30 +420,39 @@ impl Error for NetworkError {
 impl Display for NetworkError {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            NetworkError::NotEnoughDataFor(message) => write!(f, "Not enough data to decode {}", message),
-            NetworkError::TimeOutOfRange(time) => write!(f, "Time is out of range: {}", time),
-            NetworkError::TimeOutOfRangeUpdate(frame1, frame2, last_actor, stream_id, attribute) =>
-                write!(f, "Time was out of range. Backtracking from frame: {} to {}, the last actor ({}) had a stream id of {}. This may mean that a new update of Rocket League updated this attribute. Decoded into {:?})",
-                       frame1, frame2, last_actor, stream_id, attribute),
-            NetworkError::TimeOutOfRangeNew(frame1, frame2, last_actor, name_id, object_id, id, trajectory) =>
-                write!(f, "Time was out of range. Backtracking from frame: {} to {}, the last actor ({}) had a name id of {:?}, object id: {} ({}), and trajectory: {:?}. This may mean that a new update of Rocket League updated this object.",
-                       frame1, frame2, last_actor, name_id, object_id, id, trajectory),
-            NetworkError::DeltaOutOfRange(delta) => write!(f, "Delta is out of range: {}", delta),
-             NetworkError::MaxStreamIdTooLarge(ids, object_id) => write!(f, "Too many stream ids ({}) for object id: {}", ids, object_id),
-            NetworkError::ChannelsTooLarge(max) => write!(f, "Number of channels exceeds maximum: {}", max),
+            NetworkError::NotEnoughDataFor(message) => {
+                write!(f, "Not enough data to decode {}", message)
+            }
+            NetworkError::MaxStreamIdTooLarge(ids, object_id) => write!(
+                f,
+                "Too many stream ids ({}) for object id: {}",
+                ids, object_id
+            ),
+            NetworkError::ChannelsTooLarge(max) => {
+                write!(f, "Number of channels exceeds maximum: {}", max)
+            }
             NetworkError::ObjectIdOutOfRange(id) => write!(f, "Object Id of {} exceeds range", id),
-            NetworkError::StreamTooLargeIndex(steam_id, object_index) => write!(f, "Stream id of {} references out of range object index: {}", steam_id, object_index),
-            NetworkError::MissingParentClass(obj, parent) => write!(f, "Replay contained object: {} but not the parent class: {}", obj, parent),
-            NetworkError::ParentHasNoAttributes(parent_id, object_id) => write!(f, "Parent id of {} for object id of {} was not recognized to have attributes", parent_id, object_id),
-            NetworkError::MissingActor(actor_id) => write!(f, "Actor id: {} was not found", actor_id),
-            NetworkError::MissingCache(actor_id, object_id, object) => write!(f, "Actor id: {} of object id: {} ({}) but no attributes found", actor_id, object_id, object),
-            NetworkError::MissingAttribute(actor_id, object_id, object, stream_id, attributes) => write!(f, "Actor id: {} of object id: {} ({}) but stream id: {} not found in {}", actor_id, object_id, object, stream_id, attributes),
-            NetworkError::UnimplementedAttribute(actor_id, object_id, object, steam_id, stream, attributes) =>
-                write!(f, "Actor id: {} of object id: {} ({}) but stream id: {} ({}) was not implemented. Possible missing implementations for stream id {}\n{}", actor_id, object_id, object, steam_id, stream, object, attributes),
-            NetworkError::AttributeError(attribute_error) => write!(f, "Attribute error: {}", attribute_error),
+            NetworkError::StreamTooLargeIndex(steam_id, object_index) => write!(
+                f,
+                "Stream id of {} references out of range object index: {}",
+                steam_id, object_index
+            ),
+            NetworkError::MissingParentClass(obj, parent) => write!(
+                f,
+                "Replay contained object: {} but not the parent class: {}",
+                obj, parent
+            ),
+            NetworkError::ParentHasNoAttributes(parent_id, object_id) => write!(
+                f,
+                "Parent id of {} for object id of {} was not recognized to have attributes",
+                parent_id, object_id
+            ),
             NetworkError::TooManyFrames(size) => write!(f, "Too many frames to decode: {}", size),
-            NetworkError::FrameError(err, context) => unimplemented!(),
-
+            NetworkError::FrameError(err, context) => {
+                write!(f, "Error decoding frame: {}. ", err)?;
+                err.contextualize(f, context)?;
+                write!(f, " Context: {}", context)
+            }
         }
     }
 }

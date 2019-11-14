@@ -1,10 +1,7 @@
-use std::ops::Deref;
-
 use bitter::BitGet;
 use fnv::FnvHashMap;
 
-use crate::data::ATTRIBUTES;
-use crate::errors::{AttributeError, NetworkError, FrameError, FrameContext};
+use crate::errors::{AttributeError, FrameContext, FrameError, NetworkError};
 use crate::network::attributes::{AttributeDecoder, ProductValueDecoder};
 use crate::network::models::{
     ActorId, Frame, NewActor, ObjectId, SpawnTrajectory, StreamId, Trajectory, UpdatedAttribute,
@@ -22,14 +19,6 @@ pub(crate) struct FrameDecoder<'a, 'b: 'a> {
     pub version: VersionTriplet,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct ContextObjectAttribute {
-    obj_id: ObjectId,
-    obj_name: String,
-    prop_id: ObjectId,
-    prop_name: String,
-}
-
 #[derive(Debug)]
 enum DecodedFrame {
     EndFrame,
@@ -37,95 +26,6 @@ enum DecodedFrame {
 }
 
 impl<'a, 'b> FrameDecoder<'a, 'b> {
-    fn object_ind_to_string(&self, object_id: ObjectId) -> String {
-        String::from(
-            self.body
-                .objects
-                .get(usize::from(object_id))
-                .map(Deref::deref)
-                .unwrap_or("Out of bounds"),
-        )
-    }
-
-    fn missing_attribute(
-        &self,
-        cache_info: &CacheInfo,
-        actor_id: ActorId,
-        object_id: ObjectId,
-        stream_id: StreamId,
-    ) -> NetworkError {
-        NetworkError::MissingAttribute(
-            actor_id,
-            object_id,
-            self.object_ind_to_string(object_id),
-            stream_id,
-            cache_info
-                .attributes
-                .keys()
-                .map(ToString::to_string)
-                .collect::<Vec<_>>()
-                .join(","),
-        )
-    }
-
-    fn properties_with_stream_id(&self, stream_id: StreamId) -> Vec<ContextObjectAttribute> {
-        self.body
-            .net_cache
-            .iter()
-            .map(|x| {
-                x.properties
-                    .iter()
-                    .map(|prop| (x.object_ind, prop.object_ind, prop.stream_id))
-                    .collect::<Vec<(i32, i32, i32)>>()
-            })
-            .flatten()
-            .filter(|&(_obj_id, _prop_id, prop_stream_id)| StreamId(prop_stream_id) == stream_id)
-            .map(|(obj_id, prop_id, _prop_stream_id)| {
-                let obj_id = ObjectId(obj_id);
-                let prop_id = ObjectId(prop_id);
-                ContextObjectAttribute {
-                    obj_id,
-                    prop_id,
-                    obj_name: self.object_ind_to_string(obj_id),
-                    prop_name: self.object_ind_to_string(prop_id),
-                }
-            })
-            .filter(|x| !ATTRIBUTES.contains_key(x.prop_name.as_str()))
-            .collect()
-    }
-
-    fn unimplemented_attribute(
-        &self,
-        actor_id: ActorId,
-        object_id: ObjectId,
-        stream_id: StreamId,
-    ) -> NetworkError {
-        let fm = self
-            .properties_with_stream_id(stream_id)
-            .into_iter()
-            .map(|x| {
-                format!(
-                    "\tobject {} ({}) has property {} ({})",
-                    x.obj_id, x.obj_name, x.prop_id, x.prop_name
-                )
-            })
-            .collect::<Vec<String>>()
-            .join("\n");
-
-        NetworkError::UnimplementedAttribute(
-            actor_id,
-            object_id,
-            self.object_ind_to_string(object_id),
-            stream_id,
-            self.object_ind_attributes
-                .get(&object_id)
-                .and_then(|x| x.attributes.get(&stream_id))
-                .map(|x| self.object_ind_to_string(x.object_id))
-                .unwrap_or_else(|| "type id not recognized".to_string()),
-            fm,
-        )
-    }
-
     fn parse_new_actor(
         &self,
         mut bits: &mut BitGet<'_>,
@@ -165,7 +65,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
         actors: &mut FnvHashMap<ActorId, ObjectId>,
         new_actors: &mut Vec<NewActor>,
         deleted_actors: &mut Vec<ActorId>,
-        updated_actors: &mut Vec<UpdatedAttribute> 
+        updated_actors: &mut Vec<UpdatedAttribute>,
     ) -> Result<DecodedFrame, FrameError> {
         let time = bits
             .read_f32()
@@ -180,7 +80,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
             .ok_or_else(|| FrameError::NotEnoughDataFor("Delta"))?;
 
         if delta < 0.0 || (delta > 0.0 && delta < 1e-10) {
-            return Err(FrameError::DeltaOutOfRange {delta});
+            return Err(FrameError::DeltaOutOfRange { delta });
         }
 
         if time == 0.0 && delta == 0.0 {
@@ -218,14 +118,17 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                     // to track down what the actor's type is
                     let object_id = actors
                         .get(&actor_id)
-                        .ok_or_else(|| FrameError::MissingActor {actor: actor_id})?;
+                        .ok_or_else(|| FrameError::MissingActor { actor: actor_id })?;
 
                     // Once we have the type we need to look up what attributes are
                     // available for said type
                     let cache_info =
-                        self.object_ind_attributes.get(object_id).ok_or_else(||
-                            FrameError::MissingCache { actor: actor_id, actor_object: *object_id }
-                        )?;
+                        self.object_ind_attributes.get(object_id).ok_or_else(|| {
+                            FrameError::MissingCache {
+                                actor: actor_id,
+                                actor_object: *object_id,
+                            }
+                        })?;
 
                     // While there are more attributes to update for our actor:
                     while bits
@@ -244,7 +147,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                         // decoding function. Experience has told me replays that fail to
                         // parse, fail to do so here, so a large chunk is dedicated to
                         // generating an error message with context
-                        let attr = cache_info.attributes.get(&stream_id).ok_or_else(||{
+                        let attr = cache_info.attributes.get(&stream_id).ok_or_else(|| {
                             FrameError::MissingAttribute {
                                 actor: actor_id,
                                 actor_object: *object_id,
@@ -252,24 +155,21 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                             }
                         })?;
 
-                        let attribute =
-                            attr_decoder.decode(attr.attribute, &mut bits).map_err(|e| match e {
-                                AttributeError::Unimplemented => {
-                                    FrameError::MissingAttribute {
-                                        actor: actor_id,
-                                        actor_object: *object_id,
-                                        attribute_stream: stream_id,
-                                    }
-                                }
-                                e => {
-                                    FrameError::AttributeError {
-                                        actor: actor_id,
-                                        actor_object: *object_id,
-                                        attribute_stream: stream_id,
-                                        error: e,
-                                    }
-                                }
-                            })?;
+                        let attribute = attr_decoder.decode(attr.attribute, &mut bits).map_err(
+                            |e| match e {
+                                AttributeError::Unimplemented => FrameError::MissingAttribute {
+                                    actor: actor_id,
+                                    actor_object: *object_id,
+                                    attribute_stream: stream_id,
+                                },
+                                e => FrameError::AttributeError {
+                                    actor: actor_id,
+                                    actor_object: *object_id,
+                                    attribute_stream: stream_id,
+                                    error: e,
+                                },
+                            },
+                        )?;
 
                         updated_actors.push(UpdatedAttribute {
                             actor_id,
@@ -304,16 +204,41 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
         let mut deleted_actors = Vec::new();
 
         while !bits.is_empty() && frames.len() < self.frames_len {
-            let frame = self.decode_frame(&attr_decoder, &mut bits, &mut actors, &mut new_actors, &mut deleted_actors, &mut updated_actors).map_err(|e| {
-                NetworkError::FrameError(e, FrameContext {
-                    objects: self.body.objects.clone(),
-                    net_cache: self.body.net_cache.clone(),
-                    frames: frames.clone(),
-                    actors: actors.clone(),
-                    new_actors: new_actors.clone(),
-                    updated_actors: updated_actors.clone(),
-                })
-            })?;
+            let frame = self
+                .decode_frame(
+                    &attr_decoder,
+                    &mut bits,
+                    &mut actors,
+                    &mut new_actors,
+                    &mut deleted_actors,
+                    &mut updated_actors,
+                )
+                .map_err(|e| {
+                    NetworkError::FrameError(
+                        e,
+                        Box::new(FrameContext {
+                            objects: self.body.objects.clone(),
+                            object_attributes: self
+                                .object_ind_attributes
+                                .iter()
+                                .map(|(key, value)| {
+                                    (
+                                        *key,
+                                        value
+                                            .attributes
+                                            .iter()
+                                            .map(|(key2, value)| (*key2, value.object_id))
+                                            .collect(),
+                                    )
+                                })
+                                .collect(),
+                            frames: frames.clone(),
+                            actors: actors.clone(),
+                            new_actors: new_actors.clone(),
+                            updated_actors: updated_actors.clone(),
+                        }),
+                    )
+                })?;
 
             match frame {
                 DecodedFrame::EndFrame => break,
@@ -327,42 +252,5 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
         }
 
         Ok(frames)
-    }
-
-    fn time_network_error(&self, frames: &[Frame]) -> Option<NetworkError> {
-        frames
-            .iter()
-            .enumerate()
-            .rev()
-            .find(|(_, frame)| {
-                frame.updated_actors.last().is_some() || frame.new_actors.last().is_some()
-            })
-            .and_then(|(i, frame)| {
-                frame
-                    .updated_actors
-                    .last()
-                    .map(|last_update| {
-                        NetworkError::TimeOutOfRangeUpdate(
-                            frames.len(),
-                            i,
-                            last_update.actor_id,
-                            last_update.stream_id,
-                            last_update.attribute.clone(),
-                        )
-                    })
-                    .or_else(|| {
-                        frame.new_actors.last().map(|last_new| -> NetworkError {
-                            NetworkError::TimeOutOfRangeNew(
-                                frames.len(),
-                                i,
-                                last_new.actor_id,
-                                last_new.name_id,
-                                last_new.object_id,
-                                self.object_ind_to_string(last_new.object_id),
-                                last_new.initial_trajectory,
-                            )
-                        })
-                    })
-            })
     }
 }

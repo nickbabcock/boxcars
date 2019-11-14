@@ -221,11 +221,11 @@ impl<'a> Parser<'a> {
         let network: Option<NetworkFrames> = match self.network_parse {
             NetworkParse::Always => Some(
                 self.parse_network(&header, &body)
-                    .map_err(ParseError::NetworkError)?,
+                    .map_err(|x| ParseError::NetworkError(Box::new(x)))?,
             ),
             NetworkParse::IgnoreOnError => self
                 .parse_network(&header, &body)
-                .map_err(ParseError::NetworkError)
+                .map_err(|x| ParseError::NetworkError(Box::new(x)))
                 .ok(),
             NetworkParse::Never => None,
         };
@@ -473,10 +473,7 @@ mod tests {
         let data = include_bytes!("../assets/replays/bad/fuzz-string-too-long2.replay");
         let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Always);
         let err = parser.parse().unwrap_err();
-        assert_eq!(
-            "Attribute error: Unexpected size for string: -1912602609",
-            format!("{}", err)
-        );
+        assert!(format!("{}", err).contains("Unexpected size for string: -1912602609"));
     }
 
     #[test]
