@@ -1,4 +1,4 @@
-use boxcars::{self, AttributeError, NetworkError, ObjectId, ParseError, ParserBuilder};
+use boxcars::{self, NetworkError, ParseError, ParserBuilder};
 
 #[test]
 fn test_sample1() {
@@ -248,15 +248,10 @@ fn test_error_extraction() {
         _ => panic!("Expecting network error"),
     };
 
-    match ne {
-        NetworkError::ObjectIdOutOfRange(id) => {
-            let new_id: ObjectId = id;
-            assert!(new_id.0 != 0);
+    match *ne {
+        NetworkError::ObjectIdOutOfRange(obj) => {
+            assert!(obj.0 != 0);
         }
-        NetworkError::AttributeError(ae) => match ae {
-            AttributeError::Unimplemented => panic!("Unexpected unimplemented attribute error"),
-            _ => panic!("Unexpected attribute error"),
-        },
-        _ => panic!("Expecting object id out of range"),
+        x => panic!("Expecting object id out of range. not {:?}", x),
     }
 }

@@ -58,7 +58,7 @@ extern crate if_chain;
 #[macro_use]
 extern crate serde;
 
-pub use self::errors::{AttributeError, NetworkError, ParseError};
+pub use self::errors::{AttributeError, FrameError, FrameContext, NetworkError, ParseError};
 pub use self::models::*;
 pub use self::network::attributes::Attribute;
 pub use self::network::*;
