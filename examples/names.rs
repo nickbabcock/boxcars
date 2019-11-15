@@ -78,7 +78,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         println!("Names in the header data:");
         let stats = match stats {
             HeaderProp::Array(arr) => arr,
-            _ => return Err("expected player stats to be an array")?,
+            _ => return Err("expected player stats to be an array".into()),
         };
 
         let header_names = names_in_header(&stats);
