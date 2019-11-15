@@ -184,11 +184,11 @@ pub(crate) fn parse<'a>(
     let product_decoder = ProductValueDecoder::create(version, &name_obj_ind);
 
     // 1023 stolen from rattletrap
-    let channels = header.max_channels().unwrap_or(1023);
-    let channels = (channels as u32)
+    let max_channels = header.max_channels().unwrap_or(1023);
+    let next_max_channels = (max_channels as u32)
         .checked_next_power_of_two()
-        .ok_or_else(|| NetworkError::ChannelsTooLarge(channels))?;
-    let channel_bits = log2(channels as u32) as i32;
+        .ok_or_else(|| NetworkError::ChannelsTooLarge(max_channels))?;
+    let channel_bits = log2(next_max_channels) as i32;
     let num_frames = header.num_frames();
     let is_lan = header.match_type().map(|x| x == "Lan").unwrap_or(false);
 
@@ -200,6 +200,7 @@ pub(crate) fn parse<'a>(
         let frame_decoder = FrameDecoder {
             frames_len: frame_len as usize,
             product_decoder,
+            max_channels: max_channels as i32,
             channel_bits,
             body,
             spawns: &spawns,
