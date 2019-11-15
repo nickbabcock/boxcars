@@ -12,6 +12,7 @@ use crate::parser::ReplayBody;
 pub(crate) struct FrameDecoder<'a, 'b: 'a> {
     pub frames_len: usize,
     pub product_decoder: ProductValueDecoder,
+    pub max_channels: i32,
     pub channel_bits: i32,
     pub body: &'a ReplayBody<'b>,
     pub spawns: &'a Vec<SpawnTrajectory>,
@@ -93,8 +94,8 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
             .ok_or_else(|| FrameError::NotEnoughDataFor("Actor data"))?
         {
             let actor_id = bits
-                .read_i32_bits(self.channel_bits)
-                .map(ActorId)
+                .read_bits_max(self.channel_bits, self.max_channels)
+                .map(|x| ActorId(x as i32))
                 .ok_or_else(|| FrameError::NotEnoughDataFor("Actor Id"))?;
 
             // alive
