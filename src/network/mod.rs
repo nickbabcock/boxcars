@@ -70,11 +70,10 @@ pub(crate) fn parse<'a>(
     }
 
     // Map each object's name to it's index
-    let name_obj_ind: HashMap<&str, ObjectId> = body
+    let name_obj_ind: HashMap<&str, Vec<ObjectId>> = body
         .objects
         .iter()
-        .enumerate()
-        .map(|(i, name)| (name.deref(), ObjectId(i as i32)))
+        .map(|name| (name.deref(), normalized_name_obj_ind.get(name.deref()).cloned().unwrap_or_else(|| vec![])))
         .collect();
 
     let mut object_ind_attrs: FnvHashMap<ObjectId, FnvHashMap<StreamId, ObjectAttribute>> =
@@ -98,6 +97,7 @@ pub(crate) fn parse<'a>(
             })
             .collect::<Result<FnvHashMap<_, _>, NetworkError>>()?;
 
+
         let mut had_parent = false;
 
         // We are going to recursively resolve an object's name to find their direct parent.
@@ -110,9 +110,11 @@ pub(crate) fn parse<'a>(
 
         while let Some(parent_name) = PARENT_CLASSES.get(object_name) {
             had_parent = true;
-            if let Some(parent_ind) = name_obj_ind.get(parent_name) {
-                if let Some(parent_attrs) = object_ind_attrs.get(parent_ind) {
-                    all_props.extend(parent_attrs.iter());
+            if let Some(parent_ids) = name_obj_ind.get(parent_name) {
+                for parent_id in parent_ids {
+                    if let Some(parent_attrs) = object_ind_attrs.get(parent_id) {
+                        all_props.extend(parent_attrs.iter());
+                    }
                 }
             }
 
@@ -141,16 +143,21 @@ pub(crate) fn parse<'a>(
         // It's ok if an object class doesn't appear in our replay. For instance, basketball
         // objects don't appear in a soccer replay.
         if let Some(object_ids) = normalized_name_obj_ind.get(obj) {
-            let parent_id = name_obj_ind.get(parent).ok_or_else(|| {
+            let parent_ids = name_obj_ind.get(parent).ok_or_else(|| {
                 NetworkError::MissingParentClass(String::from(*obj), String::from(*parent))
             })?;
 
             for i in object_ids {
-                let parent_attrs: FnvHashMap<_, _> = object_ind_attrs
-                    .get(parent_id)
-                    .ok_or_else(|| NetworkError::ParentHasNoAttributes(*parent_id, *i))?
-                    .clone();
-                object_ind_attrs.insert(*i, parent_attrs);
+                for parent_id in parent_ids {
+                    let parent_attrs: FnvHashMap<_, _> = object_ind_attrs
+                        .get(parent_id)
+                        .ok_or_else(|| NetworkError::ParentHasNoAttributes(*parent_id, *i))?
+                        .clone();
+
+                    object_ind_attrs.entry(*i)
+                        .and_modify(|e| e.extend(parent_attrs.iter()))
+                        .or_insert(parent_attrs);
+                }
             }
         }
     }
