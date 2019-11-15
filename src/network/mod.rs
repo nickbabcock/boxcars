@@ -190,6 +190,7 @@ pub(crate) fn parse<'a>(
         .ok_or_else(|| NetworkError::ChannelsTooLarge(channels))?;
     let channel_bits = log2(channels as u32) as i32;
     let num_frames = header.num_frames();
+    let is_lan = header.match_type().map(|x| x == "Lan").unwrap_or(false);
 
     if let Some(frame_len) = num_frames {
         if frame_len as usize > body.network_data.len() {
@@ -204,6 +205,7 @@ pub(crate) fn parse<'a>(
             spawns: &spawns,
             object_ind_attributes,
             version,
+            is_lan,
         };
         Ok(NetworkFrames {
             frames: frame_decoder.decode_frames()?,
