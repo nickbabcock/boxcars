@@ -17,6 +17,7 @@ pub(crate) struct FrameDecoder<'a, 'b: 'a> {
     pub spawns: &'a Vec<SpawnTrajectory>,
     pub object_ind_attributes: FnvHashMap<ObjectId, CacheInfo<'a>>,
     pub version: VersionTriplet,
+    pub is_lan: bool,
 }
 
 #[derive(Debug)]
@@ -33,7 +34,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
     ) -> Result<NewActor, FrameError> {
         if_chain! {
             if let Some(name_id) =
-                if self.version >= VersionTriplet(868, 14, 0) {
+                if self.version >= VersionTriplet(868, 14, 0) && !self.is_lan {
                     bits.read_i32().map(Some)
                 } else {
                     Some(None)
