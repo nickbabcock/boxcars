@@ -61,21 +61,6 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         files += 1;
         count_properties(&replay.properties, &mut counter, "");
 
-/*        for (key, prop) in replay.properties.iter() {
-            let k = match prop {
-                HeaderProp::Array(_) => format!("{}:array", key),
-                HeaderProp::Bool(_) => format!("{}:bool", key),
-                HeaderProp::Byte => format!("{}:byte", key),
-                HeaderProp::Float(_) => format!("{}:float", key),
-                HeaderProp::Int(_) =>format!("{}:int", key),
-                HeaderProp::Name(_) =>format!("{}:name", key),
-                HeaderProp::QWord(_) => format!("{}:qword", key),
-                HeaderProp::Str(_) => format!("{}:str", key),
-            };
-
-            *counter.entry(k).or_default() += 1;
-        }*/
-
         println!("Parsed: {}", file);
         buffer.clear();
     }
