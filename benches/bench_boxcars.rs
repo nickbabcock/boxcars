@@ -29,11 +29,15 @@ fn bench_json_serialization(c: &mut Criterion) {
             .unwrap();
         serde_json::to_writer(&mut bytes, &replay).unwrap();
         assert!(json_data_bytes == bytes.len() as u64);
-        unsafe { bytes.set_len(0); };
+        unsafe {
+            bytes.set_len(0);
+        };
 
         b.iter(|| {
             black_box(serde_json::to_writer(&mut bytes, &replay).is_ok());
-            unsafe { bytes.set_len(0); };
+            unsafe {
+                bytes.set_len(0);
+            };
         })
     });
     group.finish();
@@ -93,7 +97,9 @@ fn bench_parse_crc_json(c: &mut Criterion) {
         b.iter(|| {
             let data = ParserBuilder::new(data).always_check_crc().parse().unwrap();
             black_box(serde_json::to_writer(&mut bytes, &data).is_ok());
-            unsafe { bytes.set_len(0); }
+            unsafe {
+                bytes.set_len(0);
+            }
         });
     });
 }
@@ -110,7 +116,9 @@ fn bench_parse_no_crc_json(c: &mut Criterion) {
                 .parse()
                 .unwrap();
             black_box(serde_json::to_writer(&mut bytes, &replay).is_ok());
-            unsafe { bytes.set_len(0); }
+            unsafe {
+                bytes.set_len(0);
+            }
         });
     });
 }

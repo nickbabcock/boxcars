@@ -604,7 +604,10 @@ impl AttributeDecoder {
         }
     }
 
-    pub fn decode_rep_stat_title(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
+    pub fn decode_rep_stat_title(
+        &self,
+        bits: &mut BitGet<'_>,
+    ) -> Result<Attribute, AttributeError> {
         if_chain! {
             if let Some(unknown) = bits.read_bit();
             let name = decode_text(bits)?;
@@ -781,7 +784,8 @@ impl AttributeDecoder {
     }
 
     pub fn decode_rotation(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
-        let rot = Rotation::decode(bits).ok_or_else(|| AttributeError::NotEnoughDataFor("Rotation"))?;
+        let rot =
+            Rotation::decode(bits).ok_or_else(|| AttributeError::NotEnoughDataFor("Rotation"))?;
         Ok(Attribute::Rotation(rot))
     }
 

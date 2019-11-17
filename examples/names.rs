@@ -10,9 +10,7 @@ use std::io::{self, Read};
 
 /// Given an array of objects (represented as a slice of key-value pairs), find all the instances
 /// of the "Name" key and extract the string value
-fn names_in_header(
-    stats: &[Vec<(String, HeaderProp)>],
-) -> impl Iterator<Item = &str> {
+fn names_in_header(stats: &[Vec<(String, HeaderProp)>]) -> impl Iterator<Item = &str> {
     stats
         .iter()
         .flat_map(|v| v.iter())
@@ -22,10 +20,7 @@ fn names_in_header(
 
 /// Given network frames and the object id to "Engine.PlayerReplicationInfo:PlayerName", comb
 /// through all the attributes looking for attributes that have our object id.
-fn names_in_network(
-    frames: &[boxcars::Frame],
-    name_attribute_id: boxcars::ObjectId,
-) -> Vec<&str> {
+fn names_in_network(frames: &[boxcars::Frame], name_attribute_id: boxcars::ObjectId) -> Vec<&str> {
     let mut names = frames
         .iter()
         .flat_map(|x| x.updated_actors.iter())

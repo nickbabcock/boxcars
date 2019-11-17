@@ -7,7 +7,11 @@ fn gen_crc_table(poly: u32, size: usize) -> Vec<Vec<u32>> {
     let mut table = vec![vec![0; 256]; size];
     for i in 0..256 {
         let crc = (0..8).fold(i << 24, |acc, _x| {
-            if acc & 0x80000000 > 0 { (acc << 1) ^ poly } else { (acc << 1) }
+            if acc & 0x80000000 > 0 {
+                (acc << 1) ^ poly
+            } else {
+                (acc << 1)
+            }
         });
         table[0][i as usize] = crc.swap_bytes()
     }
@@ -29,7 +33,12 @@ fn write_crc_table() {
     let size = 16;
     let table = gen_crc_table(poly, size);
 
-    writeln!(&mut file, "pub (crate) const CRC_TABLE: [[u32; 256]; {}] = [", size).unwrap();
+    writeln!(
+        &mut file,
+        "pub (crate) const CRC_TABLE: [[u32; 256]; {}] = [",
+        size
+    )
+    .unwrap();
     for row in table {
         writeln!(&mut file, "\t[").unwrap();
         for i in row {

@@ -51,10 +51,7 @@ fn test_sample1() {
     assert_eq!(31, first_stream_id.0);
 }
 
-fn extract_online_id(
-    replay: &boxcars::Replay,
-    user: &str,
-) -> (u64, boxcars::attributes::RemoteId) {
+fn extract_online_id(replay: &boxcars::Replay, user: &str) -> (u64, boxcars::attributes::RemoteId) {
     let (_, stats) = replay
         .properties
         .iter()

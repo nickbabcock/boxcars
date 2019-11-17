@@ -5,7 +5,7 @@ pub mod attributes;
 mod frame_decoder;
 mod models;
 
-use crate::data::{ATTRIBUTES, object_classes, PARENT_CLASSES, SPAWN_STATS};
+use crate::data::{object_classes, ATTRIBUTES, PARENT_CLASSES, SPAWN_STATS};
 use crate::errors::NetworkError;
 use crate::header::Header;
 use crate::models::*;
@@ -55,7 +55,12 @@ pub(crate) fn parse<'a>(
     let spawns: Vec<SpawnTrajectory> = body
         .objects
         .iter()
-        .map(|x| SPAWN_STATS.get(x.deref()).cloned().unwrap_or(SpawnTrajectory::None))
+        .map(|x| {
+            SPAWN_STATS
+                .get(x.deref())
+                .cloned()
+                .unwrap_or(SpawnTrajectory::None)
+        })
         .collect();
 
     // Create a map of an object's normalized name to a list of indices in the object
@@ -73,7 +78,15 @@ pub(crate) fn parse<'a>(
     let name_obj_ind: HashMap<&str, Vec<ObjectId>> = body
         .objects
         .iter()
-        .map(|name| (name.deref(), normalized_name_obj_ind.get(name.deref()).cloned().unwrap_or_else(|| vec![])))
+        .map(|name| {
+            (
+                name.deref(),
+                normalized_name_obj_ind
+                    .get(name.deref())
+                    .cloned()
+                    .unwrap_or_else(|| vec![]),
+            )
+        })
         .collect();
 
     let mut object_ind_attrs: FnvHashMap<ObjectId, FnvHashMap<StreamId, ObjectAttribute>> =
@@ -85,7 +98,12 @@ pub(crate) fn parse<'a>(
             .map(|x| {
                 let attr = normalized_objects
                     .get(x.object_ind as usize)
-                    .map(|x| ATTRIBUTES.get(x.deref()).cloned().unwrap_or(AttributeTag::NotImplemented))
+                    .map(|x| {
+                        ATTRIBUTES
+                            .get(x.deref())
+                            .cloned()
+                            .unwrap_or(AttributeTag::NotImplemented)
+                    })
                     .ok_or_else(|| NetworkError::StreamTooLargeIndex(x.stream_id, x.object_ind))?;
                 Ok((
                     StreamId(x.stream_id),
@@ -96,7 +114,6 @@ pub(crate) fn parse<'a>(
                 ))
             })
             .collect::<Result<FnvHashMap<_, _>, NetworkError>>()?;
-
 
         let mut had_parent = false;
 
@@ -154,7 +171,8 @@ pub(crate) fn parse<'a>(
                         .ok_or_else(|| NetworkError::ParentHasNoAttributes(*parent_id, *i))?
                         .clone();
 
-                    object_ind_attrs.entry(*i)
+                    object_ind_attrs
+                        .entry(*i)
                         .and_modify(|e| e.extend(parent_attrs.iter()))
                         .or_insert(parent_attrs);
                 }
