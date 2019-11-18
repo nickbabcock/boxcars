@@ -1,3 +1,10 @@
+# v0.6.1 - November 16th, 2019
+
+* Overhaul error handling for network frame decoding. Whenever an error occurs, a significant amount of context is captured (what was the last actor added / updated, all previously decoded frames, actor ids, names, etc). This should make it more apparent why a replay failed to decode, and while this technically is a breaking change in the error API -- it's unlikely anyone is relying on the bowels of boxcar's error structure.
+* Support decoding replays that contain duplicate object ids
+* Support decoding RLCS / Lan replays
+* Support decoding replays with many actors
+
 # v0.6.0 - November 7th, 2019
 
 * Remove the `multimap` dependency
