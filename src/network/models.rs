@@ -14,7 +14,7 @@ pub struct Vector {
 impl Vector {
     pub fn decode(bits: &mut BitGet<'_>, net_version: i32) -> Option<Vector> {
         if_chain! {
-            if let Some(size_bits) = bits.read_bits_max(5, if net_version >= 7 { 22 } else { 20 });
+            if let Some(size_bits) = bits.read_bits_max_computed(4, if net_version >= 7 { 22 } else { 20 });
             let bias = 1 << (size_bits + 1);
             let bit_limit = (size_bits + 2) as i32;
             if let Some(dx) = bits.read_u32_bits(bit_limit);
@@ -34,7 +34,7 @@ impl Vector {
     }
 
     pub fn decode_unchecked(bits: &mut BitGet<'_>, net_version: i32) -> Vector {
-        let size_bits = bits.read_bits_max_unchecked(5, if net_version >= 7 { 22 } else { 20 });
+        let size_bits = bits.read_bits_max_computed_unchecked(4, if net_version >= 7 { 22 } else { 20 });
         let bias = 1 << (size_bits + 1);
         let bit_limit = (size_bits + 2) as i32;
         let dx = bits.read_u32_bits_unchecked(bit_limit);
