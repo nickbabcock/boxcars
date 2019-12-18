@@ -1,3 +1,8 @@
+# v0.6.2 - December 17th, 2019
+
+* Fix potential integer overflow / underflow on malicious input
+* Remove unused errors: NetworkError::{ChannelsTooLarge, MaxStreamIdTooLarge}
+
 # v0.6.1 - November 18th, 2019
 
 * Overhaul error handling for network frame decoding. Whenever an error occurs, a significant amount of context is captured (what was the last actor added / updated, all previously decoded frames, actor ids, names, etc). This should make it more apparent why a replay failed to decode, and while this technically is a breaking change in the error API -- it's unlikely anyone is relying on the bowels of boxcar's error structure.
