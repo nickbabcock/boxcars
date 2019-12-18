@@ -398,8 +398,6 @@ impl Display for FrameError {
 #[derive(PartialEq, Debug, Clone)]
 pub enum NetworkError {
     NotEnoughDataFor(&'static str),
-    MaxStreamIdTooLarge(i32, ObjectId),
-    ChannelsTooLarge(i32),
     ObjectIdOutOfRange(ObjectId),
     StreamTooLargeIndex(i32, i32),
     MissingParentClass(String, String),
@@ -422,14 +420,6 @@ impl Display for NetworkError {
         match self {
             NetworkError::NotEnoughDataFor(message) => {
                 write!(f, "Not enough data to decode {}", message)
-            }
-            NetworkError::MaxStreamIdTooLarge(ids, object_id) => write!(
-                f,
-                "Too many stream ids ({}) for object id: {}",
-                ids, object_id
-            ),
-            NetworkError::ChannelsTooLarge(max) => {
-                write!(f, "Number of channels exceeds maximum: {}", max)
             }
             NetworkError::ObjectIdOutOfRange(id) => write!(f, "Object Id of {} exceeds range", id),
             NetworkError::StreamTooLargeIndex(steam_id, object_index) => write!(

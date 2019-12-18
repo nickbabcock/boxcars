@@ -362,7 +362,7 @@ impl ProductValueDecoder {
             if self.version >= VersionTriplet(868, 18, 0) {
                 bits.read_u32_bits(31).map(ProductValue::NewPaint)
             } else {
-                bits.read_bits_max(4, 14).map(ProductValue::OldPaint)
+                bits.read_bits_max(14).map(ProductValue::OldPaint)
             }
         } else if obj_ind == self.title_ind {
             decode_text(bits).ok().map(ProductValue::Title)
@@ -372,7 +372,7 @@ impl ProductValueDecoder {
             if self.version >= VersionTriplet(868, 18, 0) {
                 bits.read_u32_bits(31).map(ProductValue::NewTeamEdition)
             } else {
-                bits.read_bits_max(4, 14).map(ProductValue::OldTeamEdition)
+                bits.read_bits_max(14).map(ProductValue::OldTeamEdition)
             }
         } else {
             Some(ProductValue::Absent)

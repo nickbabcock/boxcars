@@ -11,13 +11,13 @@ use crate::header::Header;
 use crate::models::*;
 use crate::network::frame_decoder::FrameDecoder;
 use crate::parser::ReplayBody;
-use crate::parsing_utils::log2;
 use fnv::FnvHashMap;
 use std::collections::HashMap;
+use std::cmp;
 use std::ops::Deref;
 
 pub(crate) struct CacheInfo<'a> {
-    max_prop_id: i32,
+    max_prop_id: u32,
     prop_id_bits: i32,
     attributes: &'a FnvHashMap<StreamId, ObjectAttribute>,
 }
@@ -185,14 +185,12 @@ pub(crate) fn parse<'a>(
         .map(|(obj_id, attrs)| {
             let id = *obj_id;
             let max = attrs.keys().map(|&x| i32::from(x)).max().unwrap_or(2) + 1;
-            let next_max = (max as u32)
-                .checked_next_power_of_two()
-                .ok_or_else(|| NetworkError::MaxStreamIdTooLarge(max, id))?;
+            let max_bit_width = bitter::bit_width(max as u32);
             Ok((
                 id,
                 CacheInfo {
-                    max_prop_id: max,
-                    prop_id_bits: log2(next_max) as i32,
+                    max_prop_id: max as u32,
+                    prop_id_bits: cmp::max(max_bit_width as i32 - 1, 0),
                     attributes: attrs,
                 },
             ))
@@ -202,11 +200,9 @@ pub(crate) fn parse<'a>(
     let product_decoder = ProductValueDecoder::create(version, &name_obj_ind);
 
     // 1023 stolen from rattletrap
-    let max_channels = header.max_channels().unwrap_or(1023);
-    let next_max_channels = (max_channels as u32)
-        .checked_next_power_of_two()
-        .ok_or_else(|| NetworkError::ChannelsTooLarge(max_channels))?;
-    let channel_bits = log2(next_max_channels) as i32;
+    let max_channels = header.max_channels().unwrap_or(1023) as u32;
+    let channel_width = bitter::bit_width(max_channels) as i32 - 1;
+    let channel_bits = cmp::max(channel_width, 0);
     let num_frames = header.num_frames();
     let is_lan = header.match_type().map(|x| x == "Lan").unwrap_or(false);
 
@@ -218,7 +214,7 @@ pub(crate) fn parse<'a>(
         let frame_decoder = FrameDecoder {
             frames_len: frame_len as usize,
             product_decoder,
-            max_channels: max_channels as i32,
+            max_channels,
             channel_bits,
             body,
             spawns: &spawns,
