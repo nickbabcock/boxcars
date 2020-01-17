@@ -1,8 +1,6 @@
 #![no_main]
-extern crate boxcars;
-#[macro_use]
-extern crate libfuzzer_sys;
 
+use libfuzzer_sys::fuzz_target;
 fuzz_target!(|data: &[u8]| {
     let _ = boxcars::ParserBuilder::new(&data)
         .on_error_check_crc()
