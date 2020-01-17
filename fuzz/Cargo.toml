@@ -1,17 +1,18 @@
-
 [package]
 name = "boxcars-fuzz"
 version = "0.0.1"
 authors = ["Automatically generated"]
 publish = false
+edition = "2018"
 
 [package.metadata]
 cargo-fuzz = true
 
 [dependencies.boxcars]
 path = ".."
-[dependencies.libfuzzer-sys]
-git = "https://github.com/rust-fuzz/libfuzzer-sys.git"
+
+[dependencies]
+libfuzzer-sys = "0.2.1"
 
 # Prevent this from interfering with workspaces
 [workspace]
