@@ -1,5 +1,5 @@
 use crate::errors::AttributeError;
-use crate::network::{ObjectId, Rotation, Vector, VersionTriplet};
+use crate::network::{ObjectId, Quaternion, Rotation, Vector, VersionTriplet};
 use crate::parsing_utils::{decode_utf16, decode_windows1252};
 use bitter::BitGet;
 use encoding_rs::WINDOWS_1252;
@@ -192,13 +192,11 @@ pub struct TeamPaint {
     pub accent_finish: u32,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct RigidBody {
     pub sleeping: bool,
     pub location: Vector,
-    pub x: u16,
-    pub y: u16,
-    pub z: u16,
+    pub rotation: Quaternion,
     pub linear_velocity: Option<Vector>,
     pub angular_velocity: Option<Vector>,
 }
@@ -842,18 +840,11 @@ impl AttributeDecoder {
             if let Some(sleeping) = bits.read_bit();
             if let Some(location) = Vector::decode(bits, self.version.net_version());
 
-            if let Some(_u1) = if self.version.net_version() >= 7 {
-                bits.read_bit()
-            } else { Some(true) };
-
-            if let Some(x) = bits.read_u32_bits(if self.version.net_version() >= 7 { 18 } else { 16 });
-            if let Some(y) = bits.read_u32_bits(if self.version.net_version() >= 7 { 18 } else { 16 });
-            if let Some(z) = bits.read_u32_bits(if self.version.net_version() >= 7 { 18 } else { 16 });
-
-            if let Some(_u2) = if self.version.net_version() >= 7 {
-                bits.read_bit()
-            } else { Some(true) };
-
+            if let Some(rotation) = if self.version.net_version() >= 7 {
+                Quaternion::decode(bits)
+            } else {
+                Quaternion::decode_compressed(bits)
+            };
 
             if let Some((linear_velocity, angular_velocity)) = if !sleeping {
                 let lv = Vector::decode(bits, self.version.net_version());
@@ -871,9 +862,7 @@ impl AttributeDecoder {
                 Ok(Attribute::RigidBody(RigidBody {
                     sleeping,
                     location,
-                    x: x as u16,
-                    y: y as u16,
-                    z: z as u16,
+                    rotation,
                     linear_velocity,
                     angular_velocity,
                 }))

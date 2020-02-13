@@ -1,4 +1,4 @@
-use boxcars::{self, NetworkError, ParseError, ParserBuilder};
+use boxcars::{self, NetworkError, ParseError, ParserBuilder, Quaternion};
 
 #[test]
 fn test_sample1() {
@@ -251,4 +251,72 @@ fn test_error_extraction() {
         }
         x => panic!("Expecting object id out of range. not {:?}", x),
     }
+}
+
+#[test]
+fn test_quaternions() {
+    let data = include_bytes!("../assets/replays/good/01d3e5.replay");
+    let replay = ParserBuilder::new(&data[..])
+        .never_check_crc()
+        .must_parse_network_data()
+        .parse()
+        .unwrap();
+
+    let frames = &replay.network_frames.as_ref().unwrap().frames;
+    let rotations: Vec<Quaternion> = frames
+        .iter()
+        .flat_map(|x| {
+            x.updated_actors.iter().filter_map(|x| {
+                if let boxcars::Attribute::RigidBody(r) = &x.attribute {
+                    Some(r.rotation)
+                } else {
+                    None
+                }
+            })
+        })
+        .collect();
+
+    assert_eq!(
+        rotations[1],
+        Quaternion {
+            x: -0.004410246,
+            y: 0.0018207438,
+            z: 0.923867,
+            w: 0.38268402
+        }
+    )
+}
+
+#[test]
+fn test_compressed_quaternions() {
+    let data = include_bytes!("../assets/replays/good/07e9.replay");
+    let replay = ParserBuilder::new(&data[..])
+        .never_check_crc()
+        .must_parse_network_data()
+        .parse()
+        .unwrap();
+
+    let frames = &replay.network_frames.as_ref().unwrap().frames;
+    let rotations: Vec<Quaternion> = frames
+        .iter()
+        .flat_map(|x| {
+            x.updated_actors.iter().filter_map(|x| {
+                if let boxcars::Attribute::RigidBody(r) = &x.attribute {
+                    Some(r.rotation)
+                } else {
+                    None
+                }
+            })
+        })
+        .collect();
+
+    assert_eq!(
+        rotations[1],
+        Quaternion {
+            x: -1.0000305,
+            y: 0.4998932,
+            z: -1.0000305,
+            w: 0.0
+        }
+    )
 }
