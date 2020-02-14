@@ -49,6 +49,97 @@ impl Vector {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+pub struct Quaternion {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+    pub w: f32,
+}
+
+impl Quaternion {
+    fn unpack(val: u32) -> f32 {
+        let max_quat = 1.0 / std::f32::consts::SQRT_2;
+        let max_value = (1 << 18) - 1;
+        let pos_range = (val as f32) / (max_value as f32);
+        let range = (pos_range - 0.5) * 2.0;
+        range * max_quat
+    }
+
+    fn compressed_f32(bits: &mut BitGet<'_>) -> Option<f32> {
+        // algorithm from jjbott/RocketLeagueReplayParser.
+        // Note that this code is heavily adapted. I noticed that there were branches that should
+        // never execute. Specifically in jjbott implementation:
+        //
+        // ```
+        // br.ReadFixedCompressedFloat(1, 16);
+        // ```
+        //
+        // These values are hardcoded and this function is only used in one place. There's a branch
+        // that compares these two hard coded numbers. I've removed said branch from this
+        // implementation.
+        //
+        // Bakkes copied jjbott. Rattletrap is more in line here
+        bits.read_u16()
+            .map(|x| (x as i32) + i32::from(std::i16::MIN))
+            .map(|x| x as f32 * (std::i16::MAX as f32).recip())
+    }
+
+    pub fn decode_compressed(bits: &mut BitGet<'_>) -> Option<Self> {
+        if_chain! {
+            if let Some(x) = Quaternion::compressed_f32(bits);
+            if let Some(y) = Quaternion::compressed_f32(bits);
+            if let Some(z) = Quaternion::compressed_f32(bits);
+            then {
+                Some(Quaternion {
+                    x, y, z, w: 0.0
+                })
+            } else { None }
+        }
+    }
+
+    pub fn decode(bits: &mut BitGet<'_>) -> Option<Self> {
+        if_chain! {
+            if let Some(largest) = bits.read_u32_bits(2);
+            if let Some(a) = bits.read_u32_bits(18).map(Quaternion::unpack);
+            if let Some(b) = bits.read_u32_bits(18).map(Quaternion::unpack);
+            if let Some(c) = bits.read_u32_bits(18).map(Quaternion::unpack);
+            let extra = (1.0 - (a * a) - (b * b) - (c * c)).sqrt();
+            then {
+                match largest {
+                    0 => Some(Quaternion {
+                        x: extra,
+                        y: a,
+                        z: b,
+                        w: c,
+                    }),
+                    1 => Some(Quaternion {
+                        x: a,
+                        y: extra,
+                        z: b,
+                        w: c,
+                    }),
+                    2 => Some(Quaternion {
+                        x: a,
+                        y: b,
+                        z: extra,
+                        w: c,
+                    }),
+                    3 => Some(Quaternion {
+                        x: a,
+                        y: b,
+                        z: c,
+                        w: extra,
+                    }),
+                    _ => unreachable!(),
+                }
+            } else {
+                None
+            }
+        }
+    }
+}
+
 /// An object's current rotation
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct Rotation {
