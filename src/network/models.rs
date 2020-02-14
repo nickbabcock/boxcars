@@ -2,17 +2,33 @@ use crate::network::attributes::Attribute;
 use bitter::BitGet;
 use std::fmt;
 
-/// An object's current vector
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-pub struct Vector {
-    pub bias: i32,
-    pub dx: i32,
-    pub dy: i32,
-    pub dz: i32,
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+pub struct Vector3f {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
 }
 
-impl Vector {
-    pub fn decode(bits: &mut BitGet<'_>, net_version: i32) -> Option<Vector> {
+impl Vector3f {
+    pub fn decode(bits: &mut BitGet<'_>, net_version: i32) -> Option<Vector3f> {
+        Vector3i::decode(bits, net_version).map(|vec| Vector3f {
+            x: (vec.x as f32) / 100.0,
+            y: (vec.y as f32) / 100.0,
+            z: (vec.z as f32) / 100.0,
+        })
+    }
+}
+
+/// An object's current vector
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct Vector3i {
+    pub x: i32,
+    pub y: i32,
+    pub z: i32,
+}
+
+impl Vector3i {
+    pub fn decode(bits: &mut BitGet<'_>, net_version: i32) -> Option<Vector3i> {
         if_chain! {
             if let Some(size_bits) = bits.read_bits_max_computed(4, if net_version >= 7 { 22 } else { 20 });
             let bias = 1 << (size_bits + 1);
@@ -21,11 +37,10 @@ impl Vector {
             if let Some(dy) = bits.read_u32_bits(bit_limit);
             if let Some(dz) = bits.read_u32_bits(bit_limit);
             then {
-                Some(Vector {
-                    bias: bias as i32,
-                    dx: dx as i32,
-                    dy: dy as i32,
-                    dz: dz as i32,
+                Some(Vector3i {
+                    x: (dx as i32) - bias,
+                    y: (dy as i32) - bias,
+                    z: (dz as i32) - bias,
                 })
             } else {
                 None
@@ -33,18 +48,17 @@ impl Vector {
         }
     }
 
-    pub fn decode_unchecked(bits: &mut BitGet<'_>, net_version: i32) -> Vector {
+    pub fn decode_unchecked(bits: &mut BitGet<'_>, net_version: i32) -> Vector3i {
         let size_bits = bits.read_bits_max_computed_unchecked(4, if net_version >= 7 { 22 } else { 20 });
         let bias = 1 << (size_bits + 1);
         let bit_limit = (size_bits + 2) as i32;
         let dx = bits.read_u32_bits_unchecked(bit_limit);
         let dy = bits.read_u32_bits_unchecked(bit_limit);
         let dz = bits.read_u32_bits_unchecked(bit_limit);
-        Vector {
-            bias: bias as i32,
-            dx: dx as i32,
-            dy: dy as i32,
-            dz: dz as i32,
+        Vector3i {
+            x: (dx as i32) - bias,
+            y: (dy as i32) - bias,
+            z: (dz as i32) - bias,
         }
     }
 }
@@ -297,7 +311,7 @@ pub struct NewActor {
 /// Contains the optional location and rotation of an object when it spawns
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct Trajectory {
-    pub location: Option<Vector>,
+    pub location: Option<Vector3i>,
     pub rotation: Option<Rotation>,
 }
 
@@ -313,13 +327,13 @@ impl Trajectory {
                 rotation: None,
             }),
 
-            SpawnTrajectory::Location => Vector::decode(bits, net_version).map(|v| Trajectory {
+            SpawnTrajectory::Location => Vector3i::decode(bits, net_version).map(|v| Trajectory {
                 location: Some(v),
                 rotation: None,
             }),
 
             SpawnTrajectory::LocationAndRotation => if_chain! {
-                if let Some(v) = Vector::decode(bits, net_version);
+                if let Some(v) = Vector3i::decode(bits, net_version);
                 if let Some(r) = Rotation::decode(bits);
                 then {
                     Some(Trajectory {
@@ -345,12 +359,12 @@ impl Trajectory {
             },
 
             SpawnTrajectory::Location => Trajectory {
-                location: Some(Vector::decode_unchecked(bits, net_version)),
+                location: Some(Vector3i::decode_unchecked(bits, net_version)),
                 rotation: None,
             },
 
             SpawnTrajectory::LocationAndRotation => Trajectory {
-                location: Some(Vector::decode_unchecked(bits, net_version)),
+                location: Some(Vector3i::decode_unchecked(bits, net_version)),
                 rotation: Some(Rotation::decode_unchecked(bits)),
             },
         }
@@ -385,31 +399,15 @@ mod tests {
     #[test]
     fn test_decode_vector() {
         let mut bitter = BitGet::new(&[0b0000_0110, 0b0000_1000, 0b1101_1000, 0b0000_1101]);
-        let v = Vector::decode(&mut bitter, 5).unwrap();
-        assert_eq!(
-            v,
-            Vector {
-                bias: 128,
-                dx: 128,
-                dy: 128,
-                dz: 221,
-            }
-        );
+        let v = Vector3i::decode(&mut bitter, 5).unwrap();
+        assert_eq!(v, Vector3i { x: 0, y: 0, z: 93 });
     }
 
     #[test]
     fn test_decode_vector_unchecked() {
         let mut bitter = BitGet::new(&[0b0000_0110, 0b0000_1000, 0b1101_1000, 0b0000_1101]);
-        let v = Vector::decode_unchecked(&mut bitter, 5);
-        assert_eq!(
-            v,
-            Vector {
-                bias: 128,
-                dx: 128,
-                dy: 128,
-                dz: 221,
-            }
-        );
+        let v = Vector3i::decode_unchecked(&mut bitter, 5);
+        assert_eq!(v, Vector3i { x: 0, y: 0, z: 93 });
     }
 
     #[test]

@@ -1,5 +1,5 @@
 use crate::errors::AttributeError;
-use crate::network::{ObjectId, Quaternion, Rotation, Vector, VersionTriplet};
+use crate::network::{ObjectId, Quaternion, Rotation, Vector3f, VersionTriplet};
 use crate::parsing_utils::{decode_utf16, decode_windows1252};
 use bitter::BitGet;
 use encoding_rs::WINDOWS_1252;
@@ -53,8 +53,8 @@ pub(crate) enum AttributeTag {
 pub enum Attribute {
     Boolean(bool),
     Byte(u8),
-    AppliedDamage(u8, Vector, u32, u32),
-    DamageState(u8, bool, u32, Vector, bool, bool),
+    AppliedDamage(u8, Vector3f, u32, u32),
+    DamageState(u8, bool, u32, Vector3f, bool, bool),
     CamSettings(CamSettings),
     ClubColors(ClubColors),
     Demolish(Demolish),
@@ -71,7 +71,7 @@ pub enum Attribute {
     Int64(i64),
     Loadout(Loadout),
     TeamLoadout(TeamLoadout),
-    Location(Vector),
+    Location(Vector3f),
     MusicStinger(MusicStinger),
     PlayerHistoryKey(u16),
     Pickup(Pickup),
@@ -114,21 +114,21 @@ pub struct ClubColors {
     pub orange_color: u8,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct Demolish {
     pub attacker_flag: bool,
     pub attacker_actor_id: u32,
     pub victim_flag: bool,
     pub victim_actor_id: u32,
-    pub attack_velocity: Vector,
-    pub victim_velocity: Vector,
+    pub attack_velocity: Vector3f,
+    pub victim_velocity: Vector3f,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct Explosion {
     pub flag: bool,
     pub actor_id: u32,
-    pub location: Vector,
+    pub location: Vector3f,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -178,7 +178,7 @@ pub struct PickupNew {
 pub struct Welded {
     pub active: bool,
     pub actor_id: u32,
-    pub offset: Vector,
+    pub offset: Vector3f,
     pub mass: f32,
     pub rotation: Rotation,
 }
@@ -195,10 +195,10 @@ pub struct TeamPaint {
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct RigidBody {
     pub sleeping: bool,
-    pub location: Vector,
+    pub location: Vector3f,
     pub rotation: Quaternion,
-    pub linear_velocity: Option<Vector>,
-    pub angular_velocity: Option<Vector>,
+    pub linear_velocity: Option<Vector3f>,
+    pub angular_velocity: Option<Vector3f>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -479,7 +479,7 @@ impl AttributeDecoder {
     ) -> Result<Attribute, AttributeError> {
         if_chain! {
             if let Some(a) = bits.read_u8();
-            if let Some(vector) = Vector::decode(bits, self.version.net_version());
+            if let Some(vector) = Vector3f::decode(bits, self.version.net_version());
             if let Some(b) = bits.read_u32();
             if let Some(c) = bits.read_u32();
             then {
@@ -495,7 +495,7 @@ impl AttributeDecoder {
             if let Some(da) = bits.read_u8();
             if let Some(db) = bits.read_bit();
             if let Some(dc) = bits.read_u32();
-            if let Some(dd) = Vector::decode(bits, self.version.net_version());
+            if let Some(dd) = Vector3f::decode(bits, self.version.net_version());
             if let Some(de) = bits.read_bit();
             if let Some(df) = bits.read_bit();
             then {
@@ -561,8 +561,8 @@ impl AttributeDecoder {
             if let Some(attacker_actor_id) = bits.read_u32();
             if let Some(victim_flag) = bits.read_bit();
             if let Some(victim_actor_id) = bits.read_u32();
-            if let Some(attack_velocity) = Vector::decode(bits, self.version.net_version());
-            if let Some(victim_velocity) = Vector::decode(bits, self.version.net_version());
+            if let Some(attack_velocity) = Vector3f::decode(bits, self.version.net_version());
+            if let Some(victim_velocity) = Vector3f::decode(bits, self.version.net_version());
             then {
                 Ok(Attribute::Demolish(Demolish {
                     attacker_flag,
@@ -702,7 +702,7 @@ impl AttributeDecoder {
     }
 
     pub fn decode_location(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
-        Vector::decode(bits, self.version.net_version())
+        Vector3f::decode(bits, self.version.net_version())
             .map(Attribute::Location)
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Location"))
     }
@@ -764,7 +764,7 @@ impl AttributeDecoder {
         if_chain! {
             if let Some(active) = bits.read_bit();
             if let Some(actor_id) = bits.read_u32();
-            if let Some(offset) = Vector::decode(bits, self.version.net_version());
+            if let Some(offset) = Vector3f::decode(bits, self.version.net_version());
             if let Some(mass) = bits.read_f32();
             if let Some(rotation) = Rotation::decode(bits);
             then {
@@ -838,7 +838,7 @@ impl AttributeDecoder {
     pub fn decode_rigid_body(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         if_chain! {
             if let Some(sleeping) = bits.read_bit();
-            if let Some(location) = Vector::decode(bits, self.version.net_version());
+            if let Some(location) = Vector3f::decode(bits, self.version.net_version());
 
             if let Some(rotation) = if self.version.net_version() >= 7 {
                 Quaternion::decode(bits)
@@ -847,8 +847,8 @@ impl AttributeDecoder {
             };
 
             if let Some((linear_velocity, angular_velocity)) = if !sleeping {
-                let lv = Vector::decode(bits, self.version.net_version());
-                let av = Vector::decode(bits, self.version.net_version());
+                let lv = Vector3f::decode(bits, self.version.net_version());
+                let av = Vector3f::decode(bits, self.version.net_version());
                 if lv.is_some() && av.is_some() {
                     Some((lv, av))
                 } else {
@@ -1039,7 +1039,7 @@ fn decode_explosion(bits: &mut BitGet<'_>, net_version: i32) -> Option<Explosion
     if_chain! {
         if let Some(flag) = bits.read_bit();
         if let Some(actor_id) = bits.read_u32();
-        if let Some(location) = Vector::decode(bits, net_version);
+        if let Some(location) = Vector3f::decode(bits, net_version);
         then {
             Some(Explosion {
                 flag,

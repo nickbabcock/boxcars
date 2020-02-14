@@ -1,4 +1,7 @@
-use boxcars::{self, NetworkError, ParseError, ParserBuilder, Quaternion};
+use boxcars::attributes::RigidBody;
+use boxcars::{
+    self, NetworkError, ParseError, ParserBuilder, Quaternion, Trajectory, Vector3f, Vector3i,
+};
 
 #[test]
 fn test_sample1() {
@@ -263,28 +266,71 @@ fn test_quaternions() {
         .unwrap();
 
     let frames = &replay.network_frames.as_ref().unwrap().frames;
-    let rotations: Vec<Quaternion> = frames
+
+    let trajectories: Vec<Trajectory> = frames
         .iter()
-        .flat_map(|x| {
-            x.updated_actors.iter().filter_map(|x| {
-                if let boxcars::Attribute::RigidBody(r) = &x.attribute {
-                    Some(r.rotation)
-                } else {
-                    None
-                }
-            })
+        .flat_map(|x| x.new_actors.iter())
+        .map(|x| x.initial_trajectory)
+        .collect();
+
+    let bodies: Vec<&RigidBody> = frames
+        .iter()
+        .flat_map(|x| x.updated_actors.iter())
+        .filter_map(|x| {
+            if let boxcars::Attribute::RigidBody(r) = &x.attribute {
+                Some(r)
+            } else {
+                None
+            }
         })
         .collect();
 
+    // values cross referenced from bakkes
     assert_eq!(
-        rotations[1],
+        bodies[1].rotation,
         Quaternion {
             x: -0.004410246,
             y: 0.0018207438,
             z: 0.923867,
             w: 0.38268402
         }
-    )
+    );
+
+    assert_eq!(
+        bodies[1].location,
+        Vector3f {
+            x: 1951.99,
+            y: -2463.98,
+            z: 17.01,
+        }
+    );
+
+    assert_eq!(
+        bodies[1].linear_velocity.unwrap(),
+        Vector3f {
+            x: -0.07,
+            y: 0.07,
+            z: 8.32,
+        }
+    );
+
+    assert_eq!(
+        bodies[1].angular_velocity.unwrap(),
+        Vector3f {
+            x: -0.04,
+            y: -0.02,
+            z: 0.0,
+        }
+    );
+
+    assert_eq!(
+        trajectories[7].location.unwrap(),
+        Vector3i {
+            x: 1952,
+            y: -2464,
+            z: 17,
+        }
+    );
 }
 
 #[test]
@@ -310,6 +356,7 @@ fn test_compressed_quaternions() {
         })
         .collect();
 
+    // value cross referenced with bakkes
     assert_eq!(
         rotations[1],
         Quaternion {
