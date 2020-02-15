@@ -49,7 +49,8 @@ impl Vector3i {
     }
 
     pub fn decode_unchecked(bits: &mut BitGet<'_>, net_version: i32) -> Vector3i {
-        let size_bits = bits.read_bits_max_computed_unchecked(4, if net_version >= 7 { 22 } else { 20 });
+        let size_bits =
+            bits.read_bits_max_computed_unchecked(4, if net_version >= 7 { 22 } else { 20 });
         let bias = 1 << (size_bits + 1);
         let bit_limit = (size_bits + 2) as i32;
         let dx = bits.read_u32_bits_unchecked(bit_limit);

@@ -1,3 +1,4 @@
+#![cfg_attr(rustfmt, rustfmt::skip)]
 use boxcars::ParserBuilder;
 
 macro_rules! frame_len_test {

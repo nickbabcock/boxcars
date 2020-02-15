@@ -171,7 +171,10 @@ mod tests {
         let res = parse_rdict(&mut parser).unwrap();
         assert_eq!(
             res,
-            vec![(String::from("PlayerName"), HeaderProp::Str(String::from("comagoosie")))]
+            vec![(
+                String::from("PlayerName"),
+                HeaderProp::Str(String::from("comagoosie"))
+            )]
         );
     }
 
@@ -211,7 +214,10 @@ mod tests {
         let res = parse_rdict(&mut parser).unwrap();
         assert_eq!(
             res,
-            vec![(String::from("MatchType"), HeaderProp::Name(String::from("Online")))]
+            vec![(
+                String::from("MatchType"),
+                HeaderProp::Name(String::from("Online"))
+            )]
         );
     }
 
@@ -223,7 +229,10 @@ mod tests {
         ));
         let mut parser = CoreParser::new(&data[..]);
         let res = parse_rdict(&mut parser).unwrap();
-        assert_eq!(res, vec![(String::from("RecordFPS"), HeaderProp::Float(30.0))]);
+        assert_eq!(
+            res,
+            vec![(String::from("RecordFPS"), HeaderProp::Float(30.0))]
+        );
     }
 
     #[test]
@@ -236,7 +245,10 @@ mod tests {
         let res = parse_rdict(&mut parser).unwrap();
         assert_eq!(
             res,
-            vec![(String::from("OnlineID"), HeaderProp::QWord(76561198101748375))]
+            vec![(
+                String::from("OnlineID"),
+                HeaderProp::QWord(76561198101748375)
+            )]
         );
     }
 
@@ -251,12 +263,18 @@ mod tests {
         let expected = vec![
             vec![
                 (String::from("frame"), HeaderProp::Int(441)),
-                (String::from("PlayerName"), HeaderProp::Str(String::from("Cakeboss"))),
+                (
+                    String::from("PlayerName"),
+                    HeaderProp::Str(String::from("Cakeboss")),
+                ),
                 (String::from("PlayerTeam"), HeaderProp::Int(1)),
             ],
             vec![
                 (String::from("frame"), HeaderProp::Int(1738)),
-                (String::from("PlayerName"), HeaderProp::Str(String::from("Sasha Kaun"))),
+                (
+                    String::from("PlayerName"),
+                    HeaderProp::Str(String::from("Sasha Kaun")),
+                ),
                 (String::from("PlayerTeam"), HeaderProp::Int(0)),
             ],
             vec![
@@ -269,17 +287,26 @@ mod tests {
             ],
             vec![
                 (String::from("frame"), HeaderProp::Int(5058)),
-                (String::from("PlayerName"), HeaderProp::Str(String::from("jeffreyj1"))),
+                (
+                    String::from("PlayerName"),
+                    HeaderProp::Str(String::from("jeffreyj1")),
+                ),
                 (String::from("PlayerTeam"), HeaderProp::Int(1)),
             ],
             vec![
                 (String::from("frame"), HeaderProp::Int(5751)),
-                (String::from("PlayerName"), HeaderProp::Str(String::from("GOOSE LORD"))),
+                (
+                    String::from("PlayerName"),
+                    HeaderProp::Str(String::from("GOOSE LORD")),
+                ),
                 (String::from("PlayerTeam"), HeaderProp::Int(0)),
             ],
             vec![
                 (String::from("frame"), HeaderProp::Int(6083)),
-                (String::from("PlayerName"), HeaderProp::Str(String::from("GOOSE LORD"))),
+                (
+                    String::from("PlayerName"),
+                    HeaderProp::Str(String::from("GOOSE LORD")),
+                ),
                 (String::from("PlayerTeam"), HeaderProp::Int(0)),
             ],
             vec![
@@ -291,7 +318,10 @@ mod tests {
                 (String::from("PlayerTeam"), HeaderProp::Int(0)),
             ],
         ];
-        assert_eq!(res, vec![(String::from("Goals"), HeaderProp::Array(expected))]);
+        assert_eq!(
+            res,
+            vec![(String::from("Goals"), HeaderProp::Array(expected))]
+        );
     }
 
     #[test]
@@ -313,7 +343,10 @@ mod tests {
         ));
         let mut parser = CoreParser::new(&data[..]);
         let res = parse_rdict(&mut parser).unwrap_err();
-        assert_eq!(res.to_string(), String::from("Did not expect a property of: BiteProperty"));
+        assert_eq!(
+            res.to_string(),
+            String::from("Did not expect a property of: BiteProperty")
+        );
     }
 
     #[test]

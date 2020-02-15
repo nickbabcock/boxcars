@@ -331,7 +331,10 @@ mod tests {
             ],
             vec![
                 (String::from("frame"), HeaderProp::Int(1738)),
-                (String::from("PlayerName"), HeaderProp::Str(String::from("rusty"))),
+                (
+                    String::from("PlayerName"),
+                    HeaderProp::Str(String::from("rusty")),
+                ),
             ],
         ];
         let actual = to_json(&HeaderProp::Array(data));

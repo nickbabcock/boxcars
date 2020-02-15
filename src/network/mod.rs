@@ -12,8 +12,8 @@ use crate::models::*;
 use crate::network::frame_decoder::FrameDecoder;
 use crate::parser::ReplayBody;
 use fnv::FnvHashMap;
-use std::collections::HashMap;
 use std::cmp;
+use std::collections::HashMap;
 use std::ops::Deref;
 
 pub(crate) struct CacheInfo<'a> {

@@ -1,6 +1,7 @@
+#![cfg_attr(rustfmt, rustfmt::skip)]
 use crate::network::{AttributeTag, SpawnTrajectory};
 
-pub (crate) static SPAWN_STATS: phf::Map<&'static str, SpawnTrajectory> = phf::phf_map! {
+pub(crate) static SPAWN_STATS: phf::Map<&'static str, SpawnTrajectory> = phf::phf_map! {
     "TAGame.Ball_Breakout_TA" => SpawnTrajectory::LocationAndRotation,
     "Archetypes.Ball.Ball_Breakout" => SpawnTrajectory::LocationAndRotation,
     "Archetypes.Ball.Ball_Trajectory" => SpawnTrajectory::LocationAndRotation,
@@ -97,7 +98,7 @@ pub (crate) static SPAWN_STATS: phf::Map<&'static str, SpawnTrajectory> = phf::p
     "Archetypes.Tutorial.Cannon" => SpawnTrajectory::Location,
 };
 
-pub (crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = phf::phf_map! {
+pub(crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = phf::phf_map! {
     "Engine.Actor:bBlockActors" => AttributeTag::Boolean,
     "Engine.Actor:bCollideActors" => AttributeTag::Boolean,
     "Engine.Actor:bHidden" => AttributeTag::Boolean,
@@ -284,7 +285,7 @@ pub (crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = phf::phf_m
     "TAGame.Cannon_TA:FireCount" => AttributeTag::Byte,
 };
 
-pub (crate) fn object_classes() -> Vec<(&'static str, &'static str)> {
+pub(crate) fn object_classes() -> Vec<(&'static str, &'static str)> {
     vec![
         ("Archetypes.Ball.Ball_BasketBall_Mutator", "TAGame.Ball_TA"),
         ("Archetypes.Ball.Ball_Basketball", "TAGame.Ball_TA"),
@@ -356,7 +357,7 @@ pub (crate) fn object_classes() -> Vec<(&'static str, &'static str)> {
     ]
 }
 
-pub (crate) static PARENT_CLASSES: phf::Map<&'static str, &'static str> = phf::phf_map! {
+pub(crate) static PARENT_CLASSES: phf::Map<&'static str, &'static str> = phf::phf_map! {
     "Engine.Actor" => "Core.Object",
     "Engine.GameReplicationInfo" => "Engine.ReplicationInfo",
     "Engine.Info" => "Engine.Actor",
