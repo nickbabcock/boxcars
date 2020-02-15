@@ -7,10 +7,10 @@ fn gen_crc_table(poly: u32, size: usize) -> Vec<Vec<u32>> {
     let mut table = vec![vec![0; 256]; size];
     for i in 0..256 {
         let crc = (0..8).fold(i << 24, |acc, _x| {
-            if acc & 0x80000000 > 0 {
+            if acc & 0x8000_0000 > 0 {
                 (acc << 1) ^ poly
             } else {
-                (acc << 1)
+                acc << 1
             }
         });
         table[0][i as usize] = crc.swap_bytes()
@@ -29,7 +29,7 @@ fn gen_crc_table(poly: u32, size: usize) -> Vec<Vec<u32>> {
 fn write_crc_table() {
     let path = Path::new(&env::var("OUT_DIR").unwrap()).join("generated_crc.rs");
     let mut file = BufWriter::new(File::create(&path).unwrap());
-    let poly = 0x04c11db7;
+    let poly = 0x04c1_1db7;
     let size = 16;
     let table = gen_crc_table(poly, size);
 
