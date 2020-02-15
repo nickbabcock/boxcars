@@ -1053,25 +1053,28 @@ fn decode_explosion(bits: &mut BitGet<'_>, net_version: i32) -> Option<Explosion
 }
 
 fn decode_text(bits: &mut BitGet<'_>) -> Result<String, AttributeError> {
+    use std::cmp::Ordering;
+
     let size = bits
         .read_i32()
         .ok_or_else(|| AttributeError::NotEnoughDataFor("text string"))?;
 
     // A zero length string for attributes is fine (this differs from the replay header where we
     // never see zero length strings)
-    if size == 0 {
-        Ok(String::from(""))
-    } else if size < 0 {
-        let len = size
+    match size.cmp(&0) {
+        Ordering::Equal => Ok(String::from("")),
+        Ordering::Less => size
             .checked_mul(-2)
-            .ok_or_else(|| AttributeError::TooBigString(size))?;
-        bits.read_bytes(len)
-            .and_then(|data| decode_utf16(&data[..]).ok())
-            .ok_or_else(|| AttributeError::TooBigString(len))
-    } else {
-        bits.read_bytes(size)
-            .and_then(|data| decode_windows1252(&data[..]).ok())
             .ok_or_else(|| AttributeError::TooBigString(size))
+            .and_then(|len| {
+                bits.read_bytes(len)
+                    .and_then(|data| decode_utf16(&data[..]).ok())
+                    .ok_or_else(|| AttributeError::TooBigString(len))
+            }),
+        Ordering::Greater => bits
+            .read_bytes(size)
+            .and_then(|data| decode_windows1252(&data[..]).ok())
+            .ok_or_else(|| AttributeError::TooBigString(size)),
     }
 }
 
