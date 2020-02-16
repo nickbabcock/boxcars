@@ -3,6 +3,7 @@ use bitter::BitGet;
 use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct Vector3f {
     pub x: f32,
     pub y: f32,
@@ -21,6 +22,7 @@ impl Vector3f {
 
 /// An object's current vector
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct Vector3i {
     pub x: i32,
     pub y: i32,
@@ -65,6 +67,7 @@ impl Vector3i {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct Quaternion {
     pub x: f32,
     pub y: f32,
@@ -157,6 +160,7 @@ impl Quaternion {
 
 /// An object's current rotation
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct Rotation {
     pub yaw: Option<i8>,
     pub pitch: Option<i8>,
@@ -201,6 +205,7 @@ pub enum SpawnTrajectory {
 /// Notifies that an actor has had one of their properties updated (most likely their rigid body
 /// state (location / rotation) has changed)
 #[derive(Debug, Clone, PartialEq, Serialize)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct UpdatedAttribute {
     /// The actor that had an attribute updated
     pub actor_id: ActorId,
@@ -217,6 +222,7 @@ pub struct UpdatedAttribute {
 
 /// Contains the time and any new information that occurred during a frame
 #[derive(Debug, Clone, PartialEq, Serialize)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct Frame {
     /// The time in seconds that the frame is recorded at
     pub time: f32,
@@ -295,6 +301,7 @@ impl fmt::Display for ActorId {
 
 /// Information for a new actor that appears in the game
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct NewActor {
     /// The id given to the new actor
     pub actor_id: ActorId,
@@ -311,6 +318,7 @@ pub struct NewActor {
 
 /// Contains the optional location and rotation of an object when it spawns
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct Trajectory {
     pub location: Option<Vector3i>,
     pub rotation: Option<Rotation>,

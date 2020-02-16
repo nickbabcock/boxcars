@@ -15,6 +15,7 @@ use std::collections::HashMap;
 
 /// The structure that a rocket league replay is parsed into.
 #[derive(Serialize, PartialEq, Debug, Clone)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct Replay {
     pub header_size: i32,
     pub header_crc: u32,
@@ -43,6 +44,7 @@ pub struct Replay {
 
 /// The frames decoded from the network data
 #[derive(Serialize, PartialEq, Debug, Clone)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct NetworkFrames {
     pub frames: Vec<Frame>,
 }
@@ -52,6 +54,7 @@ pub struct NetworkFrames {
 /// time. For instance, a tickmark could be at frame 396 for a goal at frame 441. At 30 fps, this
 /// would be 1.5 seconds of ramp up time.
 #[derive(Serialize, PartialEq, Debug, Clone)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct TickMark {
     pub description: String,
     pub frame: i32,
@@ -63,6 +66,7 @@ pub struct TickMark {
 ///
 /// [wikipedia]: https://en.wikipedia.org/wiki/Key_frame#Video_compression
 #[derive(Serialize, PartialEq, Debug, Clone, Copy)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct KeyFrame {
     pub time: f32,
     pub frame: i32,
@@ -215,6 +219,7 @@ impl HeaderProp {
 
 /// Debugging info stored in the replay if debugging is enabled.
 #[derive(Serialize, PartialEq, Debug, Clone)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct DebugInfo {
     pub frame: i32,
     pub user: String,
@@ -223,6 +228,7 @@ pub struct DebugInfo {
 
 /// A mapping between an object's name and its index. Largely redundant
 #[derive(Serialize, PartialEq, Debug, Clone)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct ClassIndex {
     /// Should be equivalent to `Replay::objects(self.index)`
     pub class: String,
@@ -234,6 +240,7 @@ pub struct ClassIndex {
 /// A mapping between an object (that's an attribute)'s index and what its id will be when encoded
 /// in the network data
 #[derive(Serialize, PartialEq, Debug, Clone, Copy)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct CacheProp {
     /// The index that the object appears in the `Replay::objects`
     pub object_ind: i32,
@@ -245,6 +252,7 @@ pub struct CacheProp {
 
 /// Contains useful information when decoding the network stream
 #[derive(Serialize, PartialEq, Debug, Clone)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct ClassNetCache {
     /// The index that the object appears in the `Replay::objects`
     pub object_ind: i32,

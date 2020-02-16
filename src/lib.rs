@@ -73,3 +73,6 @@ mod network;
 mod parser;
 mod parsing_utils;
 mod serde_utils;
+
+#[cfg(feature = "py")]
+mod py;

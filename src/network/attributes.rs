@@ -96,6 +96,7 @@ pub enum Attribute {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct CamSettings {
     pub fov: f32,
     pub height: f32,
@@ -107,6 +108,7 @@ pub struct CamSettings {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct ClubColors {
     pub blue_flag: bool,
     pub blue_color: u8,
@@ -115,6 +117,7 @@ pub struct ClubColors {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct Demolish {
     pub attacker_flag: bool,
     pub attacker_actor_id: u32,
@@ -125,6 +128,7 @@ pub struct Demolish {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct Explosion {
     pub flag: bool,
     pub actor_id: u32,
@@ -132,6 +136,7 @@ pub struct Explosion {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct Loadout {
     pub version: u8,
     pub body: u32,
@@ -150,12 +155,14 @@ pub struct Loadout {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct TeamLoadout {
     pub blue: Loadout,
     pub orange: Loadout,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct MusicStinger {
     pub flag: bool,
     pub cue: u32,
@@ -163,18 +170,21 @@ pub struct MusicStinger {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct Pickup {
     pub instigator_id: Option<u32>,
     pub picked_up: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct PickupNew {
     pub instigator_id: Option<u32>,
     pub picked_up: u8,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct Welded {
     pub active: bool,
     pub actor_id: u32,
@@ -184,6 +194,7 @@ pub struct Welded {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct TeamPaint {
     pub team: u8,
     pub primary_color: u8,
@@ -193,6 +204,7 @@ pub struct TeamPaint {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct RigidBody {
     pub sleeping: bool,
     pub location: Vector3f,
@@ -202,6 +214,7 @@ pub struct RigidBody {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct UniqueId {
     pub system_id: u8,
     pub remote_id: RemoteId,
@@ -209,6 +222,7 @@ pub struct UniqueId {
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Serialize)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct PsyNetId {
     #[serde(serialize_with = "crate::serde_utils::display_it")]
     pub online_id: u64,
@@ -216,6 +230,7 @@ pub struct PsyNetId {
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Serialize)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct SwitchId {
     #[serde(serialize_with = "crate::serde_utils::display_it")]
     pub online_id: u64,
@@ -223,6 +238,7 @@ pub struct SwitchId {
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Serialize)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct Ps4Id {
     #[serde(serialize_with = "crate::serde_utils::display_it")]
     pub online_id: u64,
@@ -248,6 +264,7 @@ pub enum RemoteId {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct Reservation {
     pub number: u32,
     pub unique_id: UniqueId,
@@ -258,6 +275,7 @@ pub struct Reservation {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct PrivateMatchSettings {
     pub mutators: String,
     pub joinable_by: u32,
@@ -268,6 +286,7 @@ pub struct PrivateMatchSettings {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct Product {
     pub unknown: bool,
     pub object_ind: u32,
@@ -275,6 +294,7 @@ pub struct Product {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct LoadoutsOnline {
     pub blue: Vec<Vec<Product>>,
     pub orange: Vec<Vec<Product>>,
@@ -297,6 +317,7 @@ pub enum ProductValue {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "py", derive(dict_derive::IntoPyObject))]
 pub struct RepStatTitle {
     pub unknown: bool,
     pub name: String,
