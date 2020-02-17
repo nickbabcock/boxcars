@@ -1,7 +1,7 @@
-use pyo3::{Python, PyObject, IntoPy};
+use crate::network::attributes::{ProductValue, RemoteId};
+use crate::{ActorId, Attribute, HeaderProp, ObjectId, StreamId};
 use pyo3::types::{PyDict, PyList};
-use crate::network::attributes::{RemoteId, ProductValue};
-use crate::{Attribute, StreamId, ObjectId, ActorId, HeaderProp};
+use pyo3::{IntoPy, PyObject, Python};
 
 impl pyo3::IntoPy<PyObject> for RemoteId {
     fn into_py(self, py: Python) -> PyObject {

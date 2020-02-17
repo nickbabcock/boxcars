@@ -73,6 +73,32 @@ fn bench_parse_no_crc_body(c: &mut Criterion) {
     });
 }
 
+fn bench_python_parse(c: &mut Criterion) {
+    c.bench_function("bench_python_parse", |b| {
+        #[cfg(feature = "py")]
+        {
+            use pyo3::{IntoPy, PyObject, Python};
+            let data = include_bytes!("../assets/replays/good/3381.replay");
+            let gil = Python::acquire_gil();
+            let py = gil.python();
+            b.iter(|| {
+                let res: PyObject = ParserBuilder::new(data)
+                    .on_error_check_crc()
+                    .must_parse_network_data()
+                    .parse()
+                    .unwrap()
+                    .into_py(py);
+                black_box(res)
+            });
+        }
+
+        #[cfg(not(feature = "py"))]
+        {
+            b.iter(|| black_box(1 + 1))
+        }
+    });
+}
+
 fn bench_parse_no_crc_no_body(c: &mut Criterion) {
     c.bench_function("bench_parse_no_crc_no_body", |b| {
         let data = include_bytes!("../assets/replays/good/3381.replay");
@@ -131,7 +157,8 @@ criterion_group!(
     bench_parse_no_crc_body,
     bench_parse_no_crc_no_body,
     bench_parse_crc_json,
-    bench_parse_no_crc_json
+    bench_parse_no_crc_json,
+    bench_python_parse,
 );
 
 criterion_main!(benches);
