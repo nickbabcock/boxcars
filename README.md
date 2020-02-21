@@ -164,10 +164,9 @@ boxcars:
 "object_id": 85,
 "initial_trajectory": {
   "location": {
-    "bias": 2,
-    "dx": 2,
-    "dy": 2,
-    "dz": 2
+    "x": 0,
+    "y": 0,
+    "z": 0
   },
   "rotation": null
 }
@@ -177,33 +176,6 @@ While rattletrap provides convenience conversions, boxcars omit them in favor of
 
 - to derive `object_name`: `replay.objects[x.object_id]`
 - to derive `name`: `replay.names[x.name_id]`
-
-The raw formula for calculating x,y,z from dx, dy, dz, and bias is:
-
-```
-x = dx - bias
-y = dy - bias
-z = dz - bias
-```
-
-So:
-
-```json
-"location": {
-  "bias": 4096,
-  "dx": 6048,
-  "dy": 1632,
-  "dz": 4113
-},
-```
-
-Would translate into
-
-```
-x: 1952
-y: -2464
-z: 17
-```
 
 ---
 
