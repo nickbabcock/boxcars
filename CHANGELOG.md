@@ -12,10 +12,10 @@ The `x`, `y`, and `z` fields n a `RigidBody` have been replaced with a `rotation
 
 ```
 Quaternion {
-		x: f32,
-		y: f32,
-		z: f32,
-		w: f32,
+    x: f32,
+    y: f32,
+    z: f32,
+    w: f32,
 }
 ```
 
