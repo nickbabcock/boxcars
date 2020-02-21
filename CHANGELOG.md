@@ -1,3 +1,58 @@
+# v0.7.0 - February 21st, 2019
+
+Couple of breaking changes with how rigid bodies (and other vector based network attributes) are represented.
+
+## Decode Rigid Body Rotation Bits into Quaternions
+
+While boxcars could parse all replays, it nonsensically stored the quaternion
+information from rigid body attributes. v0.7.0 ensures that the quaternion
+logic now matches rattletrap, bakkes, and jjbott's implementation.
+
+The `x`, `y`, and `z` fields n a `RigidBody` have been replaced with a `rotation` field that is a quaternion:
+
+```
+Quaternion {
+		x: f32,
+		y: f32,
+		z: f32,
+		w: f32,
+}
+```
+
+## Replace Vector Bias with Computed Values
+
+Previously boxcars would output the following vector data for rigid
+bodies:
+
+```
+"location": {
+  "bias": 262144,
+  "dx": 457343,
+  "dy": 15746,
+  "dz": 263845
+}
+```
+
+This is correct, but does not conform to the other parsers (bakkes and
+jjbott) which look like:
+
+```
+"position": {
+  "X": 1951.99,
+  "Y": -2463.98,
+  "Z": 17.01
+},
+```
+
+The vector fields are computed as ((X - bias) / 100). Important, the `/ 100`
+part of the formula is dropped for new actors. Thus there are two types
+vectors: floating point and integer.
+
+Having floating point and integer vectors necessitated splitting the
+Vector class into two: Vector3f and Vector3i (one for integer and the
+other for floating point -- side note: Vectorf and Vectori just didn't
+look right).
+
 # v0.6.2 - December 17th, 2019
 
 * Fix potential integer overflow / underflow on malicious input
