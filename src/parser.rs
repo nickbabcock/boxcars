@@ -1,58 +1,84 @@
 //! # Parsing
 //!
-//! A Rocket League game replay is a little endian binary encoded file with an emphasis. The number
-//! 100 would be represented as the four byte sequence:
-//!
-//! ```plain
-//! 0x64 0x00 0x00 0x00
-//! ```
-//!
-//! This in contrast to big-endian, which would represent the number as:
-//!
-//! ```plain
-//! 0x00 0x00 0x00 0x64
-//! ```
+//! A Rocket League replay is a binary file that is little endian encoded. What follows below is a
+//! detailed account of the Rocket League replay format.
 //!
 //! A replay is split into three major sections, a header, body, and footer.
 //!
 //! ## Header
 //!
-//! The first four bytes of a replay is the number of bytes that comprises the header. A length
-//! prefixed integer is very common throughout a replay. This prefix may either be in reference to
-//! the number of bytes an elements takes up, as just seen, or the number of elements in a list.
+//! - First 32 bits: the number of bytes that comprises the header data
+//! - Second 32 bits: the [cyclic redundancy check
+//! (CRC)](https://en.wikipedia.org/wiki/Cyclic_redundancy_check) (the checksum to ensure the
+//! replay isn't corrupt). It should be unsigned.
+//! - Now we arrive at the header data
+//! - Third 32 bits: the replay major version (it'll be something like 868)
+//! - Fourth 32 bits: the replay minor version (it'll be something like 20)
+//! - Fifth 32 bits:  the replay network version (very old replays won't have this, you'll need
+//! to check that the major _version > 865 and minor_version > 17.
 //!
-//! The next four bytes make up the [cyclic redundancy check
-//! (CRC)](https://en.wikipedia.org/wiki/Cyclic_redundancy_check) for the header. The check ensures
-//! that the data has not be tampered with or, more likely, corrupted.
+//! Now we get to where the game type is encoded as a string. Below is the formula for decoding a
+//! string.
 //!
-//! The game's major and minor version follow, each 32bit integers.
+//! - The size of text as a 32bit integer
+//!   - If the size is positive, we're dealing with a windows-1252 encoding, so we don't need to do
+//!   anything to get the number of bytes that the string consumes (as windows-1252 is a 8bit
+//!   encoding).
+//!   - If the size is negative, the string is encoded with UTF-16, so multiply it by -2 to get the
+//!   number of bytes needed to read the string.
+//! - Consume the number of bytes determined, but drop the last letter (1 byte for windows-1252, 2
+//! for UTF-16) as this will be a null character which we don't want.
 //!
-//! Subsequently, the game type is encoded as a string. Strings in Rocket League Replay files are
-//! length prefixed and null terminated.
+//! ### Header Properties
 //!
-//! The properties is where all the good nuggets of info reside. Visualize the properties as a map
-//! of strings to various types (number, string, array) that continues until a "None" key is found.
+//! The properties is where all the good nuggets of info reside (goals, player stats, etc).
+//! Visualize the properties as a map of key-value pairs. The format is to:
+//!
+//!  - Read string. This will be the key
+//!  - If the key is "None" we're done with given key value pair
+//!  - Read string to determine the value type
+//!  - Skip next 8 bytes (there's debate about what this means, but it doesn't matter)
+//!  - Decode the value based on the value type:
+//!    - "BoolProperty": read byte. Does it equal 1?
+//!    - "ByteProperty": read two strings (unless the first seen is related to steam / ps4)
+//!    - "FloatProperty": little endian encoded 32bit float
+//!    - "IntProperty": 32bit signed integer
+//!    - "NameProperty": read string
+//!    - "StrProperty": read string
+//!    - "QWordProperty": read 64bit signed integer
+//!    - "ArrayProperty": A nested map of key-value pairs (start back at step 1).
 //!
 //! ## Body
 //!
-//! Out of the body we get:
+//! Next comes the bulk of the replay. Just like the header is starts out with a pair of 32 bit
+//! integers representings the number of bytes and the CRC of the section.
 //!
-//! - Levels (what level did the match take place)
-//! - `KeyFrames`
-//! - The body's crc. This check is actually for the rest of the content (including the footer).
+//! The first thing in the body is a list of levels encoded as a list of strings. A list in a replay
+//! is prefixed by the number of elements as a 32 bit integer. Decode the number of strings as
+//! read.
 //!
-//! Since everything is length prefixed, we're able to skip the network stream data. This would be
-//! 90% of the file.  Most of the interesting bits like player stats and goals are contained in the
-//! header, so it's not a tremendous loss if we can't parse the network data.
+//! Then it's a list of keyframes where a keyframe is 12 bytes (time: 32 bit float, frame: 32 bit
+//! integer, and position: 32 bit integer).
+//!
+//! Network data is next. Since the network data complex enough to warrant it's own section.
+//! Thankfully it is prefixed with a 32 bit integer denoting its size, so we can skip it with ease.
 //!
 //! ## Footer
 //!
-//! After the network stream there we see:
+//! Since the network data is about 95% of the data, everything that comes after it is the footer
+//! (it's not technically a dedicated section with a length prefix + crc, but I like to think of it
+//! as a separate section).
 //!
-//! - Debug info
-//! - Tickmarks
-//! - Packages
-//! - Etc
+//! Unless parsing the network data, there isn't too much that is interesting in the footer.
+//!
+//! - List of debug info: (frame: 32 bit integer, user: string, text: string)
+//! - List of tickmarks: (description: string, frame: 32 bit integer)
+//! - Packages: a string list (just like the list of levels we saw earlier)
+//! - Objects: a string list
+//! - Names: a string list
+//! - List of class indices: (class: string, index: 32 bit integer)
+//! - List of network attribute encodings: (object_ind: 32 bit integer, parent_id: 32 bit integer,
+//! cache_id: 32 bit integer, properties: a list of 32bit pairs (object_ind and stream_id))
 
 use crate::core_parser::CoreParser;
 use crate::crc::calc_crc;
