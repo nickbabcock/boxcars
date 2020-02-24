@@ -46,7 +46,8 @@
 //!    - "NameProperty": read string
 //!    - "StrProperty": read string
 //!    - "QWordProperty": read 64bit signed integer
-//!    - "ArrayProperty": A nested map of key-value pairs (start back at step 1).
+//!    - "ArrayProperty": A nested map of key-value pairs (recurse into step 1).
+//!  - Prepare to read the next property, go to step 1.
 //!
 //! ## Body
 //!
