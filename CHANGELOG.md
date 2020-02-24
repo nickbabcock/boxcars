@@ -1,4 +1,4 @@
-# v0.7.0 - February 21st, 2019
+# v0.7.0 - February 21st, 2020
 
 Couple of breaking changes with how rigid bodies (and other vector based network attributes) are represented.
 
