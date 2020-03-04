@@ -20,6 +20,7 @@ fn bench_json_serialization(c: &mut Criterion) {
     let json_data_bytes = 19416972_u64;
 
     let mut group = c.benchmark_group("json_throughput");
+    group.sample_size(10);
     group.throughput(Throughput::Bytes(data.len() as u64));
     group.bench_function("bench_json_serialization", |b| {
         let mut bytes = Vec::new();
@@ -47,6 +48,7 @@ fn bench_parse_crc_body(c: &mut Criterion) {
     let data = include_bytes!("../assets/replays/good/3381.replay");
     let mut group = c.benchmark_group("parse_crc_body");
     group.throughput(Throughput::Bytes(data.len() as u64));
+    group.sample_size(20);
     group.bench_function("bench_parse_crc_body", |b| {
         b.iter(|| {
             black_box(
@@ -65,6 +67,7 @@ fn bench_parse_no_crc_body(c: &mut Criterion) {
     let data = include_bytes!("../assets/replays/good/3381.replay");
     let mut group = c.benchmark_group("parse_no_crc_body");
     group.throughput(Throughput::Bytes(data.len() as u64));
+    group.sample_size(20);
     group.bench_function("bench_parse_no_crc_body", |b| {
         b.iter(|| {
             black_box(
@@ -103,6 +106,7 @@ fn bench_parse_crc_json(c: &mut Criterion) {
     let data = include_bytes!("../assets/replays/good/3381.replay");
     let mut group = c.benchmark_group("parse_crc_json");
     group.throughput(Throughput::Bytes(data.len() as u64));
+    group.sample_size(10);
     group.bench_function("bench_parse_crc_json", |b| {
         // allocate a buffer big enough to hold all of the serialized data
         let mut bytes = Vec::with_capacity(2_usize.pow(25));
