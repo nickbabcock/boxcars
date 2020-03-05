@@ -51,12 +51,12 @@
 //!
 //! ## Body
 //!
-//! Next comes the bulk of the replay. Just like the header is starts out with a pair of 32 bit
-//! integers representings the number of bytes and the CRC of the section.
+//! Next comes the bulk of the replay, the body. Just like the header, the body starts out with a
+//! pair of 32 bit integers representing the number of bytes and the CRC of the section.
 //!
-//! The first thing in the body is a list of levels encoded as a list of strings. A list in a replay
-//! is prefixed by the number of elements as a 32 bit integer. Decode the number of strings as
-//! read.
+//! The first data point in the body is a list of levels encoded as a list of strings. A list in a
+//! replay is prefixed by the number of elements contained in the list as a 32 bit integer. Use
+//! this integer and decode said number of elements.
 //!
 //! Then it's a list of keyframes where a keyframe is 12 bytes (time: 32 bit float, frame: 32 bit
 //! integer, and position: 32 bit integer).
