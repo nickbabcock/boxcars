@@ -21,7 +21,7 @@ fn bench_json_serialization(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("json_throughput");
     group.sample_size(10);
-    group.throughput(Throughput::Bytes(data.len() as u64));
+    group.throughput(Throughput::Bytes(json_data_bytes));
     group.bench_function("bench_json_serialization", |b| {
         let mut bytes = Vec::new();
         let replay = ParserBuilder::new(data)
