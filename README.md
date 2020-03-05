@@ -66,13 +66,12 @@ cargo bench
 Since Boxcars allows you to pick and choose what to parse, below is a table
 with the following options and the estimated elapsed time.
 
-| Header | Corruption Check | Body | Output JSON | Elapsed |
-| -      | -                | -    | -           | -       |
-| ✔      |                  |      |             | 258 µs  |
-| ✔      | ✔                | ✔    |             | 18.5ms  |
-| ✔      |                  | ✔    |             | 18ms    |
-| ✔      | ✔                | ✔    | ✔           | 93.5ms  |
-| ✔      |                  | ✔    | ✔           | 93ms    |
+| Header | Corruption Check | Body | Output JSON | Elapsed | Throughput |
+| -      | -                | -    | -           | -       | -          |
+| ✔      |                  |      |             | 68.0 µs |            |
+| ✔      | ✔                | ✔    |             | 11.6 ms | 128 MiB/s  |
+| ✔      |                  | ✔    |             | 11.1 ms | 133 MiB/s  |
+| ✔      | ✔                | ✔    | ✔           | 75.6 ms |  19 MiB/s  |
 
 ## Special Thanks
 
