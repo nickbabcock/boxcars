@@ -5,9 +5,8 @@
 *Looking for rrrocket (the commandline app that parses replays and outputs JSON for analysis)? It [recently moved](https://github.com/nickbabcock/rrrocket)*
 
 Boxcars is a [Rocket League](http://www.rocketleaguegame.com/) replay parser
-library written in Rust, designed to be fast and safe: 10-100x faster than
-established parsers. Boxcars is extensively fuzzed to ensure potentially
-malicious user input is handled gracefully.
+library written in Rust, designed to be fast and safe. Boxcars is extensively
+fuzzed to ensure potentially malicious user input is handled gracefully.
 
 A key feature of boxcars is the ability to dictate what sections of the replay
 to parse. A replay is broken up into two main parts: the header (where tidbits
