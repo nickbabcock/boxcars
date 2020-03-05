@@ -24,6 +24,10 @@ bitter = "0.4.0"
 serde_json = "1"
 criterion = "0.3"
 
+[profile.bench]
+lto = true
+codegen-units = 1
+
 [[bench]]
 path = "benches/bench_boxcars.rs"
 name = "bench_boxcars"
