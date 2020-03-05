@@ -1,3 +1,18 @@
+# v0.7.1 - March 5th, 2020
+
+This is a performance release. Benchmarks improved by 40% when large network attributes were moved to a separate location on the heap, so that the size of the attribute data is the determined by the rigid body (the most common attribute). Below are the attributes that are now boxed:
+
+- CamSettings
+- Demolish
+- Loadout
+- TeamLoadout
+- UniqueId
+- Reservation
+- PartyLeader
+- PrivateMatch
+
+While this is technically a breaking change to the API, I decided to release this as a patch release due to `Box` being easily dereferenced, so usage of these attributes shouldn't change drastically.
+
 # v0.7.0 - February 21st, 2020
 
 Couple of breaking changes with how rigid bodies (and other vector based network attributes) are represented.
