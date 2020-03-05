@@ -49,15 +49,20 @@ pub(crate) enum AttributeTag {
     RepStatTitle,
 }
 
+/// The attributes for updated actors in the network data.
+///
+/// The vast majority of attributes in the network data are rigid bodies. As a performance
+/// improvent, any attribute variant larger than the size of a rigid body is moved to the heap (ie:
+/// `Box::new`). This change increased throughput by 40%.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum Attribute {
     Boolean(bool),
     Byte(u8),
     AppliedDamage(u8, Vector3f, u32, u32),
     DamageState(u8, bool, u32, Vector3f, bool, bool),
-    CamSettings(CamSettings),
+    CamSettings(Box<CamSettings>),
     ClubColors(ClubColors),
-    Demolish(Demolish),
+    Demolish(Box<Demolish>),
     Enum(u16),
     Explosion(Explosion),
     ExtendedExplosion(Explosion, bool, u32),
@@ -69,8 +74,8 @@ pub enum Attribute {
 
     #[serde(serialize_with = "crate::serde_utils::display_it")]
     Int64(i64),
-    Loadout(Loadout),
-    TeamLoadout(TeamLoadout),
+    Loadout(Box<Loadout>),
+    TeamLoadout(Box<TeamLoadout>),
     Location(Vector3f),
     MusicStinger(MusicStinger),
     PlayerHistoryKey(u16),
@@ -84,10 +89,10 @@ pub enum Attribute {
     TeamPaint(TeamPaint),
     RigidBody(RigidBody),
     String(String),
-    UniqueId(UniqueId),
-    Reservation(Reservation),
-    PartyLeader(Option<UniqueId>),
-    PrivateMatch(PrivateMatchSettings),
+    UniqueId(Box<UniqueId>),
+    Reservation(Box<Reservation>),
+    PartyLeader(Option<Box<UniqueId>>),
+    PrivateMatch(Box<PrivateMatchSettings>),
     LoadoutOnline(Vec<Vec<Product>>),
     LoadoutsOnline(LoadoutsOnline),
     StatEvent(bool, u32),
@@ -521,7 +526,7 @@ impl AttributeDecoder {
             };
 
             then {
-                Ok(Attribute::CamSettings(CamSettings {
+                Ok(Attribute::CamSettings(Box::new(CamSettings {
                     fov,
                     height,
                     angle,
@@ -529,7 +534,7 @@ impl AttributeDecoder {
                     swiftness,
                     swivel,
                     transition,
-                }))
+                })))
             } else {
                 Err(AttributeError::NotEnoughDataFor("Cam Settings"))
             }
@@ -564,14 +569,14 @@ impl AttributeDecoder {
             if let Some(attack_velocity) = Vector3f::decode(bits, self.version.net_version());
             if let Some(victim_velocity) = Vector3f::decode(bits, self.version.net_version());
             then {
-                Ok(Attribute::Demolish(Demolish {
+                Ok(Attribute::Demolish(Box::new(Demolish {
                     attacker_flag,
                     attacker_actor_id,
                     victim_flag,
                     victim_actor_id,
                     attack_velocity,
                     victim_velocity,
-                }))
+                })))
             } else {
                 Err(AttributeError::NotEnoughDataFor("Demolish"))
             }
@@ -682,6 +687,7 @@ impl AttributeDecoder {
 
     pub fn decode_loadout(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         decode_loadout(bits)
+            .map(Box::new)
             .map(Attribute::Loadout)
             .ok_or_else(|| AttributeError::NotEnoughDataFor("Loadout"))
     }
@@ -691,10 +697,10 @@ impl AttributeDecoder {
             if let Some(blue) = decode_loadout(bits);
             if let Some(orange) = decode_loadout(bits);
             then {
-                Ok(Attribute::TeamLoadout(TeamLoadout {
+                Ok(Attribute::TeamLoadout(Box::new(TeamLoadout {
                     blue,
                     orange,
-                }))
+                })))
             } else {
                 Err(AttributeError::NotEnoughDataFor("Team Loadout"))
             }
@@ -884,7 +890,7 @@ impl AttributeDecoder {
     }
 
     pub fn decode_unique_id(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
-        decode_unique_id(bits, self.version.net_version()).map(Attribute::UniqueId)
+        decode_unique_id(bits, self.version.net_version()).map(Box::new).map(Attribute::UniqueId)
     }
 
     pub fn decode_reservation(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
@@ -906,14 +912,14 @@ impl AttributeDecoder {
             };
 
             then {
-                Ok(Attribute::Reservation(Reservation {
+                Ok(Attribute::Reservation(Box::new(Reservation {
                     number,
                     unique_id: unique,
                     name,
                     unknown1,
                     unknown2,
                     unknown3
-                }))
+                })))
             } else {
                 Err(AttributeError::NotEnoughDataFor("Reservation"))
             }
@@ -925,7 +931,7 @@ impl AttributeDecoder {
             if system_id != 0 {
                 let id =
                     decode_unique_id_with_system_id(bits, self.version.net_version(), system_id)?;
-                Ok(Attribute::PartyLeader(Some(id)))
+                Ok(Attribute::PartyLeader(Some(Box::new(id))))
             } else {
                 Ok(Attribute::PartyLeader(None))
             }
@@ -947,14 +953,14 @@ impl AttributeDecoder {
             if let Some(flag) = bits.read_bit();
 
             then {
-                Ok(Attribute::PrivateMatch(PrivateMatchSettings {
+                Ok(Attribute::PrivateMatch(Box::new(PrivateMatchSettings {
                     mutators,
                     joinable_by,
                     max_players,
                     game_name,
                     password,
                     flag,
-                }))
+                })))
             } else {
                 Err(AttributeError::NotEnoughDataFor("Private Match"))
             }
@@ -1258,9 +1264,25 @@ fn decode_unique_id_with_system_id(
     let local_id = bits
         .read_u8()
         .ok_or_else(|| AttributeError::NotEnoughDataFor("UniqueId local_id"))?;
+
     Ok(UniqueId {
         system_id,
         remote_id,
         local_id,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_size_of_rigid_body() {
+        assert_eq!(::std::mem::size_of::<RigidBody>(), 64);
+    }
+
+    #[test]
+    fn test_size_of_attribute() {
+        assert_eq!(::std::mem::size_of::<Attribute>(), ::std::mem::size_of::<RigidBody>() + 8);
+    }
 }
