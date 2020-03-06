@@ -18,7 +18,7 @@ ENTRIES=$(grep -n -e '=>' -e '), ' src/data.rs | cut -f1 -d:)
 NUM_ENTRIES=$(echo "$ENTRIES" | wc -l)
 echo "detected $NUM_ENTRIES lines to test"
 while read -r ln; do
-    sed -i "${ln}d" build.rs
+    sed -i "${ln}d" src/data.rs
     if cargo test >/dev/null 2>/dev/null; then
         echo "$ln is not necessary: $(sed -n "${ln}p" src/data.rs)"
         LINES+=("$ln")
@@ -26,7 +26,7 @@ while read -r ln; do
         echo "$ln is necessary"
     fi
 
-    git checkout build.rs
+    git checkout src/data.rs
 done <<< "$ENTRIES";
 
 if [[ "${#LINES[@]}" -ne 0 ]]; then
