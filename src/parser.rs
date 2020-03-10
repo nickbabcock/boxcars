@@ -61,7 +61,7 @@
 //! Then it's a list of keyframes where a keyframe is 12 bytes (time: 32 bit float, frame: 32 bit
 //! integer, and position: 32 bit integer).
 //!
-//! Network data is next. Since the network data complex enough to warrant it's own section.
+//! Network data is next. Since the network data complex enough to warrant it's own section later.
 //! Thankfully it is prefixed with a 32 bit integer denoting its size, so we can skip it with ease.
 //!
 //! ## Footer
@@ -80,6 +80,117 @@
 //! - List of class indices: (class: string, index: 32 bit integer)
 //! - List of network attribute encodings: (object_ind: 32 bit integer, parent_id: 32 bit integer,
 //! cache_id: 32 bit integer, properties: a list of 32bit pairs (object_ind and stream_id))
+//!
+//! ## Network Body
+//!
+//! The number of frames in the body is hinted by the "NumFrames" property in the header.
+//!
+//! Do note that the network data is bit level. Meaning that a parser will read bit by bit. Thus a
+//! request for 32bits of data may span 5 bytes if the parser was in the middle of a byte.
+//!
+//! Each frame is led by a pair of 32bit floating point numbers representing the absolute time of a
+//! frame and the delta, or elapsed time, from the previous frame.
+//!
+//! Next comes actor data.
+//!
+//! - While there is more actor data in the frame (bit is on)
+//!   - Decode the actor id, which is the number of bits needed to represent the "NumChannels" value in the header
+//!   - If the actor is alive (bit is on)
+//!     - If actor is new (bit is on)
+//!       - Parse new actor:
+//!         - 32bit integer representing the index in the `names` list
+//!         - Unused bit
+//!         - 32bit integer representing the ObjectId
+//!         - Decode initial position if available (basically is the object not part of the crowd): Vector3i
+//!         - Decode initial rotation if available (basically is the object a ball or car): Rotation
+//!
+//! Quick aside:
+//!
+//! Vector3i:
+//!
+//!   - size in bits: read five bits not exceeding 22
+//!   - bias: 2^(size in bits + 1)
+//!   - bit_limit: size in bits + 2
+//!   - x: (read bits (bit_limit) - bias)
+//!   - y: (read bits (bit_limit) - bias)
+//!   - z: (read bits (bit_limit) - bias)
+//!
+//! Rotation:
+//!
+//!   - yaw: signed 8 bits
+//!   - pitch: signed 8 bits
+//!   - roll: signed 8 bits
+//!
+//! Ok, we can decode a new actor! How about update an existing actor with a new attribute? The
+//! actor is new bit would be off. Every actor receiving an update, is an actor we've already seen.
+//! So we'll look up the actor's ObjectId using the decoded ActorId seen when the actor was
+//! instantiated.
+//!
+//! - ObjectId: the index that the object appears in the `objects` list in the footer that we
+//!   previously parsed. For instance, "Core.Object" would have an ObjectId of 0.
+//! - ActorId: the temporary id of an actor while it is in game. Once an actor is deleted, the
+//!   actor id may be recycled.
+//!
+//! Then while the next bit is on, there are more attributes for our actor.
+//!
+//! We need to read from the stream, the number of bits that can compose the largest stream id /
+//! attribute id for the object without exceeding this max value. Very confusing, so let's take a
+//! step back with an example. Let's say we need to read the next 5 bits for the attribute stream
+//! id. If the result is 16, the attribute resolves differently depending on the actor's ObjectId.
+//! A contrived example: "16" for an "Engine.Pawn" ObjectId could point to the attribute
+//! "Engine.Pawn:bCanSwatTurn", while a "16" for "TAGame.Vehicle_TA" could be
+//! "TAGame.Vehicle_TA:bDriving".
+//!
+//! So we need to construct a lookup for an ObjectId where we can find out how much to read for the
+//! attribute's stream id and resolve the stream id to an actual attribute.
+//!
+//! To construct this lookup, we need to examine the net_cache previously decoded from the footer.
+//! The net_cache represents a hierarchy of attributes that children inherit from parents.
+//!
+//! ```json
+//! [{
+//!   "object_ind": 0, // "Core.Object"
+//!   "parent_id": 0,
+//!   "cache_id": 0,   // The cache id referenced by children
+//!   "properties": [] // There are no attributes on a base object
+//! },
+//! {
+//!   "object_ind": 22, // "Engine.Actor"
+//!   "parent_id": 0,   // points to the "cache_id" of it's parent (Core.Object)
+//!   "cache_id": 21,
+//!   "properties": [
+//!     {
+//!       "object_ind": 2, // "Engine.Actor:RelativeLocation"
+//!       "stream_id": 1   // Reading a 1 from the bits maps to the RelativeLocation
+//!     },
+//!   ]
+//! },
+//! {
+//!   "object_ind": 24, // "TAGame.VehiclePickup_TA"
+//!   "parent_id": 21,  // points to the "cache_id" of it's parent (Engine.Actor)
+//!   "cache_id": 22,
+//!   "properties": [   // Properties include all of parent properties
+//!     {
+//!       "object_ind": 23, // "TAGame.VehiclePickup_TA:ReplicatedPickupData"
+//!       "stream_id": 21
+//!     }
+//!   ]
+//! }]
+//! ```
+//!
+//! Going back to "We need to read from the stream, the number of bits that can compose the largest
+//! stream id / attribute id", we can see in the previous example that the largest stream_id for a
+//! TAGame.VehiclePickup_TA is 21, so 4 bits are needed with an optional 5th bit if the accumulator
+//! couldn't exceed the max value with another "on" bit of information. These bits are the
+//! attribute stream id. For Engine.Actor, only 1 bit needs to be read.
+//!
+//! With all this information, we can decode the attribute! Since there are 40 attribute types,
+//! it's not feasible to document them all here. It may take a lot of guesswork to determine the
+//! attribute type of a new attribute introduced in a released patch. Basically the recommendation
+//! is to look at the source code. Attribute parsing reuses all the concepts we've gone over
+//!
+//! The only thing left is the other branch when the "actor is alive" bit is off. This means that
+//! the actor is deleted and that the given actor id can be recycled.
 
 use crate::core_parser::CoreParser;
 use crate::crc::calc_crc;
