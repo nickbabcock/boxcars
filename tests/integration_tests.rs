@@ -77,3 +77,5 @@ frame_len_test!(test_d5d6c_replay, "../assets/replays/good/d5d6c.replay", 11009)
 frame_len_test!(test_128ed_replay, "../assets/replays/good/128ed.replay", 8313);
 frame_len_test!(test_rlcs_replay, "../assets/replays/good/rlcs.replay", 7651);
 frame_len_test!(test_many_actors_replay, "../assets/replays/good/many_actors.replay", 4179);
+frame_len_test!(test_max_score_replay, "../assets/replays/good/a184.replay", 604);
+frame_len_test!(test_is_distracted, "../assets/replays/good/e978.replay", 9501);
