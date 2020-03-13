@@ -1,3 +1,10 @@
+# v0.7.2 - March 13, 2020
+
+Add support for decoding new replays on the 1.74 patch via two new attributes:
+
+* TAGame.PRI_TA:bIsDistracted (Attribute::Int)
+* TAGame.GameEvent_Soccar_TA:MaxScore (Attribute::Boolean)
+
 # v0.7.1 - March 5th, 2020
 
 This is a performance release. Benchmarks improved by 40% when large network attributes were moved to a separate location on the heap, so that the size of the attribute data is the determined by the rigid body (the most common attribute). Below are the attributes that are now boxed:
