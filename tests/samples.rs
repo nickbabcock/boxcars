@@ -1,6 +1,6 @@
-use boxcars::attributes::RigidBody;
+use boxcars::attributes::{ActiveActor, RigidBody};
 use boxcars::{
-    self, NetworkError, ParseError, ParserBuilder, Quaternion, Trajectory, Vector3f, Vector3i,
+    self, ActorId, NetworkError, ParseError, ParserBuilder, Quaternion, Trajectory, Vector3f, Vector3i,
 };
 
 #[test]
@@ -366,4 +366,31 @@ fn test_compressed_quaternions() {
             w: 0.0
         }
     )
+}
+
+
+#[test]
+fn test_active_actor() {
+    let data = include_bytes!("../assets/replays/good/3d07e.replay");
+    let replay = ParserBuilder::new(&data[..])
+        .never_check_crc()
+        .must_parse_network_data()
+        .parse()
+        .unwrap();
+
+    let frames = &replay.network_frames.as_ref().unwrap().frames;
+    let active_actors: Vec<ActiveActor> = frames
+        .iter()
+        .flat_map(|x| {
+            x.updated_actors.iter().filter_map(|x| {
+                if let boxcars::Attribute::ActiveActor(x) = x.attribute {
+                    Some(x)
+                } else {
+                    None
+                }
+            })
+        })
+        .collect();
+
+    assert_eq!(active_actors[73].actor, ActorId(-1));
 }

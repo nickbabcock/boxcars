@@ -19,7 +19,7 @@ pub(crate) enum AttributeTag {
     Explosion,
     ExtendedExplosion,
     FlaggedByte,
-    Flagged,
+    ActiveActor,
     Float,
     GameMode,
     Int,
@@ -67,7 +67,7 @@ pub enum Attribute {
     Explosion(Explosion),
     ExtendedExplosion(Explosion, bool, u32),
     FlaggedByte(bool, u8),
-    Flagged(bool, u32),
+    ActiveActor(ActiveActor),
     Float(f32),
     GameMode(u8, u8),
     Int(i32),
@@ -98,6 +98,12 @@ pub enum Attribute {
     StatEvent(bool, u32),
     Rotation(Rotation),
     RepStatTitle(RepStatTitle),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct ActiveActor {
+    pub active: bool,
+    pub actor: ActorId,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
@@ -432,7 +438,7 @@ impl AttributeDecoder {
             AttributeTag::Enum => self.decode_enum(bits),
             AttributeTag::Explosion => self.decode_explosion(bits),
             AttributeTag::ExtendedExplosion => self.decode_extended_explosion(bits),
-            AttributeTag::Flagged => self.decode_flagged(bits),
+            AttributeTag::ActiveActor => self.decode_active_actor(bits),
             AttributeTag::FlaggedByte => self.decode_flagged_byte(bits),
             AttributeTag::Float => self.decode_float(bits),
             AttributeTag::GameMode => self.decode_game_mode(bits),
@@ -669,12 +675,15 @@ impl AttributeDecoder {
         }
     }
 
-    pub fn decode_flagged(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
+    pub fn decode_active_actor(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         if_chain! {
-            if let Some(on) = bits.read_bit();
-            if let Some(val) = bits.read_u32();
+            if let Some(active) = bits.read_bit();
+            if let Some(actor) = bits.read_i32().map(ActorId);
             then {
-                Ok(Attribute::Flagged(on, val))
+                Ok(Attribute::ActiveActor(ActiveActor {
+                    active,
+                    actor,
+                }))
             } else {
                 Err(AttributeError::NotEnoughDataFor("Flagged"))
             }
