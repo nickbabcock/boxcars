@@ -147,9 +147,9 @@ pub struct DamageState {
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct Demolish {
     pub attacker_flag: bool,
-    pub attacker_actor_id: u32,
+    pub attacker: ActorId,
     pub victim_flag: bool,
-    pub victim_actor_id: u32,
+    pub victim: ActorId,
     pub attack_velocity: Vector3f,
     pub victim_velocity: Vector3f,
 }
@@ -595,17 +595,17 @@ impl AttributeDecoder {
     pub fn decode_demolish(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         if_chain! {
             if let Some(attacker_flag) = bits.read_bit();
-            if let Some(attacker_actor_id) = bits.read_u32();
+            if let Some(attacker) = bits.read_i32().map(ActorId);
             if let Some(victim_flag) = bits.read_bit();
-            if let Some(victim_actor_id) = bits.read_u32();
+            if let Some(victim) = bits.read_i32().map(ActorId);
             if let Some(attack_velocity) = Vector3f::decode(bits, self.version.net_version());
             if let Some(victim_velocity) = Vector3f::decode(bits, self.version.net_version());
             then {
                 Ok(Attribute::Demolish(Box::new(Demolish {
                     attacker_flag,
-                    attacker_actor_id,
+                    attacker,
                     victim_flag,
-                    victim_actor_id,
+                    victim,
                     attack_velocity,
                     victim_velocity,
                 })))

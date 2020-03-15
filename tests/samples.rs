@@ -1,4 +1,4 @@
-use boxcars::attributes::{ActiveActor, RigidBody, Welded};
+use boxcars::attributes::{ActiveActor, Demolish, RigidBody, Welded};
 use boxcars::{
     self, ActorId, NetworkError, ParseError, ParserBuilder, Quaternion, Trajectory, Vector3f, Vector3i,
 };
@@ -396,7 +396,7 @@ fn test_active_actor() {
 }
 
 #[test]
-fn test_welded_actor() {
+fn test_rumble_actor_id() {
     let data = include_bytes!("../assets/replays/good/rumble.replay");
     let replay = ParserBuilder::new(&data[..])
         .never_check_crc()
@@ -419,4 +419,18 @@ fn test_welded_actor() {
         .collect();
 
     assert_eq!(welds[5].actor, ActorId(-1));
+
+    let demolish: Vec<&Box<Demolish>> = frames
+        .iter()
+        .flat_map(|x| {
+            x.updated_actors.iter().filter_map(|x| {
+                if let boxcars::Attribute::Demolish(ref x) = x.attribute {
+                    Some(x)
+                } else {
+                    None
+                }
+            })
+        })
+        .collect();
+    assert_eq!(demolish[3].attacker, ActorId(-1));
 }
