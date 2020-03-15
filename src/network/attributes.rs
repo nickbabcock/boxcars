@@ -106,7 +106,7 @@ pub struct CamSettings {
     pub height: f32,
     pub angle: f32,
     pub distance: f32,
-    pub swiftness: f32,
+    pub stiffness: f32,
     pub swivel: f32,
     pub transition: Option<f32>,
 }
@@ -517,7 +517,7 @@ impl AttributeDecoder {
             if let Some(height) = bits.read_f32();
             if let Some(angle) = bits.read_f32();
             if let Some(distance) = bits.read_f32();
-            if let Some(swiftness) = bits.read_f32();
+            if let Some(stiffness) = bits.read_f32();
             if let Some(swivel) = bits.read_f32();
             if let Some(transition) = if self.version >= VersionTriplet(868, 20, 0) {
                 bits.read_f32().map(Some)
@@ -531,7 +531,7 @@ impl AttributeDecoder {
                     height,
                     angle,
                     distance,
-                    swiftness,
+                    stiffness,
                     swivel,
                     transition,
                 })))
