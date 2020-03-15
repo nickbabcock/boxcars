@@ -2,3 +2,4 @@ target
 Cargo.lock
 .criterion
 .idea/*
+assets/replays/good/*.json
