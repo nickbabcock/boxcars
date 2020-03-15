@@ -207,7 +207,7 @@ pub struct PickupNew {
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct Welded {
     pub active: bool,
-    pub actor_id: u32,
+    pub actor: ActorId,
     pub offset: Vector3f,
     pub mass: f32,
     pub rotation: Rotation,
@@ -804,14 +804,14 @@ impl AttributeDecoder {
     pub fn decode_welded(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         if_chain! {
             if let Some(active) = bits.read_bit();
-            if let Some(actor_id) = bits.read_u32();
+            if let Some(actor) = bits.read_i32().map(ActorId);
             if let Some(offset) = Vector3f::decode(bits, self.version.net_version());
             if let Some(mass) = bits.read_f32();
             if let Some(rotation) = Rotation::decode(bits);
             then {
                 Ok(Attribute::Welded(Welded {
                     active,
-                    actor_id,
+                    actor,
                     offset,
                     mass,
                     rotation,

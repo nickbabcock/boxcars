@@ -1,4 +1,4 @@
-use boxcars::attributes::{ActiveActor, RigidBody};
+use boxcars::attributes::{ActiveActor, RigidBody, Welded};
 use boxcars::{
     self, ActorId, NetworkError, ParseError, ParserBuilder, Quaternion, Trajectory, Vector3f, Vector3i,
 };
@@ -393,4 +393,30 @@ fn test_active_actor() {
         .collect();
 
     assert_eq!(active_actors[73].actor, ActorId(-1));
+}
+
+#[test]
+fn test_welded_actor() {
+    let data = include_bytes!("../assets/replays/good/rumble.replay");
+    let replay = ParserBuilder::new(&data[..])
+        .never_check_crc()
+        .must_parse_network_data()
+        .parse()
+        .unwrap();
+
+    let frames = &replay.network_frames.as_ref().unwrap().frames;
+    let welds: Vec<Welded> = frames
+        .iter()
+        .flat_map(|x| {
+            x.updated_actors.iter().filter_map(|x| {
+                if let boxcars::Attribute::Welded(x) = x.attribute {
+                    Some(x)
+                } else {
+                    None
+                }
+            })
+        })
+        .collect();
+
+    assert_eq!(welds[5].actor, ActorId(-1));
 }
