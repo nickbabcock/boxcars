@@ -67,7 +67,7 @@ pub enum Attribute {
     Explosion(Explosion),
     ExtendedExplosion(Explosion, bool, u32),
     FlaggedByte(bool, u8),
-    Flagged(bool, u32),
+    Flagged(bool, i32),
     Float(f32),
     GameMode(u8, u8),
     Int(i32),
@@ -646,7 +646,7 @@ impl AttributeDecoder {
     pub fn decode_flagged(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         if_chain! {
             if let Some(on) = bits.read_bit();
-            if let Some(val) = bits.read_u32();
+            if let Some(val) = bits.read_i32();
             then {
                 Ok(Attribute::Flagged(on, val))
             } else {

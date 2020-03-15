@@ -367,3 +367,28 @@ fn test_compressed_quaternions() {
         }
     )
 }
+
+#[test]
+fn test_signed_flag() {
+    let data = include_bytes!("../assets/replays/good/3d07e.replay");
+    let replay = ParserBuilder::new(&data[..])
+        .never_check_crc()
+        .must_parse_network_data()
+        .parse()
+        .unwrap();
+
+    let frames = &replay.network_frames.as_ref().unwrap().frames;
+    let flags: Vec<(bool, i32)> = frames
+        .iter()
+        .flat_map(|x| {
+            x.updated_actors.iter().filter_map(|x| {
+                if let boxcars::Attribute::Flagged(x, act_id) = x.attribute {
+                    Some((x, act_id))
+                } else {
+                    None
+                }
+            })
+        })
+        .collect();
+    assert_eq!(flags[73].1, -1);
+}
