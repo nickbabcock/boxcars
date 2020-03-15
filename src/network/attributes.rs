@@ -1,5 +1,5 @@
 use crate::errors::AttributeError;
-use crate::network::{ObjectId, Quaternion, Rotation, Vector3f, VersionTriplet};
+use crate::network::{ActorId, ObjectId, Quaternion, Rotation, Vector3f, VersionTriplet};
 use crate::parsing_utils::{decode_utf16, decode_windows1252};
 use bitter::BitGet;
 use encoding_rs::WINDOWS_1252;
@@ -59,7 +59,7 @@ pub enum Attribute {
     Boolean(bool),
     Byte(u8),
     AppliedDamage(u8, Vector3f, u32, u32),
-    DamageState(u8, bool, u32, Vector3f, bool, bool),
+    DamageState(DamageState),
     CamSettings(Box<CamSettings>),
     ClubColors(ClubColors),
     Demolish(Box<Demolish>),
@@ -117,6 +117,25 @@ pub struct ClubColors {
     pub blue_color: u8,
     pub orange_flag: bool,
     pub orange_color: u8,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+pub struct DamageState {
+    /// State of the dropshot tile (0 - undamaged, 1 - damaged, 2 - destroyed)
+    pub tile_state: u8,
+
+    /// True if damaged
+    pub damaged: bool,
+
+    /// Player actor that inflicted the damage
+    pub offender: ActorId,
+
+    /// Position of the ball at the time of the damage
+    pub ball_position: Vector3f,
+
+    /// True for the dropshot tile that was hit by the ball (center tile of the damage area)
+    pub direct_hit: bool,
+    pub unknown1: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
@@ -497,14 +516,21 @@ impl AttributeDecoder {
 
     pub fn decode_damage_state(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         if_chain! {
-            if let Some(da) = bits.read_u8();
-            if let Some(db) = bits.read_bit();
-            if let Some(dc) = bits.read_u32();
-            if let Some(dd) = Vector3f::decode(bits, self.version.net_version());
-            if let Some(de) = bits.read_bit();
-            if let Some(df) = bits.read_bit();
+            if let Some(tile_state) = bits.read_u8();
+            if let Some(damaged) = bits.read_bit();
+            if let Some(offender) = bits.read_i32().map(ActorId);
+            if let Some(ball_position) = Vector3f::decode(bits, self.version.net_version());
+            if let Some(direct_hit) = bits.read_bit();
+            if let Some(unknown1) = bits.read_bit();
             then {
-                Ok(Attribute::DamageState(da, db, dc, dd, de, df))
+                Ok(Attribute::DamageState(DamageState {
+                    tile_state,
+                    damaged,
+                    offender,
+                    ball_position,
+                    direct_hit,
+                    unknown1,
+                }))
             } else {
                 Err(AttributeError::NotEnoughDataFor("Damage State"))
             }
