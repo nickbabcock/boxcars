@@ -1,4 +1,4 @@
-use boxcars::attributes::{ActiveActor, Demolish, RigidBody, Welded};
+use boxcars::attributes::{ActiveActor, Demolish, Pickup, RigidBody, Welded};
 use boxcars::{
     self, ActorId, NetworkError, ParseError, ParserBuilder, Quaternion, Trajectory, Vector3f, Vector3i,
 };
@@ -433,4 +433,18 @@ fn test_rumble_actor_id() {
         })
         .collect();
     assert_eq!(demolish[3].attacker, ActorId(-1));
+
+    let pickups: Vec<Pickup> = frames
+        .iter()
+        .flat_map(|x| {
+            x.updated_actors.iter().filter_map(|x| {
+                if let boxcars::Attribute::Pickup(x) = x.attribute {
+                    Some(x)
+                } else {
+                    None
+                }
+            })
+        })
+        .collect();
+    assert_eq!(pickups[264].instigator, Some(ActorId(-1)));
 }

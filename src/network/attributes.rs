@@ -194,13 +194,13 @@ pub struct MusicStinger {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct Pickup {
-    pub instigator_id: Option<u32>,
+    pub instigator: Option<ActorId>,
     pub picked_up: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct PickupNew {
-    pub instigator_id: Option<u32>,
+    pub instigator: Option<ActorId>,
     pub picked_up: u8,
 }
 
@@ -767,11 +767,11 @@ impl AttributeDecoder {
 
     pub fn decode_pickup(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         if_chain! {
-            if let Some(instigator_id) = bits.if_get(BitGet::read_u32);
+            if let Some(instigator) = bits.if_get(BitGet::read_i32).map(|x| x.map(ActorId));
             if let Some(picked_up) = bits.read_bit();
             then {
                 Ok(Attribute::Pickup(Pickup {
-                    instigator_id,
+                    instigator,
                     picked_up,
                 }))
             } else {
@@ -782,11 +782,11 @@ impl AttributeDecoder {
 
     pub fn decode_pickup_new(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         if_chain! {
-            if let Some(instigator_id) = bits.if_get(BitGet::read_u32);
+            if let Some(instigator) = bits.if_get(BitGet::read_i32).map(|x| x.map(ActorId));
             if let Some(picked_up) = bits.read_u8();
             then {
                 Ok(Attribute::PickupNew(PickupNew {
-                    instigator_id,
+                    instigator,
                     picked_up,
                 }))
             } else {
