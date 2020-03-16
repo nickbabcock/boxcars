@@ -323,7 +323,7 @@ pub enum ProductValue {
     NoColor,
     Absent,
     OldColor(u32),
-    NewColor(u32),
+    NewColor(i32),
     OldPaint(u32),
     NewPaint(u32),
     Title(String),
@@ -387,7 +387,7 @@ impl ProductValueDecoder {
     pub fn decode(&self, bits: &mut BitGet<'_>, obj_ind: u32) -> Option<ProductValue> {
         if obj_ind == self.color_ind {
             if self.version >= VersionTriplet(868, 23, 8) {
-                bits.read_u32().map(ProductValue::NewColor)
+                bits.read_i32().map(ProductValue::NewColor)
             } else {
                 bits.if_get(|b| b.read_u32_bits(31).map(ProductValue::OldColor))
                     .map(|x| x.unwrap_or(ProductValue::NoColor))
