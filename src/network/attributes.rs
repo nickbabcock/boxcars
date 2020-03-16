@@ -65,7 +65,7 @@ pub enum Attribute {
     Demolish(Box<Demolish>),
     Enum(u16),
     Explosion(Explosion),
-    ExtendedExplosion(Explosion, bool, u32),
+    ExtendedExplosion(ExtendedExplosion),
     FlaggedByte(bool, u8),
     ActiveActor(ActiveActor),
     Float(f32),
@@ -157,8 +157,15 @@ pub struct Demolish {
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct Explosion {
     pub flag: bool,
-    pub actor_id: u32,
+    pub actor: ActorId,
     pub location: Vector3f,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+pub struct ExtendedExplosion {
+    pub explosion: Explosion,
+    pub unknown1: bool,
+    pub secondary_actor: ActorId,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -674,10 +681,14 @@ impl AttributeDecoder {
     ) -> Result<Attribute, AttributeError> {
         if_chain! {
             if let Some(explosion) = decode_explosion(bits, self.version.net_version());
-            if let Some(ea) = bits.read_bit();
-            if let Some(eb) = bits.read_u32();
+            if let Some(unknown1) = bits.read_bit();
+            if let Some(secondary_actor) = bits.read_i32().map(ActorId);
             then {
-                Ok(Attribute::ExtendedExplosion(explosion, ea, eb))
+                Ok(Attribute::ExtendedExplosion(ExtendedExplosion {
+                    explosion,
+                    unknown1,
+                    secondary_actor,
+                }))
             } else {
                 Err(AttributeError::NotEnoughDataFor("Extended Explosion"))
             }
@@ -1088,12 +1099,12 @@ impl AttributeDecoder {
 fn decode_explosion(bits: &mut BitGet<'_>, net_version: i32) -> Option<Explosion> {
     if_chain! {
         if let Some(flag) = bits.read_bit();
-        if let Some(actor_id) = bits.read_u32();
+        if let Some(actor) = bits.read_i32().map(ActorId);
         if let Some(location) = Vector3f::decode(bits, net_version);
         then {
             Some(Explosion {
                 flag,
-                actor_id,
+                actor,
                 location,
             })
         } else {
