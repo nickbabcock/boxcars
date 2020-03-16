@@ -95,7 +95,7 @@ pub enum Attribute {
     PrivateMatch(Box<PrivateMatchSettings>),
     LoadoutOnline(Vec<Vec<Product>>),
     LoadoutsOnline(LoadoutsOnline),
-    StatEvent(bool, u32),
+    StatEvent(StatEvent),
     Rotation(Rotation),
     RepStatTitle(RepStatTitle),
 }
@@ -183,6 +183,12 @@ pub struct Loadout {
 pub struct TeamLoadout {
     pub blue: Loadout,
     pub orange: Loadout,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct StatEvent {
+    pub unknown1: bool,
+    pub object_id: i32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -629,10 +635,13 @@ impl AttributeDecoder {
 
     pub fn decode_stat_event(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         if_chain! {
-            if let Some(u1) = bits.read_bit();
-            if let Some(id) = bits.read_u32();
+            if let Some(unknown1) = bits.read_bit();
+            if let Some(object_id) = bits.read_i32();
             then {
-                Ok(Attribute::StatEvent(u1, id))
+                Ok(Attribute::StatEvent(StatEvent {
+                    unknown1,
+                    object_id,
+                }))
             } else {
                 Err(AttributeError::NotEnoughDataFor("Stat Event"))
             }

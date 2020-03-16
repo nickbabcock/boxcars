@@ -1,4 +1,4 @@
-use boxcars::attributes::{ActiveActor, Demolish, Pickup, RigidBody, Welded};
+use boxcars::attributes::{ActiveActor, Demolish, Pickup, RigidBody, StatEvent, Welded};
 use boxcars::{
     self, ActorId, NetworkError, ParseError, ParserBuilder, Quaternion, Trajectory, Vector3f, Vector3i,
 };
@@ -331,6 +331,20 @@ fn test_quaternions() {
             z: 17,
         }
     );
+
+    let events: Vec<StatEvent> = frames
+        .iter()
+        .flat_map(|x| {
+            x.updated_actors.iter().filter_map(|x| {
+                if let boxcars::Attribute::StatEvent(x) = x.attribute {
+                    Some(x)
+                } else {
+                    None
+                }
+            })
+        })
+        .collect();
+    assert_eq!(events[1].object_id, -1);
 }
 
 #[test]
