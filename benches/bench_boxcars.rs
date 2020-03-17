@@ -35,7 +35,7 @@ fn bench_json_serialization(c: &mut Criterion) {
         };
 
         b.iter(|| {
-            black_box(serde_json::to_writer(&mut bytes, &replay).is_ok());
+            black_box(serde_json::to_writer(&mut bytes, &replay).unwrap());
             unsafe {
                 bytes.set_len(0);
             };
@@ -56,7 +56,7 @@ fn bench_parse_crc_body(c: &mut Criterion) {
                     .always_check_crc()
                     .must_parse_network_data()
                     .parse()
-                    .is_ok(),
+                    .unwrap()
             )
         });
     });
@@ -75,7 +75,7 @@ fn bench_parse_no_crc_body(c: &mut Criterion) {
                     .on_error_check_crc()
                     .must_parse_network_data()
                     .parse()
-                    .is_ok(),
+                    .unwrap()
             )
         });
     });
@@ -95,7 +95,7 @@ fn bench_parse_no_crc_no_body(c: &mut Criterion) {
                     .on_error_check_crc()
                     .never_parse_network_data()
                     .parse()
-                    .is_ok(),
+                    .unwrap()
             )
         });
     });
@@ -112,7 +112,7 @@ fn bench_parse_crc_json(c: &mut Criterion) {
         let mut bytes = Vec::with_capacity(2_usize.pow(25));
         b.iter(|| {
             let data = ParserBuilder::new(data).always_check_crc().parse().unwrap();
-            black_box(serde_json::to_writer(&mut bytes, &data).is_ok());
+            black_box(serde_json::to_writer(&mut bytes, &data).unwrap());
             unsafe {
                 bytes.set_len(0);
             }
