@@ -29,7 +29,11 @@ fn bench_json_serialization(c: &mut Criterion) {
             .parse()
             .unwrap();
         serde_json::to_writer(&mut bytes, &replay).unwrap();
-        assert!(json_data_bytes == bytes.len() as u64);
+        assert!(
+            json_data_bytes == bytes.len() as u64,
+            "update json benchmark with latest throughput size: {}",
+            bytes.len()
+        );
         unsafe {
             bytes.set_len(0);
         };
