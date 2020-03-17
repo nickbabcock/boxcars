@@ -1,6 +1,7 @@
 use boxcars::attributes::{ActiveActor, Demolish, Pickup, RigidBody, StatEvent, Welded};
 use boxcars::{
-    self, ActorId, NetworkError, ParseError, ParserBuilder, Quaternion, Trajectory, Vector3f, Vector3i,
+    self, ActorId, NetworkError, ParseError, ParserBuilder, Quaternion, Trajectory, Vector3f,
+    Vector3i,
 };
 
 #[test]
@@ -381,7 +382,6 @@ fn test_compressed_quaternions() {
         }
     )
 }
-
 
 #[test]
 fn test_active_actor() {

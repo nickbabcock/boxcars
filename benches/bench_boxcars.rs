@@ -60,7 +60,7 @@ fn bench_parse_crc_body(c: &mut Criterion) {
                     .always_check_crc()
                     .must_parse_network_data()
                     .parse()
-                    .unwrap()
+                    .unwrap(),
             )
         });
     });
@@ -79,7 +79,7 @@ fn bench_parse_no_crc_body(c: &mut Criterion) {
                     .on_error_check_crc()
                     .must_parse_network_data()
                     .parse()
-                    .unwrap()
+                    .unwrap(),
             )
         });
     });
@@ -99,7 +99,7 @@ fn bench_parse_no_crc_no_body(c: &mut Criterion) {
                     .on_error_check_crc()
                     .never_parse_network_data()
                     .parse()
-                    .unwrap()
+                    .unwrap(),
             )
         });
     });

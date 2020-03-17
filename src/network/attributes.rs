@@ -945,7 +945,9 @@ impl AttributeDecoder {
     }
 
     pub fn decode_unique_id(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
-        decode_unique_id(bits, self.version.net_version()).map(Box::new).map(Attribute::UniqueId)
+        decode_unique_id(bits, self.version.net_version())
+            .map(Box::new)
+            .map(Attribute::UniqueId)
     }
 
     pub fn decode_reservation(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
@@ -1338,6 +1340,9 @@ mod tests {
 
     #[test]
     fn test_size_of_attribute() {
-        assert_eq!(::std::mem::size_of::<Attribute>(), ::std::mem::size_of::<RigidBody>() + 8);
+        assert_eq!(
+            ::std::mem::size_of::<Attribute>(),
+            ::std::mem::size_of::<RigidBody>() + 8
+        );
     }
 }
