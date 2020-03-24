@@ -58,7 +58,7 @@ pub(crate) enum AttributeTag {
 pub enum Attribute {
     Boolean(bool),
     Byte(u8),
-    AppliedDamage(u8, Vector3f, u32, u32),
+    AppliedDamage(AppliedDamage),
     DamageState(DamageState),
     CamSettings(Box<CamSettings>),
     ClubColors(ClubColors),
@@ -123,6 +123,14 @@ pub struct ClubColors {
     pub blue_color: u8,
     pub orange_flag: bool,
     pub orange_color: u8,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+pub struct AppliedDamage {
+    pub id: u8,
+    pub position: Vector3f,
+    pub damage_index: i32,
+    pub total_damage: i32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
@@ -521,12 +529,17 @@ impl AttributeDecoder {
         bits: &mut BitGet<'_>,
     ) -> Result<Attribute, AttributeError> {
         if_chain! {
-            if let Some(a) = bits.read_u8();
-            if let Some(vector) = Vector3f::decode(bits, self.version.net_version());
-            if let Some(b) = bits.read_u32();
-            if let Some(c) = bits.read_u32();
+            if let Some(id) = bits.read_u8();
+            if let Some(position) = Vector3f::decode(bits, self.version.net_version());
+            if let Some(damage_index) = bits.read_i32();
+            if let Some(total_damage) = bits.read_i32();
             then {
-                Ok(Attribute::AppliedDamage(a, vector, b, c))
+                Ok(Attribute::AppliedDamage(AppliedDamage {
+                    id,
+                    position,
+                    damage_index,
+                    total_damage,
+                }))
             } else {
                 Err(AttributeError::NotEnoughDataFor("Applied Damage"))
             }
