@@ -191,7 +191,7 @@ pub struct Loadout {
     pub trail: Option<u32>,
     pub goal_explosion: Option<u32>,
     pub banner: Option<u32>,
-    pub unknown3: Option<u32>,
+    pub product_id: Option<u32>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -1197,7 +1197,7 @@ fn decode_loadout(bits: &mut BitGet<'_>) -> Option<Loadout> {
             Some(None)
         };
 
-        if let Some(unknown3) = if version >= 19 {
+        if let Some(product_id) = if version >= 19 {
             bits.read_u32().map(Some)
         } else {
             Some(None)
@@ -1227,7 +1227,7 @@ fn decode_loadout(bits: &mut BitGet<'_>) -> Option<Loadout> {
                 trail,
                 goal_explosion,
                 banner,
-                unknown3,
+                product_id,
             })
         } else {
             None
