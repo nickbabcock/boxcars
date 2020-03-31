@@ -1,3 +1,71 @@
+# v0.8.0 - April 1st, 2020
+
+A few breaking changes:
+
+* Many data structures now use `i32` instead of `u32`, else `-1` values would be recorded as 2^32 - 1 (4294967295)
+* APIs that represented actor ids are now wrapped in the `ActorId` type instead of the raw data type (eg: `i32`). A good example of this is the Demolish attribute that changed `attacker_actor_id: u32` to `attacker: ActorId`
+* `Attribute::Loadout::unknown3` has been renamed to `product_id`
+* `Attribute::Flagged(bool, u32)` has been moved to `Attribute::ActiveActor(ActiveActor)`
+
+```rust
+pub struct ActiveActor {
+    pub active: bool,
+    pub actor: ActorId,
+}
+```
+
+* `Attribute::AppliedDamage` has moved to a dedicated type:
+
+```rust
+pub struct AppliedDamage {
+    pub id: u8,
+    pub position: Vector3f,
+    pub damage_index: i32,
+    pub total_damage: i32,
+}
+```
+
+* `Attribute::DamageState` has moved to a dedicated type:
+
+```rust
+pub struct DamageState {
+    /// State of the dropshot tile (0 - undamaged, 1 - damaged, 2 - destroyed)
+    pub tile_state: u8,
+
+    /// True if damaged
+    pub damaged: bool,
+
+    /// Player actor that inflicted the damage
+    pub offender: ActorId,
+
+    /// Position of the ball at the time of the damage
+    pub ball_position: Vector3f,
+
+    /// True for the dropshot tile that was hit by the ball (center tile of the damage area)
+    pub direct_hit: bool,
+    pub unknown1: bool,
+}
+```
+
+* `Attribute::ExtendedExplosion` has moved to a dedicated type:
+
+```rust
+pub struct ExtendedExplosion {
+    pub explosion: Explosion,
+    pub unknown1: bool,
+    pub secondary_actor: ActorId,
+}
+```
+
+* `Attribute::StatEvent` has moved to a dedicated type:
+
+```rust
+pub struct StatEvent {
+    pub unknown1: bool,
+    pub object_id: i32,
+}
+```
+
 # v0.7.2 - March 13, 2020
 
 Add support for decoding new replays on the 1.74 patch via two new attributes:
