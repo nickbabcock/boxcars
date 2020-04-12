@@ -215,6 +215,13 @@ pub struct UpdatedAttribute {
     pub attribute: Attribute,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub enum ActorEvent {
+    New(NewActor),
+    Deleted(ActorId),
+    Updated(UpdatedAttribute),
+}
+
 /// Contains the time and any new information that occurred during a frame
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Frame {
@@ -232,6 +239,9 @@ pub struct Frame {
 
     /// List of properties updated on the actors
     pub updated_actors: Vec<UpdatedAttribute>,
+
+    pub(crate) event_end_idx: usize,
+    pub(crate) event_start_idx: usize,
 }
 
 /// A replay encodes a list of objects that appear in the network data. The index of an object in

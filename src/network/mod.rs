@@ -40,6 +40,7 @@ impl VersionTriplet {
 pub(crate) fn parse<'a>(
     header: &Header,
     body: &ReplayBody<'a>,
+    events: Vec<ActorEvent>,
 ) -> Result<NetworkFrames, NetworkError> {
     let version = VersionTriplet(
         header.major_version,
@@ -221,12 +222,12 @@ pub(crate) fn parse<'a>(
             object_ind_attributes,
             version,
             is_lan,
+            events,
         };
-        Ok(NetworkFrames {
-            frames: frame_decoder.decode_frames()?,
-        })
+
+        frame_decoder.decode_frames()
     } else {
-        Ok(NetworkFrames { frames: Vec::new() })
+        Ok(NetworkFrames { frames: Vec::new(), events: Vec::new(), })
     }
 }
 

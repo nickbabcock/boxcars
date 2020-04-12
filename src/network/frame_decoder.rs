@@ -1,10 +1,11 @@
 use bitter::BitGet;
 use fnv::FnvHashMap;
 
+use crate::NetworkFrames;
 use crate::errors::{AttributeError, FrameContext, FrameError, NetworkError};
 use crate::network::attributes::{AttributeDecoder, ProductValueDecoder};
 use crate::network::models::{
-    ActorId, Frame, NewActor, ObjectId, SpawnTrajectory, StreamId, Trajectory, UpdatedAttribute,
+    ActorId, Frame, NewActor, ObjectId, SpawnTrajectory, StreamId, Trajectory, UpdatedAttribute, ActorEvent
 };
 use crate::network::{CacheInfo, VersionTriplet};
 use crate::parser::ReplayBody;
@@ -19,6 +20,7 @@ pub(crate) struct FrameDecoder<'a, 'b: 'a> {
     pub object_ind_attributes: FnvHashMap<ObjectId, CacheInfo<'a>>,
     pub version: VersionTriplet,
     pub is_lan: bool,
+    pub events: Vec<ActorEvent>,
 }
 
 #[derive(Debug)]
@@ -61,13 +63,10 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
     }
 
     fn decode_frame(
-        &self,
+        &mut self,
         attr_decoder: &AttributeDecoder,
         mut bits: &mut BitGet<'_>,
         actors: &mut FnvHashMap<ActorId, ObjectId>,
-        new_actors: &mut Vec<NewActor>,
-        deleted_actors: &mut Vec<ActorId>,
-        updated_actors: &mut Vec<UpdatedAttribute>,
     ) -> Result<DecodedFrame, FrameError> {
         let time = bits
             .read_f32()
@@ -88,6 +87,8 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
         if time == 0.0 && delta == 0.0 {
             return Ok(DecodedFrame::EndFrame);
         }
+
+        let event_start_idx = self.events.len();
 
         while bits
             .read_bit()
@@ -114,7 +115,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                     // updates. It's common for an actor id to already exist, so we
                     // overwrite it.
                     actors.insert(actor.actor_id, actor.object_id);
-                    new_actors.push(actor);
+                    self.events.push(ActorEvent::New(actor));
                 } else {
                     // We'll be updating an existing actor with some attributes so we need
                     // to track down what the actor's type is
@@ -173,37 +174,40 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                             },
                         )?;
 
-                        updated_actors.push(UpdatedAttribute {
+                        self.events.push(ActorEvent::Updated(UpdatedAttribute {
                             actor_id,
                             stream_id,
                             object_id: attr.object_id,
                             attribute,
-                        });
+                        }));
                     }
                 }
             } else {
-                deleted_actors.push(actor_id);
+                self.events.push(ActorEvent::Deleted(actor_id));
                 actors.remove(&actor_id);
             }
         }
 
+        let event_end_idx = self.events.len();
+
         Ok(DecodedFrame::Frame(Frame {
             time,
             delta,
-            new_actors: new_actors.drain(..).collect(),
-            deleted_actors: deleted_actors.drain(..).collect(),
-            updated_actors: updated_actors.drain(..).collect(),
+            event_start_idx,
+            event_end_idx,
+            new_actors: Vec::with_capacity(0),
+            deleted_actors: Vec::with_capacity(0),
+            updated_actors: Vec::with_capacity(0),
         }))
     }
 
-    pub fn decode_frames(&self) -> Result<Vec<Frame>, NetworkError> {
+    pub fn decode_frames(mut self) -> Result<NetworkFrames, NetworkError> {
         let attr_decoder = AttributeDecoder::new(self.version, self.product_decoder);
         let mut frames: Vec<Frame> = Vec::with_capacity(self.frames_len);
         let mut actors = FnvHashMap::default();
         let mut bits = BitGet::new(self.body.network_data);
-        let mut new_actors = Vec::new();
-        let mut updated_actors = Vec::new();
-        let mut deleted_actors = Vec::new();
+
+        self.events.reserve(self.body.network_data.len() / 10);
 
         while !bits.is_empty() && frames.len() < self.frames_len {
             let frame = self
@@ -211,9 +215,6 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                     &attr_decoder,
                     &mut bits,
                     &mut actors,
-                    &mut new_actors,
-                    &mut deleted_actors,
-                    &mut updated_actors,
                 )
                 .map_err(|e| {
                     NetworkError::FrameError(
@@ -236,8 +237,8 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                                 .collect(),
                             frames: frames.clone(),
                             actors: actors.clone(),
-                            new_actors: new_actors.clone(),
-                            updated_actors: updated_actors.clone(),
+                            new_actors: Vec::with_capacity(0),
+                            updated_actors: Vec::with_capacity(0),
                         }),
                     )
                 })?;
@@ -253,6 +254,9 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                 .ok_or_else(|| NetworkError::NotEnoughDataFor("Trailer"))?;
         }
 
-        Ok(frames)
+        Ok(NetworkFrames {
+            frames,
+            events: self.events,
+        })
     }
 }

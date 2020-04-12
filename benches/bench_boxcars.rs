@@ -73,14 +73,15 @@ fn bench_parse_no_crc_body(c: &mut Criterion) {
     group.throughput(Throughput::Bytes(data.len() as u64));
     group.sample_size(20);
     group.bench_function("bench_parse_no_crc_body", |b| {
+        let mut replay = Replay::default();
         b.iter(|| {
-            black_box(
-                ParserBuilder::new(data)
+             let b = ParserBuilder::new(data)
                     .on_error_check_crc()
                     .must_parse_network_data()
+                    .reuse_replay(&mut replay)
                     .parse()
-                    .unwrap(),
-            )
+                    .unwrap();
+            replay = b;
         });
     });
     group.finish();

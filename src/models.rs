@@ -8,13 +8,13 @@
 /// numeric/string types). Asking "why JSON" would be next logical step, and that's due to other
 /// rocket league replay parsers (like Octane) using JSON; however, the output of this library is
 /// not compatible with that of other rocket league replay parsers.
-use crate::network::Frame;
+use crate::network::{Frame, ActorEvent};
 use serde::ser::{SerializeMap, SerializeSeq};
 use serde::{Serialize, Serializer};
 use std::collections::HashMap;
 
 /// The structure that a rocket league replay is parsed into.
-#[derive(Serialize, PartialEq, Debug, Clone)]
+#[derive(Serialize, PartialEq, Debug, Clone, Default)]
 pub struct Replay {
     pub header_size: i32,
     pub header_crc: u32,
@@ -45,6 +45,7 @@ pub struct Replay {
 #[derive(Serialize, PartialEq, Debug, Clone)]
 pub struct NetworkFrames {
     pub frames: Vec<Frame>,
+    pub events: Vec<ActorEvent>,
 }
 
 /// In Rocket league replays, there are tickmarks that typically represent a significant event in
