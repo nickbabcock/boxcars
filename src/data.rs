@@ -10,6 +10,7 @@ pub(crate) static SPAWN_STATS: phf::Map<&'static str, SpawnTrajectory> = phf::ph
     "Archetypes.Ball.Ball_BasketBall" => SpawnTrajectory::LocationAndRotation,
     "Archetypes.Ball.Ball_Basketball" => SpawnTrajectory::LocationAndRotation,
     "Archetypes.Ball.Ball_Default" => SpawnTrajectory::LocationAndRotation,
+    "Archetypes.Ball.Ball_God" => SpawnTrajectory::LocationAndRotation,
     "Archetypes.Ball.Ball_Puck" => SpawnTrajectory::LocationAndRotation,
     "Archetypes.Ball.Ball_Anniversary" => SpawnTrajectory::LocationAndRotation,
     "Archetypes.Ball.CubeBall" => SpawnTrajectory::LocationAndRotation,
@@ -96,6 +97,8 @@ pub(crate) static SPAWN_STATS: phf::Map<&'static str, SpawnTrajectory> = phf::ph
     "ProjectX.Default__NetModeReplicator_X" => SpawnTrajectory::Location,
     "GameInfo_Tutorial.GameEvent.GameEvent_Tutorial_Aerial" => SpawnTrajectory::Location,
     "Archetypes.Tutorial.Cannon" => SpawnTrajectory::Location,
+    "gameinfo_godball.GameInfo.gameinfo_godball:Archetype" => SpawnTrajectory::Location,
+    "gameinfo_godball.GameInfo.gameinfo_godball:GameReplicationInfoArchetype" => SpawnTrajectory::Location,
 };
 
 pub(crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = phf::phf_map! {
@@ -142,6 +145,7 @@ pub(crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = phf::phf_ma
     "TAGame.Ball_TA:ReplicatedExplosionData" => AttributeTag::Explosion,
     "TAGame.Ball_TA:ReplicatedExplosionDataExtended" => AttributeTag::ExtendedExplosion,
     "TAGame.Ball_TA:ReplicatedWorldBounceScale" => AttributeTag::Float,
+    "TAGame.Ball_God_TA:TargetSpeed" => AttributeTag::Float,
     "TAGame.BreakOutActor_Platform_TA:DamageState" => AttributeTag::DamageState,
     "TAGame.CameraSettingsActor_TA:bUsingBehindView" => AttributeTag::Boolean,
     "TAGame.CameraSettingsActor_TA:bMouseCameraToggleEnabled" => AttributeTag::Boolean,
@@ -344,6 +348,7 @@ pub(crate) fn object_classes() -> Vec<(&'static str, &'static str)> {
         ("GameInfo_Season.GameInfo.GameInfo_Season:GameReplicationInfoArchetype", "TAGame.GRI_TA"),
         ("GameInfo_Soccar.GameInfo.GameInfo_Soccar:GameReplicationInfoArchetype", "TAGame.GRI_TA"),
         ("GameInfo_Tutorial.GameInfo.GameInfo_Tutorial:GameReplicationInfoArchetype", "TAGame.GRI_TA"),
+        ("gameinfo_godball.GameInfo.gameinfo_godball:GameReplicationInfoArchetype", "TAGame.GRI_TA"),
         ("GameInfo_Tutorial.GameEvent.GameEvent_Tutorial_Aerial", "TAGame.GameEvent_Tutorial_TA"),
         ("TAGame.Default__CameraSettingsActor_TA", "TAGame.CameraSettingsActor_TA"),
         ("TAGame.Default__PRI_TA", "TAGame.PRI_TA"),
@@ -355,7 +360,9 @@ pub(crate) fn object_classes() -> Vec<(&'static str, &'static str)> {
         ("TheWorld:PersistentLevel.VehiclePickup_Boost_TA", "TAGame.VehiclePickup_Boost_TA"),
         ("Haunted_TrainStation_P.TheWorld:PersistentLevel.HauntedBallTrapTrigger_TA_1", "TAGame.HauntedBallTrapTrigger_TA"),
         ("Haunted_TrainStation_P.TheWorld:PersistentLevel.HauntedBallTrapTrigger_TA_0", "TAGame.HauntedBallTrapTrigger_TA"),
-        ("Archetypes.Tutorial.Cannon", "TAGame.Cannon_TA")
+        ("Archetypes.Tutorial.Cannon", "TAGame.Cannon_TA"),
+        ("gameinfo_godball.GameInfo.gameinfo_godball:Archetype", "TAGame.GameEvent_GodBall_TA"),
+        ("Archetypes.Ball.Ball_God", "TAGame.Ball_God_TA"),
     ]
 }
 
@@ -415,4 +422,6 @@ pub(crate) static PARENT_CLASSES: phf::Map<&'static str, &'static str> = phf::ph
     "TAGame.VehiclePickup_Boost_TA" => "TAGame.VehiclePickup_TA",
     "TAGame.SpecialPickup_HauntedBallBeam_TA" => "TAGame.SpecialPickup_TA",
     "TAGame.Cannon_TA" => "Engine.Actor",
+    "TAGame.Ball_God_TA" => "TAGame.Ball_TA",
+    "TAGame.GameEvent_GodBall_TA" => "TAGame.GameEvent_Soccar_TA",
 };
