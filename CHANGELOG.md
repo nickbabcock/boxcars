@@ -1,3 +1,7 @@
+# v0.8.1 - April 17th, 2020
+
+* Support latest rocket league patch (1.76) for heatseeker matches with godball.
+
 # v0.8.0 - April 1st, 2020
 
 A few breaking changes:
