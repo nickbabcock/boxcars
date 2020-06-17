@@ -81,3 +81,4 @@ frame_len_test!(test_max_score_replay, "../assets/replays/good/a184.replay", 604
 frame_len_test!(test_is_distracted, "../assets/replays/good/e978.replay", 9501);
 frame_len_test!(test_d4f3b_heat_replay, "../assets/replays/good/d4f3b_heat.replay", 8920);
 frame_len_test!(test_ed6ce_heat_replay, "../assets/replays/good/ed6ce_heat.replay", 10920);
+frame_len_test!(test_rl178_replay, "../assets/replays/good/rl-178.replay", 8901);

@@ -161,6 +161,7 @@ pub(crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = phf::phf_ma
     "TAGame.Car_TA:ClubColors" => AttributeTag::ClubColors,
     "TAGame.Car_TA:ReplicatedCarScale" => AttributeTag::Float,
     "TAGame.Car_TA:ReplicatedDemolish" => AttributeTag::Demolish,
+    "TAGame.Car_TA:ReplicatedDemolish_CustomFX" => AttributeTag::DemolishFx,
     "TAGame.Car_TA:TeamPaint" => AttributeTag::TeamPaint,
     "TAGame.CarComponent_Boost_TA:bNoBoost" => AttributeTag::Boolean,
     "TAGame.CarComponent_Boost_TA:BoostModifier" => AttributeTag::Float,
