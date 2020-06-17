@@ -1,3 +1,7 @@
+# v0.8.2 - June 17th, 2020
+
+* Support latest rocket league patch (1.78) for demolish fx attributes
+
 # v0.8.1 - April 17th, 2020
 
 * Support latest rocket league patch (1.76) for heatseeker matches with godball.
