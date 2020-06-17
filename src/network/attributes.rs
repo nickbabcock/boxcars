@@ -15,6 +15,7 @@ pub(crate) enum AttributeTag {
     CamSettings,
     ClubColors,
     Demolish,
+    DemolishFx,
     Enum,
     Explosion,
     ExtendedExplosion,
@@ -63,6 +64,7 @@ pub enum Attribute {
     CamSettings(Box<CamSettings>),
     ClubColors(ClubColors),
     Demolish(Box<Demolish>),
+    DemolishFx(Box<DemolishFx>),
     Enum(u16),
     Explosion(Explosion),
     ExtendedExplosion(ExtendedExplosion),
@@ -154,6 +156,18 @@ pub struct DamageState {
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct Demolish {
+    pub attacker_flag: bool,
+    pub attacker: ActorId,
+    pub victim_flag: bool,
+    pub victim: ActorId,
+    pub attack_velocity: Vector3f,
+    pub victim_velocity: Vector3f,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+pub struct DemolishFx {
+    pub custom_demo_flag: bool,
+    pub custom_demo_id: i32,
     pub attacker_flag: bool,
     pub attacker: ActorId,
     pub victim_flag: bool,
@@ -456,6 +470,7 @@ impl AttributeDecoder {
             AttributeTag::CamSettings => self.decode_cam_settings(bits),
             AttributeTag::ClubColors => self.decode_club_colors(bits),
             AttributeTag::Demolish => self.decode_demolish(bits),
+            AttributeTag::DemolishFx => self.decode_demolish_fx(bits),
             AttributeTag::Enum => self.decode_enum(bits),
             AttributeTag::Explosion => self.decode_explosion(bits),
             AttributeTag::ExtendedExplosion => self.decode_extended_explosion(bits),
@@ -637,6 +652,33 @@ impl AttributeDecoder {
                 })))
             } else {
                 Err(AttributeError::NotEnoughDataFor("Demolish"))
+            }
+        }
+    }
+
+    pub fn decode_demolish_fx(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
+        if_chain! {
+            if let Some(custom_demo_flag) = bits.read_bit();
+            if let Some(custom_demo_id) = bits.read_i32();
+            if let Some(attacker_flag) = bits.read_bit();
+            if let Some(attacker) = bits.read_i32().map(ActorId);
+            if let Some(victim_flag) = bits.read_bit();
+            if let Some(victim) = bits.read_i32().map(ActorId);
+            if let Some(attack_velocity) = Vector3f::decode(bits, self.version.net_version());
+            if let Some(victim_velocity) = Vector3f::decode(bits, self.version.net_version());
+            then {
+                Ok(Attribute::DemolishFx(Box::new(DemolishFx {
+                    custom_demo_flag,
+                    custom_demo_id,
+                    attacker_flag,
+                    attacker,
+                    victim_flag,
+                    victim,
+                    attack_velocity,
+                    victim_velocity,
+                })))
+            } else {
+                Err(AttributeError::NotEnoughDataFor("DemolishFx"))
             }
         }
     }
