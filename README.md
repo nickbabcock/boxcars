@@ -1,6 +1,6 @@
 # Boxcars
 
-[![Build Status](https://travis-ci.org/nickbabcock/boxcars.svg?branch=master)](https://travis-ci.org/nickbabcock/boxcars) [![Build status](https://ci.appveyor.com/api/projects/status/v0l0okwfqa5vg13v?svg=true)](https://ci.appveyor.com/project/nickbabcock/boxcars) [![](https://docs.rs/boxcars/badge.svg)](https://docs.rs/boxcars) [![Version](https://img.shields.io/crates/v/boxcars.svg?style=flat-square)](https://crates.io/crates/boxcars)
+![ci](https://github.com/nickbabcock/boxcars/workflows/ci/badge.svg)[![](https://docs.rs/boxcars/badge.svg)](https://docs.rs/boxcars) [![Version](https://img.shields.io/crates/v/boxcars.svg?style=flat-square)](https://crates.io/crates/boxcars)
 
 *Looking for rrrocket (the commandline app that parses replays and outputs JSON for analysis)? It [recently moved](https://github.com/nickbabcock/rrrocket)*
 
