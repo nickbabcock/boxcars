@@ -50,14 +50,11 @@
 //! # run(filename).unwrap();
 //! ```
 
-#![recursion_limit = "1000"]
-
-#[macro_use]
-extern crate if_chain;
-
 #[macro_use]
 extern crate serde;
 
+#[macro_use]
+mod macros;
 pub use self::errors::{AttributeError, FrameContext, FrameError, NetworkError, ParseError};
 pub use self::models::*;
 pub use self::network::attributes::Attribute;

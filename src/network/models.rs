@@ -29,23 +29,18 @@ pub struct Vector3i {
 
 impl Vector3i {
     pub fn decode(bits: &mut BitGet<'_>, net_version: i32) -> Option<Vector3i> {
-        if_chain! {
-            if let Some(size_bits) = bits.read_bits_max_computed(4, if net_version >= 7 { 22 } else { 20 });
-            let bias = 1 << (size_bits + 1);
-            let bit_limit = (size_bits + 2) as i32;
-            if let Some(dx) = bits.read_u32_bits(bit_limit);
-            if let Some(dy) = bits.read_u32_bits(bit_limit);
-            if let Some(dz) = bits.read_u32_bits(bit_limit);
-            then {
-                Some(Vector3i {
-                    x: (dx as i32) - bias,
-                    y: (dy as i32) - bias,
-                    z: (dz as i32) - bias,
-                })
-            } else {
-                None
-            }
-        }
+        let size_bits =
+            get!(bits.read_bits_max_computed(4, if net_version >= 7 { 22 } else { 20 }));
+        let bias = 1 << (size_bits + 1);
+        let bit_limit = (size_bits + 2) as i32;
+        let dx = get!(bits.read_u32_bits(bit_limit));
+        let dy = get!(bits.read_u32_bits(bit_limit));
+        let dz = get!(bits.read_u32_bits(bit_limit));
+        Some(Vector3i {
+            x: (dx as i32) - bias,
+            y: (dy as i32) - bias,
+            z: (dz as i32) - bias,
+        })
     }
 
     pub fn decode_unchecked(bits: &mut BitGet<'_>, net_version: i32) -> Vector3i {
@@ -101,56 +96,44 @@ impl Quaternion {
     }
 
     pub fn decode_compressed(bits: &mut BitGet<'_>) -> Option<Self> {
-        if_chain! {
-            if let Some(x) = Quaternion::compressed_f32(bits);
-            if let Some(y) = Quaternion::compressed_f32(bits);
-            if let Some(z) = Quaternion::compressed_f32(bits);
-            then {
-                Some(Quaternion {
-                    x, y, z, w: 0.0
-                })
-            } else { None }
-        }
+        let x = get!(Quaternion::compressed_f32(bits));
+        let y = get!(Quaternion::compressed_f32(bits));
+        let z = get!(Quaternion::compressed_f32(bits));
+        Some(Quaternion { x, y, z, w: 0.0 })
     }
 
     pub fn decode(bits: &mut BitGet<'_>) -> Option<Self> {
-        if_chain! {
-            if let Some(largest) = bits.read_u32_bits(2);
-            if let Some(a) = bits.read_u32_bits(18).map(Quaternion::unpack);
-            if let Some(b) = bits.read_u32_bits(18).map(Quaternion::unpack);
-            if let Some(c) = bits.read_u32_bits(18).map(Quaternion::unpack);
-            let extra = (1.0 - (a * a) - (b * b) - (c * c)).sqrt();
-            then {
-                match largest {
-                    0 => Some(Quaternion {
-                        x: extra,
-                        y: a,
-                        z: b,
-                        w: c,
-                    }),
-                    1 => Some(Quaternion {
-                        x: a,
-                        y: extra,
-                        z: b,
-                        w: c,
-                    }),
-                    2 => Some(Quaternion {
-                        x: a,
-                        y: b,
-                        z: extra,
-                        w: c,
-                    }),
-                    3 => Some(Quaternion {
-                        x: a,
-                        y: b,
-                        z: c,
-                        w: extra,
-                    }),
-                    _ => unreachable!(),
-                }
-            } else {
-                None
-            }
+        let largest = get!(bits.read_u32_bits(2));
+        let a = get!(bits.read_u32_bits(18).map(Quaternion::unpack));
+        let b = get!(bits.read_u32_bits(18).map(Quaternion::unpack));
+        let c = get!(bits.read_u32_bits(18).map(Quaternion::unpack));
+        let extra = (1.0 - (a * a) - (b * b) - (c * c)).sqrt();
+        match largest {
+            0 => Some(Quaternion {
+                x: extra,
+                y: a,
+                z: b,
+                w: c,
+            }),
+            1 => Some(Quaternion {
+                x: a,
+                y: extra,
+                z: b,
+                w: c,
+            }),
+            2 => Some(Quaternion {
+                x: a,
+                y: b,
+                z: extra,
+                w: c,
+            }),
+            3 => Some(Quaternion {
+                x: a,
+                y: b,
+                z: c,
+                w: extra,
+            }),
+            _ => unreachable!(),
         }
     }
 }
@@ -165,20 +148,10 @@ pub struct Rotation {
 
 impl Rotation {
     pub fn decode(bits: &mut BitGet<'_>) -> Option<Rotation> {
-        if_chain! {
-            if let Some(yaw) = bits.if_get(BitGet::read_i8);
-            if let Some(pitch) = bits.if_get(BitGet::read_i8);
-            if let Some(roll) = bits.if_get(BitGet::read_i8);
-            then {
-                Some(Rotation {
-                    yaw,
-                    pitch,
-                    roll,
-                })
-            } else {
-                None
-            }
-        }
+        let yaw = get!(bits.if_get(BitGet::read_i8));
+        let pitch = get!(bits.if_get(BitGet::read_i8));
+        let roll = get!(bits.if_get(BitGet::read_i8));
+        Some(Rotation { yaw, pitch, roll })
     }
 
     pub fn decode_unchecked(bits: &mut BitGet<'_>) -> Rotation {
@@ -333,18 +306,14 @@ impl Trajectory {
                 rotation: None,
             }),
 
-            SpawnTrajectory::LocationAndRotation => if_chain! {
-                if let Some(v) = Vector3i::decode(bits, net_version);
-                if let Some(r) = Rotation::decode(bits);
-                then {
-                    Some(Trajectory {
-                        location: Some(v),
-                        rotation: Some(r),
-                    })
-                } else {
-                    None
-                }
-            },
+            SpawnTrajectory::LocationAndRotation => {
+                let v = get!(Vector3i::decode(bits, net_version));
+                let r = get!(Rotation::decode(bits));
+                Some(Trajectory {
+                    location: Some(v),
+                    rotation: Some(r),
+                })
+            }
         }
     }
 

@@ -33,31 +33,35 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
         mut bits: &mut BitGet<'_>,
         actor_id: ActorId,
     ) -> Result<NewActor, FrameError> {
-        if_chain! {
-            if let Some(name_id) =
-                if self.version >= VersionTriplet(868, 14, 0) && !self.is_lan {
-                    bits.read_i32().map(Some)
-                } else {
-                    Some(None)
-                };
-
-            if let Some(_unused) = bits.read_bit();
-            if let Some(object_id) = bits.read_i32().map(ObjectId);
-            let spawn = self.spawns.get(usize::from(object_id))
-                .ok_or_else(|| FrameError::ObjectIdOutOfRange {obj: object_id})?;
-
-            if let Some(traj) = Trajectory::from_spawn(&mut bits, *spawn, self.version.net_version());
-            then {
-                Ok(NewActor {
-                    actor_id,
-                    name_id,
-                    object_id,
-                    initial_trajectory: traj
-                })
-            } else {
-                Err(FrameError::NotEnoughDataFor("New Actor"))
-            }
+        let component = "New Actor";
+        let mut name_id = None;
+        if self.version >= VersionTriplet(868, 14, 0) && !self.is_lan {
+            name_id = bits
+                .read_i32()
+                .ok_or_else(|| FrameError::NotEnoughDataFor(component))
+                .map(Some)?;
         }
+
+        let _ = bits
+            .read_bit()
+            .ok_or_else(|| FrameError::NotEnoughDataFor(component))?;
+        let object_id = bits
+            .read_i32()
+            .map(ObjectId)
+            .ok_or_else(|| FrameError::NotEnoughDataFor(component))?;
+        let spawn = self
+            .spawns
+            .get(usize::from(object_id))
+            .ok_or_else(|| FrameError::ObjectIdOutOfRange { obj: object_id })?;
+
+        let traj = Trajectory::from_spawn(&mut bits, *spawn, self.version.net_version())
+            .ok_or_else(|| FrameError::NotEnoughDataFor(component))?;
+        Ok(NewActor {
+            actor_id,
+            name_id,
+            object_id,
+            initial_trajectory: traj,
+        })
     }
 
     fn decode_frame(
