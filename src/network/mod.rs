@@ -70,7 +70,7 @@ pub(crate) fn parse<'a>(
     for (i, name) in normalized_objects.iter().enumerate() {
         normalized_name_obj_ind
             .entry(*name)
-            .or_insert_with(|| vec![])
+            .or_insert_with(Vec::new)
             .push(ObjectId(i as i32));
     }
 
@@ -84,7 +84,7 @@ pub(crate) fn parse<'a>(
                 normalized_name_obj_ind
                     .get(name.deref())
                     .cloned()
-                    .unwrap_or_else(|| vec![]),
+                    .unwrap_or_else(Vec::new),
             )
         })
         .collect();

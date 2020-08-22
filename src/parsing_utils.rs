@@ -1,6 +1,6 @@
 use crate::errors::ParseError;
-use std::convert::TryInto;
 use encoding_rs::{UTF_16LE, WINDOWS_1252};
+use std::convert::TryInto;
 
 #[inline]
 pub fn le_i32(d: &[u8]) -> i32 {
@@ -10,7 +10,6 @@ pub fn le_i32(d: &[u8]) -> i32 {
 #[inline]
 pub fn le_f32(d: &[u8]) -> f32 {
     f32::from_le_bytes(d[..4].try_into().unwrap())
-
 }
 
 #[inline]
