@@ -1,31 +1,24 @@
 # Boxcars
 
-![ci](https://github.com/nickbabcock/boxcars/workflows/ci/badge.svg)[![](https://docs.rs/boxcars/badge.svg)](https://docs.rs/boxcars) [![Version](https://img.shields.io/crates/v/boxcars.svg?style=flat-square)](https://crates.io/crates/boxcars)
+![ci](https://github.com/nickbabcock/boxcars/workflows/ci/badge.svg) [![](https://docs.rs/boxcars/badge.svg)](https://docs.rs/boxcars) [![Version](https://img.shields.io/crates/v/boxcars.svg?style=flat-square)](https://crates.io/crates/boxcars)
 
-*Looking for rrrocket (the commandline app that parses replays and outputs JSON for analysis)? It [recently moved](https://github.com/nickbabcock/rrrocket)*
+Boxcars is a [Rocket League](http://www.rocketleaguegame.com/) replay parser library written in
+Rust.
 
-Boxcars is a [Rocket League](http://www.rocketleaguegame.com/) replay parser
-library written in Rust, designed to be fast and safe. Boxcars is extensively
-fuzzed to ensure potentially malicious user input is handled gracefully.
+## Features
 
-A key feature of boxcars is the ability to dictate what sections of the replay
-to parse. A replay is broken up into two main parts: the header (where tidbits
-like goals and scores are stored) and the network body, which contains
-positional, rotational, and speed data (among other attributes). Since the
-network data fluctuates between Rocket League patches and accounts for 99.8% of
-the parsing time, one can tell boxcars to skip the network data or ignore
-errors from the network data.
+- ✔ Safe: Stable Rust with no unsafe
+- ✔ Fast: Parse a hundred replays per second per CPU core
+- ✔ Fuzzed: Extensively fuzzed against potential malicious input
+- ✔ Ergonomic: Serialization support is provided through [serde](https://github.com/serde-rs/serde)
 
-- By skipping network data one can parse and aggregate thousands of replays in
-  under a second to provide an immediate response to the user. Then a full
-  parsing of the replay data can provide additional insights when given time.
-- By ignoring network data errors, boxcars can still provide details about
-  newly patched replays based on the header.
+See where Boxcars in used:
 
-Boxcars will also check for replay corruption on error, but this can be
-configured to always check for corruption or never check.
+- Inside the [rrrocket CLI app](https://github.com/nickbabcock/rrrocket) to turn Rocket League Replays into JSON
+- Compiled to [WebAssembly and embedded in a web page](https://rl.nickb.dev/)
+- Underpins the python analyzer of the [popular calculated.gg site](https://calculated.gg/)
 
-Serialization support is provided through [serde](https://github.com/serde-rs/serde).
+## Quick Start
 
 Below is an example to output the replay structure to json:
 
@@ -36,19 +29,38 @@ use std::fs;
 use std::io::{self, Read};
 
 fn parse_rl(data: &[u8]) -> Result<Replay, ParseError> {
-    boxcars::ParserBuilder::new(data)
-        .on_error_check_crc()
-        .parse()
+boxcars::ParserBuilder::new(data)
+.must_parse_network_data()
+.parse()
 }
 
 fn run(filename: &str) -> Result<(), Box<dyn error::Error>> {
-    let filename = "assets/replays/good/rumble.replay";
-    let buffer = fs::read(filename)?;
-    let replay = parse_rl(&buffer)?;
-    serde_json::to_writer(&mut io::stdout(), &replay)?;
-    Ok(())
+let filename = "assets/replays/good/rumble.replay";
+let buffer = fs::read(filename)?;
+let replay = parse_rl(&buffer)?;
+serde_json::to_writer(&mut io::stdout(), &replay)?;
+Ok(())
 }
 ```
+
+The above example will parse both the header and network data of a replay file, and return an
+error if there is an issue either header or network data.  Since the network data will often
+change with each Rocket League patch, the default behavior is to ignore any errors from the
+network data and still be able to return header information.
+
+## Variations
+
+If you're only interested the header (where tidbits like goals and scores are stored) then you
+can achieve an 1000x speedup by directing boxcars to only parse the header.
+
+- By skipping network data one can parse and aggregate thousands of replays in
+under a second to provide an immediate response to the user. Then a full
+parsing of the replay data can provide additional insights when given time.
+- By ignoring network data errors, boxcars can still provide details about
+newly patched replays based on the header.
+
+Boxcars will also check for replay corruption on error, but this can be configured to always
+check for corruption or never check.
 
 ## Benchmarks
 
