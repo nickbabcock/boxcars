@@ -1,3 +1,7 @@
+# v0.8.3 - September 27th, 2020
+
+* Support latest rocket league patch (1.82) for Epic IDs
+
 # v0.8.2 - June 17th, 2020
 
 * Support latest rocket league patch (1.78) for demolish fx attributes
