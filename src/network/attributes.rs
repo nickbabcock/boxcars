@@ -310,6 +310,7 @@ pub enum RemoteId {
 
     #[serde(serialize_with = "crate::serde_utils::display_it")]
     QQ(u64),
+    Epic(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -1314,6 +1315,7 @@ fn decode_unique_id_with_system_id(
                 }))
             }
         }
+        11 => Ok(RemoteId::Epic(decode_text(bits)?)),
         x => Err(AttributeError::UnrecognizedRemoteId(x)),
     }?;
 
