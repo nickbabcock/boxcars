@@ -1,3 +1,9 @@
+# v0.8.4 - October 1st, 2020
+
+* Support for tournament replays:
+  * `MaxTimeWarningData_TA` and crew added
+  * `Engine.ReplicatedActor_ORS:ReplicatedOwner` attribute added
+
 # v0.8.3 - September 27th, 2020
 
 * Support latest rocket league patch (1.82) for Epic IDs
