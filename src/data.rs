@@ -276,6 +276,7 @@ pub(crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = phf::phf_ma
     "TAGame.Team_TA:ClubColors" => AttributeTag::ClubColors,
     "TAGame.Team_TA:ClubID" => AttributeTag::Int64,
     "TAGame.Team_TA:CustomTeamName" => AttributeTag::String,
+    "TAGame.Team_TA:Difficulty" => AttributeTag::Int,
     "TAGame.Team_TA:GameEvent" => AttributeTag::ActiveActor,
     "TAGame.Team_TA:LogoData" => AttributeTag::ActiveActor,
     "TAGame.Vehicle_TA:bDriving" => AttributeTag::Boolean,
