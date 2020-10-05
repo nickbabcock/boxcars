@@ -1,3 +1,7 @@
+# v0.8.5 - October 4th, 2020
+
+* Support replays that contain the difficulty attribute
+
 # v0.8.4 - October 1st, 2020
 
 * Support for tournament replays:
