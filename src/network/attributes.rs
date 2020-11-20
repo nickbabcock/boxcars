@@ -1343,7 +1343,7 @@ mod tests {
     fn test_size_of_attribute() {
         assert_eq!(
             ::std::mem::size_of::<Attribute>(),
-            ::std::mem::size_of::<RigidBody>() + 8
+            ::std::mem::size_of::<RigidBody>() + ::std::mem::size_of::<usize>()
         );
     }
 }
