@@ -1,3 +1,7 @@
+# v0.8.6 - December 12th, 2020
+
+* Support replays that contain the rumble pickup attribute
+
 # v0.8.5 - October 4th, 2020
 
 * Support replays that contain the difficulty attribute
