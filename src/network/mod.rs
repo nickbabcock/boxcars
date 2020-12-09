@@ -104,7 +104,7 @@ pub(crate) fn parse<'a>(
                             .cloned()
                             .unwrap_or(AttributeTag::NotImplemented)
                     })
-                    .ok_or_else(|| NetworkError::StreamTooLargeIndex(x.stream_id, x.object_ind))?;
+                    .ok_or(NetworkError::StreamTooLargeIndex(x.stream_id, x.object_ind))?;
                 Ok((
                     StreamId(x.stream_id),
                     ObjectAttribute {
@@ -123,7 +123,7 @@ pub(crate) fn parse<'a>(
         let mut object_name: &str = &*body
             .objects
             .get(cache.object_ind as usize)
-            .ok_or_else(|| NetworkError::ObjectIdOutOfRange(ObjectId(cache.object_ind)))?;
+            .ok_or(NetworkError::ObjectIdOutOfRange(ObjectId(cache.object_ind)))?;
 
         while let Some(parent_name) = PARENT_CLASSES.get(object_name) {
             had_parent = true;
