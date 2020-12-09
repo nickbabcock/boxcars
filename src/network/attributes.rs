@@ -510,7 +510,7 @@ impl AttributeDecoder {
     pub fn decode_byte(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         bits.read_u8()
             .map(Attribute::Byte)
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("Byte"))
+            .ok_or(AttributeError::NotEnoughDataFor("Byte"))
     }
 
     pub fn decode_player_history_key(
@@ -519,7 +519,7 @@ impl AttributeDecoder {
     ) -> Result<Attribute, AttributeError> {
         bits.read_u32_bits(14)
             .map(|x| Attribute::PlayerHistoryKey(x as u16))
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("PlayerHistoryKey"))
+            .ok_or(AttributeError::NotEnoughDataFor("PlayerHistoryKey"))
     }
 
     fn _decode_flagged_byte(&self, bits: &mut BitGet<'_>) -> Option<Attribute> {
@@ -530,13 +530,13 @@ impl AttributeDecoder {
 
     pub fn decode_flagged_byte(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         self._decode_flagged_byte(bits)
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("FlaggedByte"))
+            .ok_or(AttributeError::NotEnoughDataFor("FlaggedByte"))
     }
 
     pub fn decode_boolean(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         bits.read_bit()
             .map(Attribute::Boolean)
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("Boolean"))
+            .ok_or(AttributeError::NotEnoughDataFor("Boolean"))
     }
 
     pub fn _decode_applied_damage(&self, bits: &mut BitGet<'_>) -> Option<AppliedDamage> {
@@ -558,7 +558,7 @@ impl AttributeDecoder {
     ) -> Result<Attribute, AttributeError> {
         self._decode_applied_damage(bits)
             .map(Attribute::AppliedDamage)
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("Applied Damage"))
+            .ok_or(AttributeError::NotEnoughDataFor("Applied Damage"))
     }
 
     fn _decode_damage_state(&self, bits: &mut BitGet<'_>) -> Option<DamageState> {
@@ -581,7 +581,7 @@ impl AttributeDecoder {
     pub fn decode_damage_state(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         self._decode_damage_state(bits)
             .map(Attribute::DamageState)
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("Damage State"))
+            .ok_or(AttributeError::NotEnoughDataFor("Damage State"))
     }
 
     fn _decode_cam_settings(&self, bits: &mut BitGet<'_>) -> Option<CamSettings> {
@@ -612,7 +612,7 @@ impl AttributeDecoder {
         self._decode_cam_settings(bits)
             .map(Box::new)
             .map(Attribute::CamSettings)
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("Cam Settings"))
+            .ok_or(AttributeError::NotEnoughDataFor("Cam Settings"))
     }
 
     fn _decode_club_colors(&self, bits: &mut BitGet<'_>) -> Option<ClubColors> {
@@ -631,7 +631,7 @@ impl AttributeDecoder {
     pub fn decode_club_colors(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         self._decode_club_colors(bits)
             .map(Attribute::ClubColors)
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("Club Colors"))
+            .ok_or(AttributeError::NotEnoughDataFor("Club Colors"))
     }
 
     fn _decode_demolish(&self, bits: &mut BitGet<'_>) -> Option<Demolish> {
@@ -655,7 +655,7 @@ impl AttributeDecoder {
         self._decode_demolish(bits)
             .map(Box::new)
             .map(Attribute::Demolish)
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("Demolish"))
+            .ok_or(AttributeError::NotEnoughDataFor("Demolish"))
     }
 
     pub fn _decode_demolish_fx(&self, bits: &mut BitGet<'_>) -> Option<DemolishFx> {
@@ -684,19 +684,19 @@ impl AttributeDecoder {
         self._decode_demolish_fx(bits)
             .map(Box::new)
             .map(Attribute::DemolishFx)
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("DemolishFx"))
+            .ok_or(AttributeError::NotEnoughDataFor("DemolishFx"))
     }
 
     pub fn decode_enum(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         bits.read_u32_bits(11)
             .map(|x| Attribute::Enum(x as u16))
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("Enum"))
+            .ok_or(AttributeError::NotEnoughDataFor("Enum"))
     }
 
     pub fn decode_explosion(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         decode_explosion(bits, self.version.net_version())
             .map(Attribute::Explosion)
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("Explosion"))
+            .ok_or(AttributeError::NotEnoughDataFor("Explosion"))
     }
 
     fn _decode_stat_event(&self, bits: &mut BitGet<'_>) -> Option<StatEvent> {
@@ -711,7 +711,7 @@ impl AttributeDecoder {
     pub fn decode_stat_event(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         self._decode_stat_event(bits)
             .map(Attribute::StatEvent)
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("Stat Event"))
+            .ok_or(AttributeError::NotEnoughDataFor("Stat Event"))
     }
 
     pub fn decode_rep_stat_title(
@@ -720,17 +720,17 @@ impl AttributeDecoder {
     ) -> Result<Attribute, AttributeError> {
         let unknown = bits
             .read_bit()
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("RepStatTitle"))?;
+            .ok_or(AttributeError::NotEnoughDataFor("RepStatTitle"))?;
         let name = decode_text(bits)?;
         let unknown2 = bits
             .read_bit()
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("RepStatTitle"))?;
+            .ok_or(AttributeError::NotEnoughDataFor("RepStatTitle"))?;
         let index = bits
             .read_u32()
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("RepStatTitle"))?;
+            .ok_or(AttributeError::NotEnoughDataFor("RepStatTitle"))?;
         let value = bits
             .read_u32()
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("RepStatTitle"))?;
+            .ok_or(AttributeError::NotEnoughDataFor("RepStatTitle"))?;
         Ok(Attribute::RepStatTitle(RepStatTitle {
             unknown,
             name,
@@ -757,24 +757,24 @@ impl AttributeDecoder {
     ) -> Result<Attribute, AttributeError> {
         self._decode_extended_explosion(bits)
             .map(Attribute::ExtendedExplosion)
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("Extended Explosion"))
+            .ok_or(AttributeError::NotEnoughDataFor("Extended Explosion"))
     }
 
     pub fn decode_active_actor(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         let active = bits
             .read_bit()
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("Flagged"))?;
+            .ok_or(AttributeError::NotEnoughDataFor("Flagged"))?;
         let actor = bits
             .read_i32()
             .map(ActorId)
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("Flagged"))?;
+            .ok_or(AttributeError::NotEnoughDataFor("Flagged"))?;
         Ok(Attribute::ActiveActor(ActiveActor { active, actor }))
     }
 
     pub fn decode_float(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         bits.read_f32()
             .map(Attribute::Float)
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("Float"))
+            .ok_or(AttributeError::NotEnoughDataFor("Float"))
     }
 
     pub fn decode_game_mode(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
@@ -786,33 +786,32 @@ impl AttributeDecoder {
 
         bits.read_u32_bits(i32::from(init))
             .map(|x| Attribute::GameMode(init, x as u8))
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("Game Mode"))
+            .ok_or(AttributeError::NotEnoughDataFor("Game Mode"))
     }
 
     pub fn decode_int(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         bits.read_i32()
             .map(Attribute::Int)
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("Int"))
+            .ok_or(AttributeError::NotEnoughDataFor("Int"))
     }
 
     pub fn decode_int64(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         bits.read_i64()
             .map(Attribute::Int64)
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("Int64"))
+            .ok_or(AttributeError::NotEnoughDataFor("Int64"))
     }
 
     pub fn decode_loadout(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         decode_loadout(bits)
             .map(Box::new)
             .map(Attribute::Loadout)
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("Loadout"))
+            .ok_or(AttributeError::NotEnoughDataFor("Loadout"))
     }
 
     pub fn decode_team_loadout(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
-        let blue =
-            decode_loadout(bits).ok_or_else(|| AttributeError::NotEnoughDataFor("Team Loadout"))?;
+        let blue = decode_loadout(bits).ok_or(AttributeError::NotEnoughDataFor("Team Loadout"))?;
         let orange =
-            decode_loadout(bits).ok_or_else(|| AttributeError::NotEnoughDataFor("Team Loadout"))?;
+            decode_loadout(bits).ok_or(AttributeError::NotEnoughDataFor("Team Loadout"))?;
         Ok(Attribute::TeamLoadout(Box::new(TeamLoadout {
             blue,
             orange,
@@ -822,7 +821,7 @@ impl AttributeDecoder {
     pub fn decode_location(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         Vector3f::decode(bits, self.version.net_version())
             .map(Attribute::Location)
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("Location"))
+            .ok_or(AttributeError::NotEnoughDataFor("Location"))
     }
 
     fn _decode_music_stinger(&self, bits: &mut BitGet<'_>) -> Option<MusicStinger> {
@@ -835,17 +834,17 @@ impl AttributeDecoder {
     pub fn decode_music_stinger(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         self._decode_music_stinger(bits)
             .map(Attribute::MusicStinger)
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("Music Stinger"))
+            .ok_or(AttributeError::NotEnoughDataFor("Music Stinger"))
     }
 
     pub fn decode_pickup(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         let instigator = bits
             .if_get(BitGet::read_i32)
             .map(|x| x.map(ActorId))
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("Pickup"))?;
+            .ok_or(AttributeError::NotEnoughDataFor("Pickup"))?;
         let picked_up = bits
             .read_bit()
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("Pickup"))?;
+            .ok_or(AttributeError::NotEnoughDataFor("Pickup"))?;
         Ok(Attribute::Pickup(Pickup {
             instigator,
             picked_up,
@@ -856,10 +855,10 @@ impl AttributeDecoder {
         let instigator = bits
             .if_get(BitGet::read_i32)
             .map(|x| x.map(ActorId))
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("PickupNew"))?;
+            .ok_or(AttributeError::NotEnoughDataFor("PickupNew"))?;
         let picked_up = bits
             .read_u8()
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("PickupNew"))?;
+            .ok_or(AttributeError::NotEnoughDataFor("PickupNew"))?;
         Ok(Attribute::PickupNew(PickupNew {
             instigator,
             picked_up,
@@ -869,7 +868,7 @@ impl AttributeDecoder {
     pub fn decode_qword(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         bits.read_u64()
             .map(Attribute::QWord)
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("QWord"))
+            .ok_or(AttributeError::NotEnoughDataFor("QWord"))
     }
 
     fn _decode_welded(&self, bits: &mut BitGet<'_>) -> Option<Welded> {
@@ -890,12 +889,11 @@ impl AttributeDecoder {
     pub fn decode_welded(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         self._decode_welded(bits)
             .map(Attribute::Welded)
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("Welded"))
+            .ok_or(AttributeError::NotEnoughDataFor("Welded"))
     }
 
     pub fn decode_rotation(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
-        let rot =
-            Rotation::decode(bits).ok_or_else(|| AttributeError::NotEnoughDataFor("Rotation"))?;
+        let rot = Rotation::decode(bits).ok_or(AttributeError::NotEnoughDataFor("Rotation"))?;
         Ok(Attribute::Rotation(rot))
     }
 
@@ -914,7 +912,7 @@ impl AttributeDecoder {
     }
     pub fn decode_title(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         self._decode_title(bits)
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("Title"))
+            .ok_or(AttributeError::NotEnoughDataFor("Title"))
     }
 
     fn _decode_team_paint(&self, bits: &mut BitGet<'_>) -> Option<TeamPaint> {
@@ -936,7 +934,7 @@ impl AttributeDecoder {
     pub fn decode_team_paint(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         self._decode_team_paint(bits)
             .map(Attribute::TeamPaint)
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("Team Paint"))
+            .ok_or(AttributeError::NotEnoughDataFor("Team Paint"))
     }
 
     fn _decode_rigid_body(&self, bits: &mut BitGet<'_>) -> Option<RigidBody> {
@@ -969,7 +967,7 @@ impl AttributeDecoder {
     pub fn decode_rigid_body(&self, bits: &mut BitGet<'_>) -> Result<Attribute, AttributeError> {
         self._decode_rigid_body(bits)
             .map(Attribute::RigidBody)
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("Rigid Body"))
+            .ok_or(AttributeError::NotEnoughDataFor("Rigid Body"))
     }
 
     pub fn decode_not_implemented(
@@ -1057,7 +1055,7 @@ impl AttributeDecoder {
     ) -> Result<Attribute, AttributeError> {
         self.inner_decode_online_loadout(bits)
             .map(Attribute::LoadoutOnline)
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("Loadout Online"))
+            .ok_or(AttributeError::NotEnoughDataFor("Loadout Online"))
     }
 
     fn _decode_loadouts_online(&self, bits: &mut BitGet<'_>) -> Option<LoadoutsOnline> {
@@ -1079,7 +1077,7 @@ impl AttributeDecoder {
     ) -> Result<Attribute, AttributeError> {
         self._decode_loadouts_online(bits)
             .map(Attribute::LoadoutsOnline)
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("Loadouts online"))
+            .ok_or(AttributeError::NotEnoughDataFor("Loadouts online"))
     }
 
     fn decode_product(&self, bits: &mut BitGet<'_>) -> Option<Product> {
@@ -1135,7 +1133,7 @@ fn decode_text(bits: &mut BitGet<'_>) -> Result<String, AttributeError> {
 
     let size = bits
         .read_i32()
-        .ok_or_else(|| AttributeError::NotEnoughDataFor("text string"))?;
+        .ok_or(AttributeError::NotEnoughDataFor("text string"))?;
 
     // A zero length string for attributes is fine (this differs from the replay header where we
     // never see zero length strings)
@@ -1143,16 +1141,16 @@ fn decode_text(bits: &mut BitGet<'_>) -> Result<String, AttributeError> {
         Ordering::Equal => Ok(String::from("")),
         Ordering::Less => size
             .checked_mul(-2)
-            .ok_or_else(|| AttributeError::TooBigString(size))
+            .ok_or(AttributeError::TooBigString(size))
             .and_then(|len| {
                 bits.read_bytes(len)
                     .and_then(|data| decode_utf16(&data[..]).ok())
-                    .ok_or_else(|| AttributeError::TooBigString(len))
+                    .ok_or(AttributeError::TooBigString(len))
             }),
         Ordering::Greater => bits
             .read_bytes(size)
             .and_then(|data| decode_windows1252(&data[..]).ok())
-            .ok_or_else(|| AttributeError::TooBigString(size)),
+            .ok_or(AttributeError::TooBigString(size)),
     }
 }
 
@@ -1225,7 +1223,7 @@ fn decode_loadout(bits: &mut BitGet<'_>) -> Option<Loadout> {
 fn decode_unique_id(bits: &mut BitGet<'_>, net_version: i32) -> Result<UniqueId, AttributeError> {
     let system_id = bits
         .read_u8()
-        .ok_or_else(|| AttributeError::NotEnoughDataFor("System id"))?;
+        .ok_or(AttributeError::NotEnoughDataFor("System id"))?;
     decode_unique_id_with_system_id(bits, net_version, system_id)
 }
 
@@ -1237,16 +1235,16 @@ fn decode_unique_id_with_system_id(
     let remote_id = match system_id {
         0 => bits
             .read_u32_bits(24)
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("SplitScreen"))
+            .ok_or(AttributeError::NotEnoughDataFor("SplitScreen"))
             .map(RemoteId::SplitScreen),
         1 => bits
             .read_u64()
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("Steam"))
+            .ok_or(AttributeError::NotEnoughDataFor("Steam"))
             .map(RemoteId::Steam),
         2 => {
             let name_bytes = bits
                 .read_bytes(16)
-                .ok_or_else(|| AttributeError::NotEnoughDataFor("PS4 Name"))?
+                .ok_or(AttributeError::NotEnoughDataFor("PS4 Name"))?
                 .iter()
                 .take_while(|&&x| x != 0)
                 .cloned()
@@ -1257,12 +1255,12 @@ fn decode_unique_id_with_system_id(
 
             let unknown1 = bits
                 .read_bytes(to_read)
-                .ok_or_else(|| AttributeError::NotEnoughDataFor("PS4 Unknown"))
+                .ok_or(AttributeError::NotEnoughDataFor("PS4 Unknown"))
                 .map(Cow::into_owned)?;
 
             let online_id = bits
                 .read_u64()
-                .ok_or_else(|| AttributeError::NotEnoughDataFor("PS4 ID"))?;
+                .ok_or(AttributeError::NotEnoughDataFor("PS4 ID"))?;
 
             Ok(RemoteId::PlayStation(Ps4Id {
                 name: name.to_string(),
@@ -1272,20 +1270,20 @@ fn decode_unique_id_with_system_id(
         }
         4 => bits
             .read_u64()
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("Xbox"))
+            .ok_or(AttributeError::NotEnoughDataFor("Xbox"))
             .map(RemoteId::Xbox),
         5 => bits
             .read_u64()
-            .ok_or_else(|| AttributeError::NotEnoughDataFor("QQ ID"))
+            .ok_or(AttributeError::NotEnoughDataFor("QQ ID"))
             .map(RemoteId::QQ),
         6 => {
             let online_id = bits
                 .read_u64()
-                .ok_or_else(|| AttributeError::NotEnoughDataFor("Switch ID"))?;
+                .ok_or(AttributeError::NotEnoughDataFor("Switch ID"))?;
 
             let unknown1 = bits
                 .read_bytes(24)
-                .ok_or_else(|| AttributeError::NotEnoughDataFor("Switch ID Unknown"))
+                .ok_or(AttributeError::NotEnoughDataFor("Switch ID Unknown"))
                 .map(Cow::into_owned)?;
 
             Ok(RemoteId::Switch(SwitchId {
@@ -1296,12 +1294,12 @@ fn decode_unique_id_with_system_id(
         7 => {
             let online_id = bits
                 .read_u64()
-                .ok_or_else(|| AttributeError::NotEnoughDataFor("PsyNet ID"))?;
+                .ok_or(AttributeError::NotEnoughDataFor("PsyNet ID"))?;
 
             if net_version < 10 {
                 let unknown1 = bits
                     .read_bytes(24)
-                    .ok_or_else(|| AttributeError::NotEnoughDataFor("PsyNet ID Unknown"))
+                    .ok_or(AttributeError::NotEnoughDataFor("PsyNet ID Unknown"))
                     .map(Cow::into_owned)?;
 
                 Ok(RemoteId::PsyNet(PsyNetId {
@@ -1321,7 +1319,7 @@ fn decode_unique_id_with_system_id(
 
     let local_id = bits
         .read_u8()
-        .ok_or_else(|| AttributeError::NotEnoughDataFor("UniqueId local_id"))?;
+        .ok_or(AttributeError::NotEnoughDataFor("UniqueId local_id"))?;
 
     Ok(UniqueId {
         system_id,

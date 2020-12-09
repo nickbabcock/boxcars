@@ -38,24 +38,24 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
         if self.version >= VersionTriplet(868, 14, 0) && !self.is_lan {
             name_id = bits
                 .read_i32()
-                .ok_or_else(|| FrameError::NotEnoughDataFor(component))
+                .ok_or(FrameError::NotEnoughDataFor(component))
                 .map(Some)?;
         }
 
         let _ = bits
             .read_bit()
-            .ok_or_else(|| FrameError::NotEnoughDataFor(component))?;
+            .ok_or(FrameError::NotEnoughDataFor(component))?;
         let object_id = bits
             .read_i32()
             .map(ObjectId)
-            .ok_or_else(|| FrameError::NotEnoughDataFor(component))?;
+            .ok_or(FrameError::NotEnoughDataFor(component))?;
         let spawn = self
             .spawns
             .get(usize::from(object_id))
-            .ok_or_else(|| FrameError::ObjectIdOutOfRange { obj: object_id })?;
+            .ok_or(FrameError::ObjectIdOutOfRange { obj: object_id })?;
 
         let traj = Trajectory::from_spawn(&mut bits, *spawn, self.version.net_version())
-            .ok_or_else(|| FrameError::NotEnoughDataFor(component))?;
+            .ok_or(FrameError::NotEnoughDataFor(component))?;
         Ok(NewActor {
             actor_id,
             name_id,
@@ -75,7 +75,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
     ) -> Result<DecodedFrame, FrameError> {
         let time = bits
             .read_f32()
-            .ok_or_else(|| FrameError::NotEnoughDataFor("Time"))?;
+            .ok_or(FrameError::NotEnoughDataFor("Time"))?;
 
         if time < 0.0 || (time > 0.0 && time < 1e-10) {
             return Err(FrameError::TimeOutOfRange { time });
@@ -83,7 +83,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
 
         let delta = bits
             .read_f32()
-            .ok_or_else(|| FrameError::NotEnoughDataFor("Delta"))?;
+            .ok_or(FrameError::NotEnoughDataFor("Delta"))?;
 
         if delta < 0.0 || (delta > 0.0 && delta < 1e-10) {
             return Err(FrameError::DeltaOutOfRange { delta });
@@ -95,22 +95,22 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
 
         while bits
             .read_bit()
-            .ok_or_else(|| FrameError::NotEnoughDataFor("Actor data"))?
+            .ok_or(FrameError::NotEnoughDataFor("Actor data"))?
         {
             let actor_id = bits
                 .read_bits_max_computed(self.channel_bits, self.max_channels)
                 .map(|x| ActorId(x as i32))
-                .ok_or_else(|| FrameError::NotEnoughDataFor("Actor Id"))?;
+                .ok_or(FrameError::NotEnoughDataFor("Actor Id"))?;
 
             // alive
             if bits
                 .read_bit()
-                .ok_or_else(|| FrameError::NotEnoughDataFor("Is actor alive"))?
+                .ok_or(FrameError::NotEnoughDataFor("Is actor alive"))?
             {
                 // new
                 if bits
                     .read_bit()
-                    .ok_or_else(|| FrameError::NotEnoughDataFor("Is new actor"))?
+                    .ok_or(FrameError::NotEnoughDataFor("Is new actor"))?
                 {
                     let actor = self.parse_new_actor(&mut bits, actor_id)?;
 
@@ -124,7 +124,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                     // to track down what the actor's type is
                     let object_id = actors
                         .get(&actor_id)
-                        .ok_or_else(|| FrameError::MissingActor { actor: actor_id })?;
+                        .ok_or(FrameError::MissingActor { actor: actor_id })?;
 
                     // Once we have the type we need to look up what attributes are
                     // available for said type
@@ -139,7 +139,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                     // While there are more attributes to update for our actor:
                     while bits
                         .read_bit()
-                        .ok_or_else(|| FrameError::NotEnoughDataFor("Is prop present"))?
+                        .ok_or(FrameError::NotEnoughDataFor("Is prop present"))?
                     {
                         // We've previously calculated the max the stream id can be for a
                         // given type and how many bits that it encompasses so use those
@@ -147,7 +147,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                         let stream_id = bits
                             .read_bits_max_computed(cache_info.prop_id_bits, cache_info.max_prop_id)
                             .map(|x| StreamId(x as i32))
-                            .ok_or_else(|| FrameError::NotEnoughDataFor("Prop id"))?;
+                            .ok_or(FrameError::NotEnoughDataFor("Prop id"))?;
 
                         // Look the stream id up and find the corresponding attribute
                         // decoding function. Experience has told me replays that fail to
@@ -254,7 +254,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
 
         if self.version >= VersionTriplet(868, 24, 10) {
             bits.read_u32()
-                .ok_or_else(|| NetworkError::NotEnoughDataFor("Trailer"))?;
+                .ok_or(NetworkError::NotEnoughDataFor("Trailer"))?;
         }
 
         Ok(frames)

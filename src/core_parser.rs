@@ -104,7 +104,7 @@ impl<'a> CoreParser<'a> {
         // really the `\0\0\0None` property. I'm guess at some point in Rocket League, this was a
         // bug that was fixed. What's interesting is that I couldn't find this constant in
         // `RocketLeagueReplayParser`, only rattletrap.
-        if size == 0x5_000_000 {
+        if size == 0x0500_0000 {
             size = 8;
         }
         self.take_data(size).and_then(decode_str)
