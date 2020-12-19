@@ -29,17 +29,17 @@ use std::fs;
 use std::io::{self, Read};
 
 fn parse_rl(data: &[u8]) -> Result<Replay, ParseError> {
-boxcars::ParserBuilder::new(data)
-.must_parse_network_data()
-.parse()
+    boxcars::ParserBuilder::new(data)
+        .must_parse_network_data()
+        .parse()
 }
 
 fn run(filename: &str) -> Result<(), Box<dyn error::Error>> {
-let filename = "assets/replays/good/rumble.replay";
-let buffer = fs::read(filename)?;
-let replay = parse_rl(&buffer)?;
-serde_json::to_writer(&mut io::stdout(), &replay)?;
-Ok(())
+    let filename = "assets/replays/good/rumble.replay";
+    let buffer = fs::read(filename)?;
+    let replay = parse_rl(&buffer)?;
+    serde_json::to_writer(&mut io::stdout(), &replay)?;
+    Ok(())
 }
 ```
 
