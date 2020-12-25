@@ -1,3 +1,7 @@
+# v0.8.7 - December 12th, 2020
+
+* Support additional LAN / RLCS replays
+
 # v0.8.6 - December 12th, 2020
 
 * Support replays that contain the rumble pickup attribute
