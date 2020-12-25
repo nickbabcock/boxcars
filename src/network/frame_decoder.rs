@@ -35,7 +35,9 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
     ) -> Result<NewActor, FrameError> {
         let component = "New Actor";
         let mut name_id = None;
-        if self.version >= VersionTriplet(868, 14, 0) && !self.is_lan {
+        let do_parse_name = self.version >= VersionTriplet(868, 20, 0)
+            || (self.version >= VersionTriplet(868, 14, 0) && !self.is_lan);
+        if do_parse_name {
             name_id = bits
                 .read_i32()
                 .ok_or(FrameError::NotEnoughDataFor(component))
