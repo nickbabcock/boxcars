@@ -255,8 +255,8 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
         }
 
         if self.version >= VersionTriplet(868, 24, 10) {
-            bits.read_u32()
-                .ok_or(NetworkError::NotEnoughDataFor("Trailer"))?;
+            // Some qualifying replays are missing trailer (eg: 00bb.replay)
+            let _ = bits.read_u32();
         }
 
         Ok(frames)
