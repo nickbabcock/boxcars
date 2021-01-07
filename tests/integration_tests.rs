@@ -87,3 +87,4 @@ frame_len_test!(test_tourny_replay, "../assets/replays/good/tourny.replay", 1027
 frame_len_test!(test_difficulty_replay, "../assets/replays/good/difficulty.replay", 3897);
 frame_len_test!(test_rumble_pickup_replay, "../assets/replays/good/140a5.replay", 9082);
 frame_len_test!(test_rlcs2_replay, "../assets/replays/good/rlcs2.replay", 10664);
+frame_len_test!(test_00bb_replay, "../assets/replays/good/00bb.replay", 8175);
