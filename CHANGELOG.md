@@ -1,8 +1,12 @@
-# v0.8.7 - December 12th, 2020
+# v0.8.8 - January 7th, 2020
+
+* Allow missing trailers on replays instead of erroring as trailers are unused and not exposed
+
+# v0.8.7 - December 24th, 2020
 
 * Support additional LAN / RLCS replays
 
-# v0.8.6 - December 12th, 2020
+# v0.8.6 - December 8th, 2020
 
 * Support replays that contain the rumble pickup attribute
 
