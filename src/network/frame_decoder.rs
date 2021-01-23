@@ -1,4 +1,4 @@
-use bitter::BitGet;
+use bitter::{BitReader, LittleEndianReader};
 use fnv::FnvHashMap;
 
 use crate::errors::{AttributeError, FrameContext, FrameError, NetworkError};
@@ -30,7 +30,7 @@ enum DecodedFrame {
 impl<'a, 'b> FrameDecoder<'a, 'b> {
     fn parse_new_actor(
         &self,
-        mut bits: &mut BitGet<'_>,
+        mut bits: &mut LittleEndianReader<'_>,
         actor_id: ActorId,
     ) -> Result<NewActor, FrameError> {
         let component = "New Actor";
@@ -69,7 +69,8 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
     fn decode_frame(
         &self,
         attr_decoder: &AttributeDecoder,
-        mut bits: &mut BitGet<'_>,
+        mut bits: &mut LittleEndianReader<'_>,
+        buf: &mut [u8],
         actors: &mut FnvHashMap<ActorId, ObjectId>,
         new_actors: &mut Vec<NewActor>,
         deleted_actors: &mut Vec<ActorId>,
@@ -100,7 +101,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
             .ok_or(FrameError::NotEnoughDataFor("Actor data"))?
         {
             let actor_id = bits
-                .read_bits_max_computed(self.channel_bits, self.max_channels)
+                .read_bits_max_computed(self.channel_bits, u64::from(self.max_channels))
                 .map(|x| ActorId(x as i32))
                 .ok_or(FrameError::NotEnoughDataFor("Actor Id"))?;
 
@@ -147,7 +148,10 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                         // given type and how many bits that it encompasses so use those
                         // values now
                         let stream_id = bits
-                            .read_bits_max_computed(cache_info.prop_id_bits, cache_info.max_prop_id)
+                            .read_bits_max_computed(
+                                cache_info.prop_id_bits,
+                                u64::from(cache_info.max_prop_id),
+                            )
                             .map(|x| StreamId(x as i32))
                             .ok_or(FrameError::NotEnoughDataFor("Prop id"))?;
 
@@ -163,8 +167,9 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                             }
                         })?;
 
-                        let attribute = attr_decoder.decode(attr.attribute, &mut bits).map_err(
-                            |e| match e {
+                        let attribute = attr_decoder
+                            .decode(attr.attribute, &mut bits, buf)
+                            .map_err(|e| match e {
                                 AttributeError::Unimplemented => FrameError::MissingAttribute {
                                     actor: actor_id,
                                     actor_object: *object_id,
@@ -176,8 +181,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                                     attribute_stream: stream_id,
                                     error: e,
                                 },
-                            },
-                        )?;
+                            })?;
 
                         updated_actors.push(UpdatedAttribute {
                             actor_id,
@@ -206,16 +210,18 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
         let attr_decoder = AttributeDecoder::new(self.version, self.product_decoder);
         let mut frames: Vec<Frame> = Vec::with_capacity(self.frames_len);
         let mut actors = FnvHashMap::default();
-        let mut bits = BitGet::new(self.body.network_data);
+        let mut bits = LittleEndianReader::new(self.body.network_data);
         let mut new_actors = Vec::new();
         let mut updated_actors = Vec::new();
         let mut deleted_actors = Vec::new();
+        let mut buf = [0u8; 1024];
 
         while !bits.is_empty() && frames.len() < self.frames_len {
             let frame = self
                 .decode_frame(
                     &attr_decoder,
                     &mut bits,
+                    &mut buf,
                     &mut actors,
                     &mut new_actors,
                     &mut deleted_actors,
