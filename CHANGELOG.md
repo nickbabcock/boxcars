@@ -1,3 +1,7 @@
+# v0.8.9 - January 24th, 2021
+
+No changes in behavior, bump `bitter` internal dependency to latest
+
 # v0.8.8 - January 7th, 2021
 
 * Allow missing trailers on replays instead of erroring as trailers are unused and not exposed
