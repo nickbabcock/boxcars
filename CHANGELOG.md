@@ -1,3 +1,7 @@
+# v0.8.10 - February 7th, 2021
+
+- Support gridiron replays
+
 # v0.8.9 - January 24th, 2021
 
 No changes in behavior, bump `bitter` internal dependency to latest
