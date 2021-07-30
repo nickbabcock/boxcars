@@ -9,7 +9,7 @@
 /// rocket league replay parsers (like Octane) using JSON; however, the output of this library is
 /// not compatible with that of other rocket league replay parsers.
 use crate::network::Frame;
-use serde::ser::{SerializeMap, SerializeSeq};
+use serde::ser::{SerializeMap, SerializeSeq, SerializeStruct};
 use serde::{Serialize, Serializer};
 use std::collections::HashMap;
 
@@ -81,7 +81,7 @@ pub struct KeyFrame {
 pub enum HeaderProp {
     Array(Vec<Vec<(String, HeaderProp)>>),
     Bool(bool),
-    Byte,
+    Byte { kind: String, value: Option<String> },
     Float(f32),
     Int(i32),
     Name(String),
@@ -94,7 +94,7 @@ impl HeaderProp {
     /// ```
     /// # use boxcars::HeaderProp;
     /// let v = HeaderProp::Array(vec![
-    ///     vec![("abc".to_string(), HeaderProp::Byte)]
+    ///     vec![("abc".to_string(), HeaderProp::QWord(10))]
     /// ]);
     ///
     /// assert_eq!(v.as_array().unwrap().len(), 1);
@@ -112,7 +112,7 @@ impl HeaderProp {
     /// ```
     /// # use boxcars::HeaderProp;
     /// let v = HeaderProp::Bool(true);
-    /// let b = HeaderProp::Byte;
+    /// let b = HeaderProp::QWord(10);
     ///
     /// assert_eq!(v.as_bool(), Some(true));
     /// assert_eq!(b.as_bool(), None);
@@ -129,7 +129,7 @@ impl HeaderProp {
     /// ```
     /// # use boxcars::HeaderProp;
     /// let v = HeaderProp::Float(2.50);
-    /// let b = HeaderProp::Byte;
+    /// let b = HeaderProp::QWord(10);
     ///
     /// assert_eq!(v.as_float(), Some(2.50));
     /// assert_eq!(b.as_float(), None);
@@ -146,7 +146,7 @@ impl HeaderProp {
     /// ```
     /// # use boxcars::HeaderProp;
     /// let v = HeaderProp::QWord(250);
-    /// let b = HeaderProp::Byte;
+    /// let b = HeaderProp::Bool(true);
     ///
     /// assert_eq!(v.as_u64(), Some(250));
     /// assert_eq!(b.as_u64(), None);
@@ -163,7 +163,7 @@ impl HeaderProp {
     /// ```
     /// # use boxcars::HeaderProp;
     /// let v = HeaderProp::Int(-250);
-    /// let b = HeaderProp::Byte;
+    /// let b = HeaderProp::Bool(true);
     ///
     /// assert_eq!(v.as_i32(), Some(-250));
     /// assert_eq!(b.as_i32(), None);
@@ -181,7 +181,7 @@ impl HeaderProp {
     /// # use boxcars::HeaderProp;
     /// let v = HeaderProp::Name("abc".to_string());
     /// let x = HeaderProp::Str("def".to_string());
-    /// let b = HeaderProp::Byte;
+    /// let b = HeaderProp::QWord(10);
     ///
     /// assert_eq!(v.as_string(), Some("abc"));
     /// assert_eq!(x.as_string(), Some("def"));
@@ -199,13 +199,16 @@ impl HeaderProp {
     /// ```
     /// # use boxcars::HeaderProp;
     /// let v = HeaderProp::Name("abc".to_string());
-    /// let b = HeaderProp::Byte;
+    /// let b = HeaderProp::Byte {
+    ///     kind: String::from("OnlinePlatform"),
+    ///     value: None,   
+    /// };
     ///
     /// assert_eq!(v.is_byte(), false);
     /// assert_eq!(b.is_byte(), true);
     /// ```
     pub fn is_byte(&self) -> bool {
-        if let HeaderProp::Byte = self {
+        if let HeaderProp::Byte { .. } = self {
             true
         } else {
             false
@@ -302,7 +305,15 @@ impl Serialize for HeaderProp {
                 state.end()
             }
             HeaderProp::Bool(ref x) => serializer.serialize_bool(*x),
-            HeaderProp::Byte => serializer.serialize_u8(0),
+            HeaderProp::Byte {
+                ref kind,
+                ref value,
+            } => {
+                let mut byte = serializer.serialize_struct("Byte", 2)?;
+                byte.serialize_field("kind", kind)?;
+                byte.serialize_field("value", value)?;
+                byte.end()
+            }
             HeaderProp::Float(ref x) => serializer.serialize_f32(*x),
             HeaderProp::Int(ref x) => serializer.serialize_i32(*x),
             HeaderProp::QWord(ref x) => serializer.collect_str(x),
@@ -352,7 +363,13 @@ mod tests {
 
     #[test]
     fn serialize_header_numbers() {
-        assert_eq!(to_json(&HeaderProp::Byte), "0");
+        assert_eq!(
+            to_json(&HeaderProp::Byte {
+                kind: String::from("a"),
+                value: Some(String::from("B"))
+            }),
+            r#"{"kind":"a","value":"B"}"#
+        );
         assert_eq!(to_json(&HeaderProp::QWord(10)), "\"10\"");
         assert_eq!(to_json(&HeaderProp::Float(10.2)), "10.2");
         assert_eq!(to_json(&HeaderProp::Int(11)), "11");
