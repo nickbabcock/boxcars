@@ -13,7 +13,7 @@ macro_rules! frame_len_test {
 
             match parsing {
                 Ok(replay) => assert_eq!(replay.network_frames.unwrap().frames.len(), $frame_len),
-                Err(ref e) => panic!(format!("{}", e)),
+                Err(ref e) => panic!("{}", e),
             }
         }
     };
