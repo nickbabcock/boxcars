@@ -111,12 +111,15 @@ where
 }
 
 fn byte_property(rlp: &mut CoreParser) -> Result<HeaderProp, ParseError> {
-    // It's unknown (to me at least) why the byte property has two strings in it.
-    match rlp.parse_str()? {
-        "OnlinePlatform_Steam" | "OnlinePlatform_PS4" => Ok(()),
-        _ => rlp.parse_str().map(|_| ()),
+    let kind = rlp.parse_str()?;
+    let value = match kind {
+        "OnlinePlatform_Steam" | "OnlinePlatform_PS4" => Ok(None),
+        _ => rlp.parse_str().map(Some),
     }?;
-    Ok(HeaderProp::Byte)
+    Ok(HeaderProp::Byte {
+        kind: String::from(kind),
+        value: value.map(String::from),
+    })
 }
 
 fn str_property(rlp: &mut CoreParser) -> Result<HeaderProp, ParseError> {
@@ -332,7 +335,16 @@ mod tests {
         ));
         let mut parser = CoreParser::new(&data[..]);
         let res = parse_rdict(&mut parser).unwrap();
-        assert_eq!(res, vec![(String::from("Platform"), HeaderProp::Byte)]);
+        assert_eq!(
+            res,
+            vec![(
+                String::from("Platform"),
+                HeaderProp::Byte {
+                    kind: String::from("OnlinePlatform"),
+                    value: Some(String::from("OnlinePlatform_Steam")),
+                }
+            )]
+        );
     }
 
     #[test]
