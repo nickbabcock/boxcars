@@ -208,11 +208,7 @@ impl HeaderProp {
     /// assert_eq!(b.is_byte(), true);
     /// ```
     pub fn is_byte(&self) -> bool {
-        if let HeaderProp::Byte { .. } = self {
-            true
-        } else {
-            false
-        }
+        matches!(self, HeaderProp::Byte { .. })
     }
 }
 
