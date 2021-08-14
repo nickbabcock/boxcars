@@ -1,3 +1,8 @@
+# v0.9.1 - August 13th, 2021
+
+- Support parsing rocket league v2.01 replays
+- Derive `Hash` for `UniqueId` and `RemoteId` 
+
 # v0.9.0 - July 30th, 2021
 
 - `HeaderProp::Byte` now exposes parsed fields (breaking change for those who operate on this enum. This is in contrast to breaking changes in network attributes introduced in patch versions, as updating network attributes are needed to parse latest RL replays and should be considered routine).
