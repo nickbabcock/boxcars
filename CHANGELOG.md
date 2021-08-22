@@ -1,3 +1,7 @@
+# v0.9.2 - August 21th, 2021
+
+- Additional support for recent rumble replays
+
 # v0.9.1 - August 13th, 2021
 
 - Support parsing rocket league v2.01 replays
