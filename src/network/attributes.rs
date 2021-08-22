@@ -47,6 +47,7 @@ pub(crate) enum AttributeTag {
     StatEvent,
     RotationTag,
     RepStatTitle,
+    PickupInfo,
 }
 
 /// The attributes for updated actors in the network data.
@@ -99,6 +100,7 @@ pub enum Attribute {
     StatEvent(StatEvent),
     Rotation(Rotation),
     RepStatTitle(RepStatTitle),
+    PickupInfo(PickupInfo),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -370,6 +372,15 @@ pub struct RepStatTitle {
     pub value: u32,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct PickupInfo {
+    pub active: bool,
+    pub actor: ActorId,
+    pub items_are_preview: bool,
+    pub unknown: bool,
+    pub unknown2: bool,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct ProductValueDecoder {
     version: VersionTriplet,
@@ -523,6 +534,7 @@ impl AttributeDecoder {
             AttributeTag::StatEvent => self.decode_stat_event(bits),
             AttributeTag::RotationTag => self.decode_rotation(bits),
             AttributeTag::RepStatTitle => self.decode_rep_stat_title(bits, buf),
+            AttributeTag::PickupInfo => self.decode_pickup_info(bits),
         }
     }
 
@@ -795,6 +807,37 @@ impl AttributeDecoder {
             unknown2,
             index,
             value,
+        }))
+    }
+
+    pub fn decode_pickup_info(
+        &self,
+        bits: &mut LittleEndianReader<'_>,
+    ) -> Result<Attribute, AttributeError> {
+        let active = bits
+            .read_bit()
+            .ok_or(AttributeError::NotEnoughDataFor("PickupInfo"))?;
+        let actor = bits
+            .read_i32()
+            .map(ActorId)
+            .ok_or(AttributeError::NotEnoughDataFor("PickupInfo"))?;
+
+        let items_are_preview = bits
+            .read_bit()
+            .ok_or(AttributeError::NotEnoughDataFor("PickupInfo"))?;
+        let unknown = bits
+            .read_bit()
+            .ok_or(AttributeError::NotEnoughDataFor("PickupInfo"))?;
+        let unknown2 = bits
+            .read_bit()
+            .ok_or(AttributeError::NotEnoughDataFor("PickupInfo"))?;
+
+        Ok(Attribute::PickupInfo(PickupInfo {
+            active,
+            actor,
+            items_are_preview,
+            unknown,
+            unknown2,
         }))
     }
 
