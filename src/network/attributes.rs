@@ -558,8 +558,8 @@ impl AttributeDecoder {
     }
 
     fn _decode_flagged_byte(&self, bits: &mut LittleEndianReader<'_>) -> Option<Attribute> {
-        let b = get!(bits.read_bit());
-        let data = get!(bits.read_u8());
+        let b = bits.read_bit()?;
+        let data = bits.read_u8()?;
         Some(Attribute::FlaggedByte(b, data))
     }
 
@@ -584,10 +584,10 @@ impl AttributeDecoder {
         &self,
         bits: &mut LittleEndianReader<'_>,
     ) -> Option<AppliedDamage> {
-        let id = get!(bits.read_u8());
-        let position = get!(Vector3f::decode(bits, self.version.net_version()));
-        let damage_index = get!(bits.read_i32());
-        let total_damage = get!(bits.read_i32());
+        let id = bits.read_u8()?;
+        let position = Vector3f::decode(bits, self.version.net_version())?;
+        let damage_index = bits.read_i32()?;
+        let total_damage = bits.read_i32()?;
         Some(AppliedDamage {
             id,
             position,
@@ -606,12 +606,12 @@ impl AttributeDecoder {
     }
 
     fn _decode_damage_state(&self, bits: &mut LittleEndianReader<'_>) -> Option<DamageState> {
-        let tile_state = get!(bits.read_u8());
-        let damaged = get!(bits.read_bit());
-        let offender = get!(bits.read_i32().map(ActorId));
-        let ball_position = get!(Vector3f::decode(bits, self.version.net_version()));
-        let direct_hit = get!(bits.read_bit());
-        let unknown1 = get!(bits.read_bit());
+        let tile_state = bits.read_u8()?;
+        let damaged = bits.read_bit()?;
+        let offender = bits.read_i32().map(ActorId)?;
+        let ball_position = Vector3f::decode(bits, self.version.net_version())?;
+        let direct_hit = bits.read_bit()?;
+        let unknown1 = bits.read_bit()?;
         Some(DamageState {
             tile_state,
             damaged,
@@ -632,14 +632,14 @@ impl AttributeDecoder {
     }
 
     fn _decode_cam_settings(&self, bits: &mut LittleEndianReader<'_>) -> Option<CamSettings> {
-        let fov = get!(bits.read_f32());
-        let height = get!(bits.read_f32());
-        let angle = get!(bits.read_f32());
-        let distance = get!(bits.read_f32());
-        let stiffness = get!(bits.read_f32());
-        let swivel = get!(bits.read_f32());
+        let fov = bits.read_f32()?;
+        let height = bits.read_f32()?;
+        let angle = bits.read_f32()?;
+        let distance = bits.read_f32()?;
+        let stiffness = bits.read_f32()?;
+        let swivel = bits.read_f32()?;
         let transition = if self.version >= VersionTriplet(868, 20, 0) {
-            Some(get!(bits.read_f32()))
+            Some(bits.read_f32()?)
         } else {
             None
         };
@@ -666,10 +666,10 @@ impl AttributeDecoder {
     }
 
     fn _decode_club_colors(&self, bits: &mut LittleEndianReader<'_>) -> Option<ClubColors> {
-        let blue_flag = get!(bits.read_bit());
-        let blue_color = get!(bits.read_u8());
-        let orange_flag = get!(bits.read_bit());
-        let orange_color = get!(bits.read_u8());
+        let blue_flag = bits.read_bit()?;
+        let blue_color = bits.read_u8()?;
+        let orange_flag = bits.read_bit()?;
+        let orange_color = bits.read_u8()?;
         Some(ClubColors {
             blue_flag,
             blue_color,
@@ -688,12 +688,12 @@ impl AttributeDecoder {
     }
 
     fn _decode_demolish(&self, bits: &mut LittleEndianReader<'_>) -> Option<Demolish> {
-        let attacker_flag = get!(bits.read_bit());
-        let attacker = get!(bits.read_i32().map(ActorId));
-        let victim_flag = get!(bits.read_bit());
-        let victim = get!(bits.read_i32().map(ActorId));
-        let attack_velocity = get!(Vector3f::decode(bits, self.version.net_version()));
-        let victim_velocity = get!(Vector3f::decode(bits, self.version.net_version()));
+        let attacker_flag = bits.read_bit()?;
+        let attacker = bits.read_i32().map(ActorId)?;
+        let victim_flag = bits.read_bit()?;
+        let victim = bits.read_i32().map(ActorId)?;
+        let attack_velocity = Vector3f::decode(bits, self.version.net_version())?;
+        let victim_velocity = Vector3f::decode(bits, self.version.net_version())?;
         Some(Demolish {
             attacker_flag,
             attacker,
@@ -715,14 +715,14 @@ impl AttributeDecoder {
     }
 
     pub fn _decode_demolish_fx(&self, bits: &mut LittleEndianReader<'_>) -> Option<DemolishFx> {
-        let custom_demo_flag = get!(bits.read_bit());
-        let custom_demo_id = get!(bits.read_i32());
-        let attacker_flag = get!(bits.read_bit());
-        let attacker = get!(bits.read_i32().map(ActorId));
-        let victim_flag = get!(bits.read_bit());
-        let victim = get!(bits.read_i32().map(ActorId));
-        let attack_velocity = get!(Vector3f::decode(bits, self.version.net_version()));
-        let victim_velocity = get!(Vector3f::decode(bits, self.version.net_version()));
+        let custom_demo_flag = bits.read_bit()?;
+        let custom_demo_id = bits.read_i32()?;
+        let attacker_flag = bits.read_bit()?;
+        let attacker = bits.read_i32().map(ActorId)?;
+        let victim_flag = bits.read_bit()?;
+        let victim = bits.read_i32().map(ActorId)?;
+        let attack_velocity = Vector3f::decode(bits, self.version.net_version())?;
+        let victim_velocity = Vector3f::decode(bits, self.version.net_version())?;
 
         Some(DemolishFx {
             custom_demo_flag,
@@ -766,8 +766,8 @@ impl AttributeDecoder {
     }
 
     fn _decode_stat_event(&self, bits: &mut LittleEndianReader<'_>) -> Option<StatEvent> {
-        let unknown1 = get!(bits.read_bit());
-        let object_id = get!(bits.read_i32());
+        let unknown1 = bits.read_bit()?;
+        let object_id = bits.read_i32()?;
         Some(StatEvent {
             unknown1,
             object_id,
@@ -845,9 +845,9 @@ impl AttributeDecoder {
         &self,
         bits: &mut LittleEndianReader<'_>,
     ) -> Option<ExtendedExplosion> {
-        let explosion = get!(decode_explosion(bits, self.version.net_version()));
-        let unknown1 = get!(bits.read_bit());
-        let secondary_actor = get!(bits.read_i32().map(ActorId));
+        let explosion = decode_explosion(bits, self.version.net_version())?;
+        let unknown1 = bits.read_bit()?;
+        let secondary_actor = bits.read_i32().map(ActorId)?;
         Some(ExtendedExplosion {
             explosion,
             unknown1,
@@ -954,9 +954,9 @@ impl AttributeDecoder {
     }
 
     fn _decode_music_stinger(&self, bits: &mut LittleEndianReader<'_>) -> Option<MusicStinger> {
-        let flag = get!(bits.read_bit());
-        let cue = get!(bits.read_u32());
-        let trigger = get!(bits.read_u8());
+        let flag = bits.read_bit()?;
+        let cue = bits.read_u32()?;
+        let trigger = bits.read_u8()?;
         Some(MusicStinger { flag, cue, trigger })
     }
 
@@ -1013,11 +1013,11 @@ impl AttributeDecoder {
     }
 
     fn _decode_welded(&self, bits: &mut LittleEndianReader<'_>) -> Option<Welded> {
-        let active = get!(bits.read_bit());
-        let actor = get!(bits.read_i32().map(ActorId));
-        let offset = get!(Vector3f::decode(bits, self.version.net_version()));
-        let mass = get!(bits.read_f32());
-        let rotation = get!(Rotation::decode(bits));
+        let active = bits.read_bit()?;
+        let actor = bits.read_i32().map(ActorId)?;
+        let offset = Vector3f::decode(bits, self.version.net_version())?;
+        let mass = bits.read_f32()?;
+        let rotation = Rotation::decode(bits)?;
         Some(Welded {
             active,
             actor,
@@ -1045,14 +1045,14 @@ impl AttributeDecoder {
     }
 
     fn _decode_title(&self, bits: &mut LittleEndianReader<'_>) -> Option<Attribute> {
-        let unknown1 = get!(bits.read_bit());
-        let unknown2 = get!(bits.read_bit());
-        let unknown3 = get!(bits.read_u32());
-        let unknown4 = get!(bits.read_u32());
-        let unknown5 = get!(bits.read_u32());
-        let unknown6 = get!(bits.read_u32());
-        let unknown7 = get!(bits.read_u32());
-        let unknown8 = get!(bits.read_bit());
+        let unknown1 = bits.read_bit()?;
+        let unknown2 = bits.read_bit()?;
+        let unknown3 = bits.read_u32()?;
+        let unknown4 = bits.read_u32()?;
+        let unknown5 = bits.read_u32()?;
+        let unknown6 = bits.read_u32()?;
+        let unknown7 = bits.read_u32()?;
+        let unknown8 = bits.read_bit()?;
         Some(Attribute::Title(
             unknown1, unknown2, unknown3, unknown4, unknown5, unknown6, unknown7, unknown8,
         ))
@@ -1066,11 +1066,11 @@ impl AttributeDecoder {
     }
 
     fn _decode_team_paint(&self, bits: &mut LittleEndianReader<'_>) -> Option<TeamPaint> {
-        let team = get!(bits.read_u8());
-        let primary_color = get!(bits.read_u8());
-        let accent_color = get!(bits.read_u8());
-        let primary_finish = get!(bits.read_u32());
-        let accent_finish = get!(bits.read_u32());
+        let team = bits.read_u8()?;
+        let primary_color = bits.read_u8()?;
+        let accent_color = bits.read_u8()?;
+        let primary_finish = bits.read_u32()?;
+        let accent_finish = bits.read_u32()?;
 
         Some(TeamPaint {
             team,
@@ -1091,21 +1091,21 @@ impl AttributeDecoder {
     }
 
     fn _decode_rigid_body(&self, bits: &mut LittleEndianReader<'_>) -> Option<RigidBody> {
-        let sleeping = get!(bits.read_bit());
-        let location = get!(Vector3f::decode(bits, self.version.net_version()));
+        let sleeping = bits.read_bit()?;
+        let location = Vector3f::decode(bits, self.version.net_version())?;
 
         let rotation = if self.version.net_version() >= 7 {
-            get!(Quaternion::decode(bits))
+            Quaternion::decode(bits)?
         } else {
-            get!(Quaternion::decode_compressed(bits))
+            Quaternion::decode_compressed(bits)?
         };
 
         let mut linear_velocity = None;
         let mut angular_velocity = None;
 
         if !sleeping {
-            linear_velocity = Some(get!(Vector3f::decode(bits, self.version.net_version())));
-            angular_velocity = Some(get!(Vector3f::decode(bits, self.version.net_version())));
+            linear_velocity = Some(Vector3f::decode(bits, self.version.net_version()))?;
+            angular_velocity = Some(Vector3f::decode(bits, self.version.net_version()))?;
         }
 
         Some(RigidBody {
@@ -1244,10 +1244,10 @@ impl AttributeDecoder {
         bits: &mut LittleEndianReader<'_>,
         buf: &mut [u8],
     ) -> Option<LoadoutsOnline> {
-        let blue = get!(self.inner_decode_online_loadout(bits, buf));
-        let orange = get!(self.inner_decode_online_loadout(bits, buf));
-        let unknown1 = get!(bits.read_bit());
-        let unknown2 = get!(bits.read_bit());
+        let blue = self.inner_decode_online_loadout(bits, buf)?;
+        let orange = self.inner_decode_online_loadout(bits, buf)?;
+        let unknown1 = bits.read_bit()?;
+        let unknown2 = bits.read_bit()?;
         Some(LoadoutsOnline {
             blue,
             orange,
@@ -1267,9 +1267,9 @@ impl AttributeDecoder {
     }
 
     fn decode_product(&self, bits: &mut LittleEndianReader<'_>, buf: &mut [u8]) -> Option<Product> {
-        let unknown = get!(bits.read_bit());
-        let obj_ind = get!(bits.read_u32());
-        let val = get!(self.product_decoder.decode(bits, obj_ind, buf));
+        let unknown = bits.read_bit()?;
+        let obj_ind = bits.read_u32()?;
+        let val = self.product_decoder.decode(bits, obj_ind, buf)?;
 
         Some(Product {
             unknown,
@@ -1308,9 +1308,9 @@ impl AttributeDecoder {
 }
 
 fn decode_explosion(bits: &mut LittleEndianReader<'_>, net_version: i32) -> Option<Explosion> {
-    let flag = get!(bits.read_bit());
-    let actor = get!(bits.read_i32().map(ActorId));
-    let location = get!(Vector3f::decode(bits, net_version));
+    let flag = bits.read_bit()?;
+    let actor = bits.read_i32().map(ActorId)?;
+    let location = Vector3f::decode(bits, net_version)?;
     Some(Explosion {
         flag,
         actor,
@@ -1360,49 +1360,49 @@ fn decode_text(
 fn decode_loadout_specials(
     bits: &mut LittleEndianReader<'_>,
 ) -> Option<(Option<u32>, Option<u32>, Option<u32>)> {
-    let engine_audio = get!(bits.read_u32());
-    let trail = get!(bits.read_u32());
-    let goal_explosion = get!(bits.read_u32());
+    let engine_audio = bits.read_u32()?;
+    let trail = bits.read_u32()?;
+    let goal_explosion = bits.read_u32()?;
     Some((Some(engine_audio), Some(trail), Some(goal_explosion)))
 }
 
 fn decode_loadout(bits: &mut LittleEndianReader<'_>) -> Option<Loadout> {
-    let version = get!(bits.read_u8());
-    let body = get!(bits.read_u32());
-    let decal = get!(bits.read_u32());
-    let wheels = get!(bits.read_u32());
-    let rocket_trail = get!(bits.read_u32());
-    let antenna = get!(bits.read_u32());
-    let topper = get!(bits.read_u32());
-    let unknown1 = get!(bits.read_u32());
+    let version = bits.read_u8()?;
+    let body = bits.read_u32()?;
+    let decal = bits.read_u32()?;
+    let wheels = bits.read_u32()?;
+    let rocket_trail = bits.read_u32()?;
+    let antenna = bits.read_u32()?;
+    let topper = bits.read_u32()?;
+    let unknown1 = bits.read_u32()?;
     let unknown2 = if version > 10 {
-        Some(get!(bits.read_u32()))
+        Some(bits.read_u32()?)
     } else {
         None
     };
 
     let (engine_audio, trail, goal_explosion) = if version >= 16 {
-        get!(decode_loadout_specials(bits))
+        decode_loadout_specials(bits)?
     } else {
         (None, None, None)
     };
 
     let banner = if version >= 17 {
-        Some(get!(bits.read_u32()))
+        Some(bits.read_u32()?)
     } else {
         None
     };
 
     let product_id = if version >= 19 {
-        Some(get!(bits.read_u32()))
+        Some(bits.read_u32()?)
     } else {
         None
     };
 
     if version >= 22 {
-        let _ = get!(bits.read_u32());
-        let _ = get!(bits.read_u32());
-        let _ = get!(bits.read_u32());
+        let _ = bits.read_u32()?;
+        let _ = bits.read_u32()?;
+        let _ = bits.read_u32()?;
     }
 
     Some(Loadout {

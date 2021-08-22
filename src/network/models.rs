@@ -29,13 +29,12 @@ pub struct Vector3i {
 
 impl Vector3i {
     pub fn decode(bits: &mut LittleEndianReader<'_>, net_version: i32) -> Option<Vector3i> {
-        let size_bits =
-            get!(bits.read_bits_max_computed(4, if net_version >= 7 { 22 } else { 20 }));
+        let size_bits = bits.read_bits_max_computed(4, if net_version >= 7 { 22 } else { 20 })?;
         let bias = 1 << (size_bits + 1);
         let bit_limit = (size_bits + 2) as i32;
-        let dx = get!(bits.read_bits(bit_limit).map(|x| x as u32));
-        let dy = get!(bits.read_bits(bit_limit).map(|x| x as u32));
-        let dz = get!(bits.read_bits(bit_limit).map(|x| x as u32));
+        let dx = bits.read_bits(bit_limit).map(|x| x as u32)?;
+        let dy = bits.read_bits(bit_limit).map(|x| x as u32)?;
+        let dz = bits.read_bits(bit_limit).map(|x| x as u32)?;
         Some(Vector3i {
             x: (dx as i32) - bias,
             y: (dy as i32) - bias,
@@ -96,17 +95,26 @@ impl Quaternion {
     }
 
     pub fn decode_compressed(bits: &mut LittleEndianReader<'_>) -> Option<Self> {
-        let x = get!(Quaternion::compressed_f32(bits));
-        let y = get!(Quaternion::compressed_f32(bits));
-        let z = get!(Quaternion::compressed_f32(bits));
+        let x = Quaternion::compressed_f32(bits)?;
+        let y = Quaternion::compressed_f32(bits)?;
+        let z = Quaternion::compressed_f32(bits)?;
         Some(Quaternion { x, y, z, w: 0.0 })
     }
 
     pub fn decode(bits: &mut LittleEndianReader<'_>) -> Option<Self> {
-        let largest = get!(bits.read_bits(2).map(|x| x as u32));
-        let a = get!(bits.read_bits(18).map(|x| x as u32).map(Quaternion::unpack));
-        let b = get!(bits.read_bits(18).map(|x| x as u32).map(Quaternion::unpack));
-        let c = get!(bits.read_bits(18).map(|x| x as u32).map(Quaternion::unpack));
+        let largest = bits.read_bits(2).map(|x| x as u32)?;
+        let a = bits
+            .read_bits(18)
+            .map(|x| x as u32)
+            .map(Quaternion::unpack)?;
+        let b = bits
+            .read_bits(18)
+            .map(|x| x as u32)
+            .map(Quaternion::unpack)?;
+        let c = bits
+            .read_bits(18)
+            .map(|x| x as u32)
+            .map(Quaternion::unpack)?;
         let extra = (1.0 - (a * a) - (b * b) - (c * c)).sqrt();
         match largest {
             0 => Some(Quaternion {
@@ -148,9 +156,9 @@ pub struct Rotation {
 
 impl Rotation {
     pub fn decode(bits: &mut LittleEndianReader<'_>) -> Option<Rotation> {
-        let yaw = get!(bits.if_get(LittleEndianReader::read_i8));
-        let pitch = get!(bits.if_get(LittleEndianReader::read_i8));
-        let roll = get!(bits.if_get(LittleEndianReader::read_i8));
+        let yaw = bits.if_get(LittleEndianReader::read_i8)?;
+        let pitch = bits.if_get(LittleEndianReader::read_i8)?;
+        let roll = bits.if_get(LittleEndianReader::read_i8)?;
         Some(Rotation { yaw, pitch, roll })
     }
 
@@ -307,8 +315,8 @@ impl Trajectory {
             }),
 
             SpawnTrajectory::LocationAndRotation => {
-                let v = get!(Vector3i::decode(bits, net_version));
-                let r = get!(Rotation::decode(bits));
+                let v = Vector3i::decode(bits, net_version)?;
+                let r = Rotation::decode(bits)?;
                 Some(Trajectory {
                     location: Some(v),
                     rotation: Some(r),
