@@ -1,3 +1,7 @@
+# v0.9.3 - November 28th, 2021
+
+- Support parsing impulse attributes (patch v2.08)
+
 # v0.9.2 - August 21th, 2021
 
 - Additional support for recent rumble replays
