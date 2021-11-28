@@ -16,6 +16,7 @@ use std::cmp;
 use std::collections::HashMap;
 use std::ops::Deref;
 
+#[derive(Debug)]
 pub(crate) struct CacheInfo<'a> {
     max_prop_id: u32,
     prop_id_bits: i32,
