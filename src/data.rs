@@ -28,6 +28,7 @@ pub(crate) static SPAWN_STATS: phf::Map<&'static str, SpawnTrajectory> = phf::ph
     "TAGame.CameraSettingsActor_TA" => SpawnTrajectory::Location,
     "TAGame.CarComponent_Boost_TA" => SpawnTrajectory::Location,
     "TAGame.CarComponent_Dodge_TA" => SpawnTrajectory::Location,
+    "TAGame.CarComponent_Dodge_TA:DodgeImpulse" => SpawnTrajectory::Location,
     "TAGame.CarComponent_DoubleJump_TA" => SpawnTrajectory::Location,
     "TAGame.CarComponent_DoubleJump_TA:DoubleJumpImpulse" => SpawnTrajectory::Location,
     "TAGame.CarComponent_FlipCar_TA" => SpawnTrajectory::Location,
