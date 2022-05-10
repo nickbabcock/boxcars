@@ -92,3 +92,4 @@ frame_len_test!(test_gridiron_replay, "../assets/replays/good/gridiron.replay", 
 frame_len_test!(test_rl_2_replay, "../assets/replays/good/5f97d.replay", 10780);
 frame_len_test!(test_fecd, "../assets/replays/good/fecd.replay", 12180);
 frame_len_test!(test_436d, "../assets/replays/good/436d.replay", 10006);
+frame_len_test!(test_voice_update, "../assets/replays/good/voice_update.replay", 786);
