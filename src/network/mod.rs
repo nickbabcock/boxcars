@@ -85,7 +85,7 @@ pub(crate) fn parse<'a>(
                 normalized_name_obj_ind
                     .get(name.deref())
                     .cloned()
-                    .unwrap_or_else(Vec::new),
+                    .unwrap_or_default(),
             )
         })
         .collect();
@@ -169,7 +169,7 @@ pub(crate) fn parse<'a>(
                 for parent_id in parent_ids {
                     let parent_attrs: FnvHashMap<_, _> = object_ind_attrs
                         .get(parent_id)
-                        .ok_or_else(|| NetworkError::ParentHasNoAttributes(*parent_id, *i))?
+                        .ok_or(NetworkError::ParentHasNoAttributes(*parent_id, *i))?
                         .clone();
 
                     object_ind_attrs

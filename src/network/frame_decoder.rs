@@ -30,7 +30,7 @@ enum DecodedFrame {
 impl<'a, 'b> FrameDecoder<'a, 'b> {
     fn parse_new_actor(
         &self,
-        mut bits: &mut LittleEndianReader<'_>,
+        bits: &mut LittleEndianReader<'_>,
         actor_id: ActorId,
     ) -> Result<NewActor, FrameError> {
         let component = "New Actor";
@@ -56,7 +56,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
             .get(usize::from(object_id))
             .ok_or(FrameError::ObjectIdOutOfRange { obj: object_id })?;
 
-        let traj = Trajectory::from_spawn(&mut bits, *spawn, self.version.net_version())
+        let traj = Trajectory::from_spawn(bits, *spawn, self.version.net_version())
             .ok_or(FrameError::NotEnoughDataFor(component))?;
         Ok(NewActor {
             actor_id,
@@ -69,7 +69,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
     fn decode_frame(
         &self,
         attr_decoder: &AttributeDecoder,
-        mut bits: &mut LittleEndianReader<'_>,
+        bits: &mut LittleEndianReader<'_>,
         buf: &mut [u8],
         actors: &mut FnvHashMap<ActorId, ObjectId>,
         new_actors: &mut Vec<NewActor>,
@@ -115,7 +115,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                     .read_bit()
                     .ok_or(FrameError::NotEnoughDataFor("Is new actor"))?
                 {
-                    let actor = self.parse_new_actor(&mut bits, actor_id)?;
+                    let actor = self.parse_new_actor(bits, actor_id)?;
 
                     // Insert the new actor so we can keep track of it for attribute
                     // updates. It's common for an actor id to already exist, so we
@@ -131,13 +131,12 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
 
                     // Once we have the type we need to look up what attributes are
                     // available for said type
-                    let cache_info =
-                        self.object_ind_attributes.get(object_id).ok_or_else(|| {
-                            FrameError::MissingCache {
-                                actor: actor_id,
-                                actor_object: *object_id,
-                            }
-                        })?;
+                    let cache_info = self.object_ind_attributes.get(object_id).ok_or(
+                        FrameError::MissingCache {
+                            actor: actor_id,
+                            actor_object: *object_id,
+                        },
+                    )?;
 
                     // While there are more attributes to update for our actor:
                     while bits
@@ -159,17 +158,16 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                         // decoding function. Experience has told me replays that fail to
                         // parse, fail to do so here, so a large chunk is dedicated to
                         // generating an error message with context
-                        let attr = cache_info.attributes.get(&stream_id).ok_or_else(|| {
+                        let attr = cache_info.attributes.get(&stream_id).ok_or(
                             FrameError::MissingAttribute {
                                 actor: actor_id,
                                 actor_object: *object_id,
                                 attribute_stream: stream_id,
-                            }
-                        })?;
+                            },
+                        )?;
 
-                        let attribute = attr_decoder
-                            .decode(attr.attribute, &mut bits, buf)
-                            .map_err(|e| match e {
+                        let attribute = attr_decoder.decode(attr.attribute, bits, buf).map_err(
+                            |e| match e {
                                 AttributeError::Unimplemented => FrameError::MissingAttribute {
                                     actor: actor_id,
                                     actor_object: *object_id,
@@ -181,7 +179,8 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                                     attribute_stream: stream_id,
                                     error: e,
                                 },
-                            })?;
+                            },
+                        )?;
 
                         updated_actors.push(UpdatedAttribute {
                             actor_id,
