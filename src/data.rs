@@ -274,6 +274,7 @@ pub(crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = phf::phf_ma
     "TAGame.PRI_TA:PrimaryTitle" => AttributeTag::Title,
     "TAGame.PRI_TA:SecondaryTitle" => AttributeTag::Title,
     "TAGame.PRI_TA:SpectatorShortcut" => AttributeTag::Int,
+    "TAGame.PRI_TA:CurrentVoiceRoom" => AttributeTag::String,
     "TAGame.RBActor_TA:bFrozen" => AttributeTag::Boolean,
     "TAGame.RBActor_TA:bIgnoreSyncing" => AttributeTag::Boolean,
     "TAGame.RBActor_TA:bReplayActor" => AttributeTag::Boolean,
