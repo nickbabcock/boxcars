@@ -1,3 +1,7 @@
+# v0.9.4 - May 10th, 2022
+
+- Support parsing voice chat related attributes (patch v2.15)
+
 # v0.9.3 - November 28th, 2021
 
 - Support parsing impulse attributes (patch v2.08)
