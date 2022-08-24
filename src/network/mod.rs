@@ -19,7 +19,7 @@ use std::ops::Deref;
 #[derive(Debug)]
 pub(crate) struct CacheInfo<'a> {
     max_prop_id: u32,
-    prop_id_bits: i32,
+    prop_id_bits: u32,
     attributes: &'a FnvHashMap<StreamId, ObjectAttribute>,
 }
 
@@ -186,12 +186,12 @@ pub(crate) fn parse<'a>(
         .map(|(obj_id, attrs)| {
             let id = *obj_id;
             let max = attrs.keys().map(|&x| i32::from(x)).max().unwrap_or(2) + 1;
-            let max_bit_width = bitter::bit_width(max as u64);
+            let max_bit_width = crate::bits::bit_width(max as u64);
             Ok((
                 id,
                 CacheInfo {
                     max_prop_id: max as u32,
-                    prop_id_bits: cmp::max(max_bit_width as i32 - 1, 0),
+                    prop_id_bits: cmp::max(max_bit_width, 1) - 1,
                     attributes: attrs,
                 },
             ))
@@ -202,7 +202,7 @@ pub(crate) fn parse<'a>(
 
     // 1023 stolen from rattletrap
     let max_channels = header.max_channels().unwrap_or(1023) as u32;
-    let channel_width = bitter::bit_width(u64::from(max_channels)) as i32 - 1;
+    let channel_width = crate::bits::bit_width(u64::from(max_channels)) - 1;
     let channel_bits = cmp::max(channel_width, 0);
     let num_frames = header.num_frames();
     let is_lan = header.match_type().map(|x| x == "Lan").unwrap_or(false);

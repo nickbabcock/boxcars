@@ -73,6 +73,7 @@ pub use self::models::*;
 pub use self::network::attributes::Attribute;
 pub use self::network::*;
 pub use self::parser::{CrcCheck, NetworkParse, ParserBuilder};
+mod bits;
 mod core_parser;
 pub mod crc;
 mod data;

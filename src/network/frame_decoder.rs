@@ -1,6 +1,7 @@
 use bitter::{BitReader, LittleEndianReader};
 use fnv::FnvHashMap;
 
+use crate::bits::RlBits;
 use crate::errors::{AttributeError, FrameContext, FrameError, NetworkError};
 use crate::network::attributes::{AttributeDecoder, ProductValueDecoder};
 use crate::network::models::{
@@ -13,7 +14,7 @@ pub(crate) struct FrameDecoder<'a, 'b: 'a> {
     pub frames_len: usize,
     pub product_decoder: ProductValueDecoder,
     pub max_channels: u32,
-    pub channel_bits: i32,
+    pub channel_bits: u32,
     pub body: &'a ReplayBody<'b>,
     pub spawns: &'a Vec<SpawnTrajectory>,
     pub object_ind_attributes: FnvHashMap<ObjectId, CacheInfo<'a>>,
@@ -100,16 +101,17 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
             .read_bit()
             .ok_or(FrameError::NotEnoughDataFor("Actor data"))?
         {
-            let actor_id = bits
-                .read_bits_max_computed(self.channel_bits, u64::from(self.max_channels))
-                .map(|x| ActorId(x as i32))
-                .ok_or(FrameError::NotEnoughDataFor("Actor Id"))?;
+            let len = bits.refill_lookahead();
+            if len < self.channel_bits + 1 + 1 {
+                return Err(FrameError::NotEnoughDataFor("Actor Id"));
+            }
+
+            let max = u64::from(self.max_channels);
+            let actor_id_raw = bits.peek_bits_max_computed(self.channel_bits, max);
+            let actor_id = ActorId(actor_id_raw as i32);
 
             // alive
-            if bits
-                .read_bit()
-                .ok_or(FrameError::NotEnoughDataFor("Is actor alive"))?
-            {
+            if bits.peek_and_consume(1) == 1 {
                 // new
                 if bits
                     .read_bit()
@@ -146,13 +148,16 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                         // We've previously calculated the max the stream id can be for a
                         // given type and how many bits that it encompasses so use those
                         // values now
-                        let stream_id = bits
-                            .read_bits_max_computed(
-                                cache_info.prop_id_bits,
-                                u64::from(cache_info.max_prop_id),
-                            )
-                            .map(|x| StreamId(x as i32))
-                            .ok_or(FrameError::NotEnoughDataFor("Prop id"))?;
+                        let len = bits.refill_lookahead();
+                        if len < cache_info.prop_id_bits + 1 {
+                            return Err(FrameError::NotEnoughDataFor("Prop id"));
+                        }
+
+                        let stream_id_raw = bits.peek_bits_max_computed(
+                            cache_info.prop_id_bits,
+                            u64::from(cache_info.max_prop_id),
+                        );
+                        let stream_id = StreamId(stream_id_raw as i32);
 
                         // Look the stream id up and find the corresponding attribute
                         // decoding function. Experience has told me replays that fail to
