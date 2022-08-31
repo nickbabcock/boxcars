@@ -17,7 +17,7 @@ fn bench_crc(c: &mut Criterion) {
 
 fn bench_json_serialization(c: &mut Criterion) {
     let data = include_bytes!("../assets/replays/good/3381.replay");
-    let json_data_bytes = 19483077_u64;
+    let json_data_bytes = 19484480_u64;
 
     let mut group = c.benchmark_group("json_throughput");
     group.sample_size(10);
