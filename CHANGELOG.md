@@ -1,3 +1,7 @@
+# v0.9.5 - August 31st, 2022
+
+- 20% performance increase from bitter update from 0.5 to 0.6
+
 # v0.9.4 - May 10th, 2022
 
 - Support parsing voice chat related attributes (patch v2.15)
