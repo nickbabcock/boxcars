@@ -8,7 +8,7 @@ Rust.
 ## Features
 
 - ✔ Safe: Stable Rust with no unsafe
-- ✔ Fast: Parse a hundred replays per second per CPU core
+- ✔ Fast: Parse over a hundred replays per second per CPU core
 - ✔ Fuzzed: Extensively fuzzed against potential malicious input
 - ✔ Ergonomic: Serialization support is provided through [serde](https://github.com/serde-rs/serde)
 
@@ -80,9 +80,11 @@ with the following options and the estimated elapsed time.
 | Header | Corruption Check | Body | Output JSON | Elapsed | Throughput |
 | -      | -                | -    | -           | -       | -          |
 | ✔      |                  |      |             | 68.0 µs |            |
-| ✔      | ✔                | ✔    |             | 11.6 ms | 128 MiB/s  |
-| ✔      |                  | ✔    |             | 11.1 ms | 133 MiB/s  |
-| ✔      | ✔                | ✔    | ✔           | 75.6 ms |  19 MiB/s  |
+| ✔      | ✔                | ✔    |             | 6.6 ms | 223 MiB/s  |
+| ✔      |                  | ✔    |             | 6.3 ms | 232 MiB/s  |
+| ✔      | ✔                | ✔    | ✔           | 35 ms |  531 MiB/s ^1  |
+
+^1: JSON serialization throughput includes the amount of JSON produced
 
 ## Special Thanks
 
