@@ -1,4 +1,4 @@
-use crate::network::attributes::Attribute;
+use crate::{bits::RlBits, network::attributes::Attribute};
 use bitter::{BitReader, LittleEndianReader};
 use std::fmt;
 
@@ -29,31 +29,48 @@ pub struct Vector3i {
 
 impl Vector3i {
     pub fn decode(bits: &mut LittleEndianReader<'_>, net_version: i32) -> Option<Vector3i> {
-        let size_bits = bits.read_bits_max_computed(4, if net_version >= 7 { 22 } else { 20 })?;
-        let bias = 1 << (size_bits + 1);
-        let bit_limit = (size_bits + 2) as i32;
-        let dx = bits.read_bits(bit_limit).map(|x| x as u32)?;
-        let dy = bits.read_bits(bit_limit).map(|x| x as u32)?;
-        let dz = bits.read_bits(bit_limit).map(|x| x as u32)?;
-        Some(Vector3i {
-            x: (dx as i32) - bias,
-            y: (dy as i32) - bias,
-            z: (dz as i32) - bias,
-        })
-    }
+        if bits.has_bits_remaining(128) {
+            unsafe { bits.refill_lookahead_unchecked() }
+            let size_bits = bits.peek_bits_max_computed(4, if net_version >= 7 { 22 } else { 20 });
+            let bias = 1 << (size_bits + 1);
+            let bit_limit = (size_bits + 2) as u32;
 
-    pub fn decode_unchecked(bits: &mut LittleEndianReader<'_>, net_version: i32) -> Vector3i {
-        let size_bits =
-            bits.read_bits_max_computed_unchecked(4, if net_version >= 7 { 22 } else { 20 });
-        let bias = 1 << (size_bits + 1);
-        let bit_limit = (size_bits + 2) as i32;
-        let dx = bits.read_bits_unchecked(bit_limit) as u32;
-        let dy = bits.read_bits_unchecked(bit_limit) as u32;
-        let dz = bits.read_bits_unchecked(bit_limit) as u32;
-        Vector3i {
-            x: (dx as i32) - bias,
-            y: (dy as i32) - bias,
-            z: (dz as i32) - bias,
+            let dx = bits.peek_and_consume(bit_limit) as u32;
+            unsafe { bits.refill_lookahead_unchecked() }
+            let dy = bits.peek_and_consume(bit_limit) as u32;
+            let dz = bits.peek_and_consume(bit_limit) as u32;
+
+            Some(Vector3i {
+                x: (dx as i32) - bias,
+                y: (dy as i32) - bias,
+                z: (dz as i32) - bias,
+            })
+        } else {
+            let len = bits.refill_lookahead();
+            if len < 5 {
+                return None;
+            }
+
+            let size_bits = bits.peek_bits_max_computed(4, if net_version >= 7 { 22 } else { 20 });
+            let bias = 1 << (size_bits + 1);
+            let bit_limit = (size_bits + 2) as u32;
+
+            if !bits.has_bits_remaining(3 * bit_limit as usize) {
+                return None;
+            }
+
+            let dx = bits.peek_and_consume(bit_limit) as u32;
+
+            let len = bits.refill_lookahead();
+            debug_assert!(len >= bit_limit * 2);
+
+            let dy = bits.peek_and_consume(bit_limit) as u32;
+            let dz = bits.peek_and_consume(bit_limit) as u32;
+            Some(Vector3i {
+                x: (dx as i32) - bias,
+                y: (dy as i32) - bias,
+                z: (dz as i32) - bias,
+            })
         }
     }
 }
@@ -67,6 +84,7 @@ pub struct Quaternion {
 }
 
 impl Quaternion {
+    #[inline]
     fn unpack(val: u32) -> f32 {
         let max_quat = 1.0 / std::f32::consts::SQRT_2;
         let max_value = (1 << 18) - 1;
@@ -75,7 +93,8 @@ impl Quaternion {
         range * max_quat
     }
 
-    fn compressed_f32(bits: &mut LittleEndianReader<'_>) -> Option<f32> {
+    #[inline]
+    fn compressed_f32(bits: &mut LittleEndianReader<'_>) -> f32 {
         // algorithm from jjbott/RocketLeagueReplayParser.
         // Note that this code is heavily adapted. I noticed that there were branches that should
         // never execute. Specifically in jjbott implementation:
@@ -89,32 +108,32 @@ impl Quaternion {
         // implementation.
         //
         // Bakkes copied jjbott. Rattletrap is more in line here
-        bits.read_u16()
-            .map(|x| (x as i32) + i32::from(std::i16::MIN))
-            .map(|x| x as f32 * (std::i16::MAX as f32).recip())
+        let res = bits.peek_and_consume(16) as i32;
+        ((res + i32::from(std::i16::MIN)) as f32) * (std::i16::MAX as f32).recip()
     }
 
     pub fn decode_compressed(bits: &mut LittleEndianReader<'_>) -> Option<Self> {
-        let x = Quaternion::compressed_f32(bits)?;
-        let y = Quaternion::compressed_f32(bits)?;
-        let z = Quaternion::compressed_f32(bits)?;
-        Some(Quaternion { x, y, z, w: 0.0 })
+        let len = bits.refill_lookahead();
+        if len >= 3 * 16 {
+            let x = Quaternion::compressed_f32(bits);
+            let y = Quaternion::compressed_f32(bits);
+            let z = Quaternion::compressed_f32(bits);
+            Some(Quaternion { x, y, z, w: 0.0 })
+        } else {
+            None
+        }
     }
 
     pub fn decode(bits: &mut LittleEndianReader<'_>) -> Option<Self> {
-        let largest = bits.read_bits(2).map(|x| x as u32)?;
-        let a = bits
-            .read_bits(18)
-            .map(|x| x as u32)
-            .map(Quaternion::unpack)?;
-        let b = bits
-            .read_bits(18)
-            .map(|x| x as u32)
-            .map(Quaternion::unpack)?;
-        let c = bits
-            .read_bits(18)
-            .map(|x| x as u32)
-            .map(Quaternion::unpack)?;
+        let len = bits.refill_lookahead();
+        if len < 2 + 3 * 18 {
+            return None;
+        }
+
+        let largest = bits.peek_and_consume(2) as u32;
+        let a = Quaternion::unpack(bits.peek_and_consume(18) as u32);
+        let b = Quaternion::unpack(bits.peek_and_consume(18) as u32);
+        let c = Quaternion::unpack(bits.peek_and_consume(18) as u32);
         let extra = (1.0 - (a * a) - (b * b) - (c * c)).sqrt();
         match largest {
             0 => Some(Quaternion {
@@ -156,17 +175,33 @@ pub struct Rotation {
 
 impl Rotation {
     pub fn decode(bits: &mut LittleEndianReader<'_>) -> Option<Rotation> {
-        let yaw = bits.if_get(LittleEndianReader::read_i8)?;
-        let pitch = bits.if_get(LittleEndianReader::read_i8)?;
-        let roll = bits.if_get(LittleEndianReader::read_i8)?;
-        Some(Rotation { yaw, pitch, roll })
-    }
+        let len = bits.refill_lookahead();
+        if len >= 3 * 9 {
+            let yaw = if bits.peek_and_consume(1) != 0 {
+                Some(bits.peek_and_consume(8) as i8)
+            } else {
+                None
+            };
 
-    pub fn decode_unchecked(bits: &mut LittleEndianReader<'_>) -> Rotation {
-        let yaw = bits.if_get_unchecked(LittleEndianReader::read_i8_unchecked);
-        let pitch = bits.if_get_unchecked(LittleEndianReader::read_i8_unchecked);
-        let roll = bits.if_get_unchecked(LittleEndianReader::read_i8_unchecked);
-        Rotation { yaw, pitch, roll }
+            let pitch = if bits.peek_and_consume(1) != 0 {
+                Some(bits.peek_and_consume(8) as i8)
+            } else {
+                None
+            };
+
+            let roll = if bits.peek_and_consume(1) != 0 {
+                Some(bits.peek_and_consume(8) as i8)
+            } else {
+                None
+            };
+
+            Some(Rotation { yaw, pitch, roll })
+        } else {
+            let yaw = bits.if_get(LittleEndianReader::read_i8)?;
+            let pitch = bits.if_get(LittleEndianReader::read_i8)?;
+            let roll = bits.if_get(LittleEndianReader::read_i8)?;
+            Some(Rotation { yaw, pitch, roll })
+        }
     }
 }
 
@@ -324,29 +359,6 @@ impl Trajectory {
             }
         }
     }
-
-    pub fn from_spawn_unchecked(
-        bits: &mut LittleEndianReader<'_>,
-        sp: SpawnTrajectory,
-        net_version: i32,
-    ) -> Trajectory {
-        match sp {
-            SpawnTrajectory::None => Trajectory {
-                location: None,
-                rotation: None,
-            },
-
-            SpawnTrajectory::Location => Trajectory {
-                location: Some(Vector3i::decode_unchecked(bits, net_version)),
-                rotation: None,
-            },
-
-            SpawnTrajectory::LocationAndRotation => Trajectory {
-                location: Some(Vector3i::decode_unchecked(bits, net_version)),
-                rotation: Some(Rotation::decode_unchecked(bits)),
-            },
-        }
-    }
 }
 
 /// Oftentimes a replay contains many different objects of the same type. For instance, each rumble
@@ -383,31 +395,9 @@ mod tests {
     }
 
     #[test]
-    fn test_decode_vector_unchecked() {
-        let mut bitter =
-            LittleEndianReader::new(&[0b0000_0110, 0b0000_1000, 0b1101_1000, 0b0000_1101]);
-        let v = Vector3i::decode_unchecked(&mut bitter, 5);
-        assert_eq!(v, Vector3i { x: 0, y: 0, z: 93 });
-    }
-
-    #[test]
     fn test_decode_rotation() {
         let mut bitter = LittleEndianReader::new(&[0b0000_0101, 0b0000_0000]);
         let v = Rotation::decode(&mut bitter).unwrap();
-        assert_eq!(
-            v,
-            Rotation {
-                yaw: Some(2),
-                pitch: None,
-                roll: None,
-            }
-        );
-    }
-
-    #[test]
-    fn test_decode_rotation_unchecked() {
-        let mut bitter = LittleEndianReader::new(&[0b0000_0101, 0b0000_0000]);
-        let v = Rotation::decode_unchecked(&mut bitter);
         assert_eq!(
             v,
             Rotation {

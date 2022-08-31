@@ -1,3 +1,4 @@
+use crate::bits::RlBits;
 use crate::errors::AttributeError;
 use crate::network::{ActorId, ObjectId, Quaternion, Rotation, Vector3f, VersionTriplet};
 use crate::parsing_utils::{decode_utf16, decode_windows1252};
@@ -447,7 +448,7 @@ impl ProductValueDecoder {
                     .map(|x| x as u32)
                     .map(ProductValue::NewPaint)
             } else {
-                bits.read_bits_max(14)
+                bits.read_bits_max_computed(3, 14)
                     .map(|x| x as u32)
                     .map(ProductValue::OldPaint)
             }
@@ -463,7 +464,7 @@ impl ProductValueDecoder {
                     .map(|x| x as u32)
                     .map(ProductValue::NewTeamEdition)
             } else {
-                bits.read_bits_max(14)
+                bits.read_bits_max_computed(3, 14)
                     .map(|x| x as u32)
                     .map(ProductValue::OldTeamEdition)
             }
@@ -868,13 +869,13 @@ impl AttributeDecoder {
         &self,
         bits: &mut LittleEndianReader<'_>,
     ) -> Result<Attribute, AttributeError> {
-        let active = bits
-            .read_bit()
-            .ok_or(AttributeError::NotEnoughDataFor("Flagged"))?;
-        let actor = bits
-            .read_i32()
-            .map(ActorId)
-            .ok_or(AttributeError::NotEnoughDataFor("Flagged"))?;
+        let len = bits.refill_lookahead();
+        if len < 33 {
+            return Err(AttributeError::NotEnoughDataFor("Active Actor"))?;
+        }
+
+        let active = bits.peek_and_consume(1) == 1;
+        let actor = ActorId(bits.peek_and_consume(32) as i32);
         Ok(Attribute::ActiveActor(ActiveActor { active, actor }))
     }
 
@@ -897,7 +898,7 @@ impl AttributeDecoder {
             8
         };
 
-        bits.read_bits(i32::from(init))
+        bits.read_bits(u32::from(init))
             .map(|x| x as u8)
             .map(|x| Attribute::GameMode(init, x))
             .ok_or(AttributeError::NotEnoughDataFor("Game Mode"))
