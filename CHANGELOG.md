@@ -1,3 +1,7 @@
+# v0.9.6 - October 15th, 2022
+
+- Support parsing patch v2.21 replays
+
 # v0.9.5 - August 31st, 2022
 
 - 20% performance increase from bitter update from 0.5 to 0.6
