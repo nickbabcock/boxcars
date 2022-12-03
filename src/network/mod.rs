@@ -206,6 +206,7 @@ pub(crate) fn parse<'a>(
     let channel_bits = cmp::max(channel_width, 0);
     let num_frames = header.num_frames();
     let is_lan = header.match_type().map(|x| x == "Lan").unwrap_or(false);
+    let is_rl_223 = matches!(header.build_version(), Some(x) if x >= "221120.42953.406184");
 
     if let Some(frame_len) = num_frames {
         if frame_len as usize > body.network_data.len() {
@@ -222,6 +223,7 @@ pub(crate) fn parse<'a>(
             object_ind_attributes,
             version,
             is_lan,
+            is_rl_223,
         };
         Ok(NetworkFrames {
             frames: frame_decoder.decode_frames()?,

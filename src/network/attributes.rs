@@ -32,7 +32,7 @@ pub(crate) enum AttributeTag {
     Pickup,
     PickupNew,
     PlayerHistoryKey,
-    QWord,
+    QWordString,
     Welded,
     RigidBody,
     Title,
@@ -476,18 +476,12 @@ impl ProductValueDecoder {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct AttributeDecoder {
-    version: VersionTriplet,
-    product_decoder: ProductValueDecoder,
+    pub(crate) version: VersionTriplet,
+    pub(crate) product_decoder: ProductValueDecoder,
+    pub(crate) is_rl_223: bool,
 }
 
 impl AttributeDecoder {
-    pub fn new(version: VersionTriplet, product_decoder: ProductValueDecoder) -> Self {
-        AttributeDecoder {
-            version,
-            product_decoder,
-        }
-    }
-
     pub fn decode(
         &self,
         tag: AttributeTag,
@@ -519,7 +513,7 @@ impl AttributeDecoder {
             AttributeTag::Pickup => self.decode_pickup(bits),
             AttributeTag::PickupNew => self.decode_pickup_new(bits),
             AttributeTag::PlayerHistoryKey => self.decode_player_history_key(bits),
-            AttributeTag::QWord => self.decode_qword(bits),
+            AttributeTag::QWordString => self.decode_qword_string(bits, buf),
             AttributeTag::Welded => self.decode_welded(bits),
             AttributeTag::RigidBody => self.decode_rigid_body(bits),
             AttributeTag::Title => self.decode_title(bits),
@@ -1011,6 +1005,18 @@ impl AttributeDecoder {
         bits.read_u64()
             .map(Attribute::QWord)
             .ok_or(AttributeError::NotEnoughDataFor("QWord"))
+    }
+
+    pub fn decode_qword_string(
+        &self,
+        bits: &mut LittleEndianReader<'_>,
+        buf: &mut [u8],
+    ) -> Result<Attribute, AttributeError> {
+        if self.is_rl_223 {
+            self.decode_string(bits, buf)
+        } else {
+            self.decode_qword(bits)
+        }
     }
 
     fn _decode_welded(&self, bits: &mut LittleEndianReader<'_>) -> Option<Welded> {
