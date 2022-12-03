@@ -1,3 +1,7 @@
+# v0.9.8 - December 3rd, 2022
+
+- Support parsing patch v2.23 replays
+
 # v0.9.7 - November 7th, 2022
 
 - Improve dropshot compatibility
