@@ -20,6 +20,7 @@ pub(crate) struct FrameDecoder<'a, 'b: 'a> {
     pub object_ind_attributes: FnvHashMap<ObjectId, CacheInfo<'a>>,
     pub version: VersionTriplet,
     pub is_lan: bool,
+    pub is_rl_223: bool,
 }
 
 #[derive(Debug)]
@@ -211,7 +212,12 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
     }
 
     pub fn decode_frames(&self) -> Result<Vec<Frame>, NetworkError> {
-        let attr_decoder = AttributeDecoder::new(self.version, self.product_decoder);
+        let attr_decoder = AttributeDecoder {
+            version: self.version,
+            product_decoder: self.product_decoder,
+            is_rl_223: self.is_rl_223,
+        };
+
         let mut frames: Vec<Frame> = Vec::with_capacity(self.frames_len);
         let mut actors = FnvHashMap::default();
         let mut bits = LittleEndianReader::new(self.body.network_data);

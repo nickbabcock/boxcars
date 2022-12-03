@@ -34,6 +34,13 @@ impl Header {
             .find(|&(key, _)| key == "MatchType")
             .and_then(|&(_, ref prop)| prop.as_string())
     }
+
+    pub fn build_version(&self) -> Option<&str> {
+        self.properties
+            .iter()
+            .find(|&(key, _)| key == "BuildVersion")
+            .and_then(|&(_, ref prop)| prop.as_string())
+    }
 }
 
 pub fn parse_header(rlp: &mut CoreParser) -> Result<Header, ParseError> {
