@@ -1,9 +1,38 @@
-#[cfg_attr(feature = "cargo-clippy", allow(clippy::all))]
-mod table {
-    include!(concat!(env!("OUT_DIR"), "/generated_crc.rs"));
+const fn gen_crc_table<const N: usize>(poly: u32) -> [[u32; 256]; N] {
+    let mut table = [[0u32; 256]; N];
+
+    let mut i = 0usize;
+    while i < 256 {
+        let mut crc = (i as u32) << 24;
+        let mut j = 0;
+        while j < 8 {
+            crc = if crc & 0x8000_0000 > 0 {
+                (crc << 1) ^ poly
+            } else {
+                crc << 1
+            };
+
+            j += 1;
+        }
+        table[0][i] = crc.swap_bytes();
+        i += 1;
+    }
+
+    i = 0;
+    while i < 256 {
+        let mut crc = table[0][i].swap_bytes();
+        let mut j = 1;
+        while j < N {
+            crc = (table[0][(crc >> 24) as usize]).swap_bytes() ^ (crc << 8);
+            table[j][i] = crc.swap_bytes();
+            j += 1;
+        }
+        i += 1;
+    }
+    table
 }
 
-use table::CRC_TABLE;
+const CRC_TABLE: [[u32; 256]; 16] = gen_crc_table(0x04c1_1db7);
 
 /// Calculates the crc-32 for rocket league replays. Not all CRC algorithms are the same. The crc
 /// algorithm can be generated with the following parameters (pycrc):
