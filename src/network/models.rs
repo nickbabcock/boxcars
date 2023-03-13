@@ -86,11 +86,10 @@ pub struct Quaternion {
 impl Quaternion {
     #[inline]
     fn unpack(val: u32) -> f32 {
-        let max_quat = 1.0 / std::f32::consts::SQRT_2;
         let max_value = (1 << 18) - 1;
         let pos_range = (val as f32) / (max_value as f32);
         let range = (pos_range - 0.5) * 2.0;
-        range * max_quat
+        range * std::f32::consts::FRAC_1_SQRT_2
     }
 
     #[inline]
