@@ -49,6 +49,7 @@ pub(crate) enum AttributeTag {
     RotationTag,
     RepStatTitle,
     PickupInfo,
+    Impulse,
 }
 
 /// The attributes for updated actors in the network data.
@@ -102,6 +103,7 @@ pub enum Attribute {
     Rotation(Rotation),
     RepStatTitle(RepStatTitle),
     PickupInfo(PickupInfo),
+    Impulse(Impulse),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -382,6 +384,12 @@ pub struct PickupInfo {
     pub unknown2: bool,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct Impulse {
+    pub compressed_rotation: i32,
+    pub speed: f32,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct ProductValueDecoder {
     version: VersionTriplet,
@@ -530,6 +538,7 @@ impl AttributeDecoder {
             AttributeTag::RotationTag => self.decode_rotation(bits),
             AttributeTag::RepStatTitle => self.decode_rep_stat_title(bits, buf),
             AttributeTag::PickupInfo => self.decode_pickup_info(bits),
+            AttributeTag::Impulse => self.decode_impulse(bits),
         }
     }
 
@@ -833,6 +842,24 @@ impl AttributeDecoder {
             items_are_preview,
             unknown,
             unknown2,
+        }))
+    }
+
+    pub fn decode_impulse(
+        &self,
+        bits: &mut LittleEndianReader<'_>,
+    ) -> Result<Attribute, AttributeError> {
+        let compressed_rotation = bits
+            .read_i32()
+            .ok_or(AttributeError::NotEnoughDataFor("Impulse"))?;
+
+        let speed = bits
+            .read_f32()
+            .ok_or(AttributeError::NotEnoughDataFor("Impulse"))?;
+
+        Ok(Attribute::Impulse(Impulse {
+            compressed_rotation,
+            speed,
         }))
     }
 
