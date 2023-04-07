@@ -70,7 +70,7 @@ extern crate serde;
 mod macros;
 pub use self::errors::{AttributeError, FrameContext, FrameError, NetworkError, ParseError};
 pub use self::models::*;
-pub use self::network::attributes::Attribute;
+pub use self::network::attributes::*;
 pub use self::network::*;
 pub use self::parser::{CrcCheck, NetworkParse, ParserBuilder};
 mod bits;
