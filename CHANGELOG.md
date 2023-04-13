@@ -1,3 +1,9 @@
+# v0.9.9 - April 13th, 2023
+
+- Support knockout replays
+- Export all attribute types
+- Add full Eq trait to all structs needed to allow full eq on UniqueId
+
 # v0.9.8 - December 3rd, 2022
 
 - Support parsing patch v2.23 replays
