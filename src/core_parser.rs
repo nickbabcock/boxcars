@@ -119,7 +119,7 @@ impl<'a> CoreParser<'a> {
         // size.abs() will panic at min_value, so we eschew it for manual checking
         if characters == 0 {
             Err(ParseError::ZeroSize)
-        } else if characters > 10_000 || characters < -10_000 {
+        } else if !(-10_000..=10_000).contains(&characters) {
             Err(ParseError::TextTooLarge(characters))
         } else if characters < 0 {
             // We're dealing with UTF-16 and each character is two bytes, we

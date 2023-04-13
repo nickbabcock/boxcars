@@ -50,7 +50,7 @@ impl<'a> RlBits for LittleEndianReader<'a> {
 
     #[inline]
     fn peek_bits_max_computed(&mut self, bits: u32, max: u64) -> u64 {
-        debug_assert!(core::cmp::max(bit_width(max) as u32, 1) == bits + 1);
+        debug_assert!(core::cmp::max(bit_width(max), 1) == bits + 1);
 
         let data = self.peek_and_consume(bits);
         let up = data + (1 << bits);
@@ -65,7 +65,7 @@ impl<'a> RlBits for LittleEndianReader<'a> {
 
     #[inline]
     fn read_bits_max_computed(&mut self, bits: u32, max: u64) -> Option<u64> {
-        debug_assert!(core::cmp::max(bit_width(max) as u32, 1) == bits + 1);
+        debug_assert!(core::cmp::max(bit_width(max), 1) == bits + 1);
         self.read_bits(bits).and_then(|data| {
             let up = data + (1 << bits);
             if up >= max {

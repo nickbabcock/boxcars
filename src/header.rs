@@ -18,28 +18,28 @@ impl Header {
         self.properties
             .iter()
             .find(|&(key, _)| key == "NumFrames")
-            .and_then(|&(_, ref prop)| prop.as_i32())
+            .and_then(|(_, ref prop)| prop.as_i32())
     }
 
     pub fn max_channels(&self) -> Option<i32> {
         self.properties
             .iter()
             .find(|&(key, _)| key == "MaxChannels")
-            .and_then(|&(_, ref prop)| prop.as_i32())
+            .and_then(|(_, ref prop)| prop.as_i32())
     }
 
     pub fn match_type(&self) -> Option<&str> {
         self.properties
             .iter()
             .find(|&(key, _)| key == "MatchType")
-            .and_then(|&(_, ref prop)| prop.as_string())
+            .and_then(|(_, ref prop)| prop.as_string())
     }
 
     pub fn build_version(&self) -> Option<&str> {
         self.properties
             .iter()
             .find(|&(key, _)| key == "BuildVersion")
-            .and_then(|&(_, ref prop)| prop.as_string())
+            .and_then(|(_, ref prop)| prop.as_string())
     }
 }
 

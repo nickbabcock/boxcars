@@ -413,7 +413,7 @@ impl ProductValueDecoder {
         let title_ind = name_obj_ind
             .get("TAGame.ProductAttribute_TitleID_TA")
             .map(|x| usize::from(x[0]) as u32)
-            .unwrap_or(0) as u32;
+            .unwrap_or(0);
         let special_edition_ind = name_obj_ind
             .get("TAGame.ProductAttribute_SpecialEdition_TA")
             .map(|x| usize::from(x[0]) as u32)

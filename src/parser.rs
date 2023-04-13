@@ -344,8 +344,7 @@ impl<'a> Parser<'a> {
             ParseError::ParseError("header data", self.core.bytes_read(), Box::new(e))
         })?;
 
-        let header =
-            self.crc_section(header_data, header_crc as u32, "header", Self::parse_header)?;
+        let header = self.crc_section(header_data, header_crc, "header", Self::parse_header)?;
 
         let content_size = self.core.take_i32("content size")?;
         let content_crc = self.core.take_u32("content crc")?;
@@ -354,7 +353,7 @@ impl<'a> Parser<'a> {
             ParseError::ParseError("content data", self.core.bytes_read(), Box::new(e))
         })?;
 
-        let body = self.crc_section(content_data, content_crc as u32, "body", Self::parse_body)?;
+        let body = self.crc_section(content_data, content_crc, "body", Self::parse_body)?;
 
         let network: Option<NetworkFrames> = match self.network_parse {
             NetworkParse::Always => Some(
@@ -419,7 +418,7 @@ impl<'a> Parser<'a> {
         match self.crc_check {
             CrcCheck::Always => {
                 let actual = calc_crc(data);
-                if actual != crc as u32 {
+                if actual != crc {
                     Err(ParseError::CrcMismatch(crc, actual))
                 } else {
                     result
@@ -427,7 +426,7 @@ impl<'a> Parser<'a> {
             }
             CrcCheck::OnError => result.map_err(|e| -> ParseError {
                 let actual = calc_crc(data);
-                if actual != crc as u32 {
+                if actual != crc {
                     ParseError::CorruptReplay(String::from(section), Box::new(e))
                 } else {
                     e

@@ -271,7 +271,7 @@ where
     S: Serializer,
 {
     let mut state = serializer.serialize_map(Some(inp.len()))?;
-    for &(ref key, ref val) in inp.iter() {
+    for (key, val) in inp.iter() {
         state.serialize_key(key)?;
         state.serialize_value(val)?;
     }
