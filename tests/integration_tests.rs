@@ -97,3 +97,4 @@ frame_len_test!(test_4742, "../assets/replays/good/4742.replay", 9875);
 frame_len_test!(test_drop_shot, "../assets/replays/good/204c.replay", 9377);
 frame_len_test!(test_59d3, "../assets/replays/good/59d3.replay", 10309);
 frame_len_test!(test_029d, "../assets/replays/good/029d.replay", 13855);
+frame_len_test!(test_79ea6, "../assets/replays/good/79ea6.replay", 6147);
