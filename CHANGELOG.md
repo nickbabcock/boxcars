@@ -1,3 +1,7 @@
+# v0.9.10 - June 16th, 2023
+
+- Add support for post match celebration attribute
+
 # v0.9.9 - April 13th, 2023
 
 - Support knockout replays
