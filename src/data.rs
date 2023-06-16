@@ -312,6 +312,7 @@ pub(crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = phf::phf_ma
     "TAGame.Team_TA:GameEvent" => AttributeTag::ActiveActor,
     "TAGame.Team_TA:LogoData" => AttributeTag::ActiveActor,
     "TAGame.Vehicle_TA:bDriving" => AttributeTag::Boolean,
+    "TAGame.Vehicle_TA:bHasPostMatchCelebration" => AttributeTag::Boolean,
     "TAGame.Vehicle_TA:bPodiumMode" => AttributeTag::Boolean,
     "TAGame.Vehicle_TA:bReplicatedHandbrake" => AttributeTag::Boolean,
     "TAGame.Vehicle_TA:ReplicatedSteer" => AttributeTag::Byte,
