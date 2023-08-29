@@ -98,7 +98,7 @@ pub(crate) fn parse(header: &Header, body: &ReplayBody) -> Result<NetworkFrames,
                     .get(x.object_ind as usize)
                     .map(|x| {
                         ATTRIBUTES
-                            .get(x.deref())
+                            .get(x)
                             .cloned()
                             .unwrap_or(AttributeTag::NotImplemented)
                     })

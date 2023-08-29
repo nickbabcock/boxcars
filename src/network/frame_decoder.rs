@@ -205,9 +205,9 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
         Ok(DecodedFrame::Frame(Frame {
             time,
             delta,
-            new_actors: new_actors.drain(..).collect(),
-            deleted_actors: deleted_actors.drain(..).collect(),
-            updated_actors: updated_actors.drain(..).collect(),
+            new_actors: std::mem::take(new_actors),
+            deleted_actors: std::mem::take(deleted_actors),
+            updated_actors: std::mem::take(updated_actors),
         }))
     }
 
