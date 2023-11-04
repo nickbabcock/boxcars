@@ -1,3 +1,7 @@
+# v0.9.11 - November 4th, 2023
+
+- Add support for bot replays
+
 # v0.9.10 - June 16th, 2023
 
 - Add support for post match celebration attribute
