@@ -68,7 +68,7 @@ pub(crate) fn parse(header: &Header, body: &ReplayBody) -> Result<NetworkFrames,
     for (i, name) in normalized_objects.iter().enumerate() {
         normalized_name_obj_ind
             .entry(*name)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(ObjectId(i as i32));
     }
 
