@@ -200,6 +200,7 @@ pub(crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = phf::phf_ma
     "TAGame.CarComponent_Boost_TA:RechargeDelay" => AttributeTag::Float,
     "TAGame.CarComponent_Boost_TA:RechargeRate" => AttributeTag::Float,
     "TAGame.CarComponent_Boost_TA:ReplicatedBoostAmount" => AttributeTag::Byte,
+    "TAGame.CarComponent_Boost_TA:ReplicatedBoost" => AttributeTag::ReplicatedBoost,
     "TAGame.CarComponent_Boost_TA:UnlimitedBoostRefCount" => AttributeTag::Int,
     "TAGame.CarComponent_Dodge_TA:DodgeTorque" => AttributeTag::Location,
     "TAGame.CarComponent_Dodge_TA:DodgeImpulse" => AttributeTag::Location,
