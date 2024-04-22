@@ -50,6 +50,7 @@ pub(crate) enum AttributeTag {
     RepStatTitle,
     PickupInfo,
     Impulse,
+    ReplicatedBoost,
 }
 
 /// The attributes for updated actors in the network data.
@@ -104,6 +105,7 @@ pub enum Attribute {
     RepStatTitle(RepStatTitle),
     PickupInfo(PickupInfo),
     Impulse(Impulse),
+    ReplicatedBoost(ReplicatedBoost),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -390,6 +392,14 @@ pub struct Impulse {
     pub speed: f32,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct ReplicatedBoost {
+    pub grant_count: u8,
+    pub boost_amount: u8,
+    pub unused1: u8,
+    pub unused2: u8,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct ProductValueDecoder {
     version: VersionTriplet,
@@ -539,6 +549,7 @@ impl AttributeDecoder {
             AttributeTag::RepStatTitle => self.decode_rep_stat_title(bits, buf),
             AttributeTag::PickupInfo => self.decode_pickup_info(bits),
             AttributeTag::Impulse => self.decode_impulse(bits),
+            AttributeTag::ReplicatedBoost => self.decode_replicated_boost(bits),
         }
     }
 
@@ -860,6 +871,34 @@ impl AttributeDecoder {
         Ok(Attribute::Impulse(Impulse {
             compressed_rotation,
             speed,
+        }))
+    }
+
+    pub fn decode_replicated_boost(
+        &self,
+        bits: &mut LittleEndianReader<'_>,
+    ) -> Result<Attribute, AttributeError> {
+        let grant_count = bits
+            .read_u8()
+            .ok_or(AttributeError::NotEnoughDataFor("ReplicatedBoost"))?;
+
+        let boost_amount = bits
+            .read_u8()
+            .ok_or(AttributeError::NotEnoughDataFor("ReplicatedBoost"))?;
+
+        let unused1 = bits
+            .read_u8()
+            .ok_or(AttributeError::NotEnoughDataFor("ReplicatedBoost"))?;
+
+        let unused2 = bits
+            .read_u8()
+            .ok_or(AttributeError::NotEnoughDataFor("ReplicatedBoost"))?;
+
+        Ok(Attribute::ReplicatedBoost(ReplicatedBoost {
+            grant_count,
+            boost_amount,
+            unused1,
+            unused2,
         }))
     }
 
