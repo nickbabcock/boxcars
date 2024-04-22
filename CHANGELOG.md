@@ -1,3 +1,7 @@
+# v0.9.12 - April 21st, 2024
+
+- Support RL 2.39 Replays with Replicated Boost
+
 # v0.9.11 - November 4th, 2023
 
 - Add support for bot replays
