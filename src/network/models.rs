@@ -46,8 +46,8 @@ impl Vector3i {
                 z: (dz as i32) - bias,
             })
         } else {
-            let len = bits.refill_lookahead();
-            if len < 5 {
+            bits.refill_lookahead();
+            if bits.lookahead_bits() < 5 {
                 return None;
             }
 
@@ -61,8 +61,8 @@ impl Vector3i {
 
             let dx = bits.peek_and_consume(bit_limit) as u32;
 
-            let len = bits.refill_lookahead();
-            debug_assert!(len >= bit_limit * 2);
+            bits.refill_lookahead();
+            debug_assert!(bits.lookahead_bits() >= bit_limit * 2);
 
             let dy = bits.peek_and_consume(bit_limit) as u32;
             let dz = bits.peek_and_consume(bit_limit) as u32;
@@ -112,8 +112,8 @@ impl Quaternion {
     }
 
     pub fn decode_compressed(bits: &mut LittleEndianReader<'_>) -> Option<Self> {
-        let len = bits.refill_lookahead();
-        if len >= 3 * 16 {
+        bits.refill_lookahead();
+        if bits.lookahead_bits() >= 3 * 16 {
             let x = Quaternion::compressed_f32(bits);
             let y = Quaternion::compressed_f32(bits);
             let z = Quaternion::compressed_f32(bits);
@@ -124,8 +124,8 @@ impl Quaternion {
     }
 
     pub fn decode(bits: &mut LittleEndianReader<'_>) -> Option<Self> {
-        let len = bits.refill_lookahead();
-        if len < 2 + 3 * 18 {
+        bits.refill_lookahead();
+        if bits.lookahead_bits() < 2 + 3 * 18 {
             return None;
         }
 
@@ -174,8 +174,8 @@ pub struct Rotation {
 
 impl Rotation {
     pub fn decode(bits: &mut LittleEndianReader<'_>) -> Option<Rotation> {
-        let len = bits.refill_lookahead();
-        if len >= 3 * 9 {
+        bits.refill_lookahead();
+        if bits.lookahead_bits() >= 3 * 9 {
             let yaw = if bits.peek_and_consume(1) != 0 {
                 Some(bits.peek_and_consume(8) as i8)
             } else {

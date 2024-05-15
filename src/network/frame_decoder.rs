@@ -102,8 +102,8 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
             .read_bit()
             .ok_or(FrameError::NotEnoughDataFor("Actor data"))?
         {
-            let len = bits.refill_lookahead();
-            if len < self.channel_bits + 1 + 1 {
+            bits.refill_lookahead();
+            if bits.lookahead_bits() < self.channel_bits + 1 + 1 {
                 return Err(FrameError::NotEnoughDataFor("Actor Id"));
             }
 
@@ -149,8 +149,8 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                         // We've previously calculated the max the stream id can be for a
                         // given type and how many bits that it encompasses so use those
                         // values now
-                        let len = bits.refill_lookahead();
-                        if len < cache_info.prop_id_bits + 1 {
+                        bits.refill_lookahead();
+                        if bits.lookahead_bits() < cache_info.prop_id_bits + 1 {
                             return Err(FrameError::NotEnoughDataFor("Prop id"));
                         }
 

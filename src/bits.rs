@@ -9,29 +9,12 @@ pub(crate) trait RlBits {
     fn peek_and_consume(&mut self, bits: u32) -> u64;
     fn peek_bits_max_computed(&mut self, bits: u32, max: u64) -> u64;
     fn read_bits_max_computed(&mut self, bits: u32, max: u64) -> Option<u64>;
-    fn read_u64(&mut self) -> Option<u64>;
-    fn read_i64(&mut self) -> Option<i64>;
     fn if_get<T, F>(&mut self, f: F) -> Option<Option<T>>
     where
         F: FnMut(&mut Self) -> Option<T>;
 }
 
 impl<'a> RlBits for LittleEndianReader<'a> {
-    #[inline]
-    fn read_u64(&mut self) -> Option<u64> {
-        let mut out = [0u8; 8];
-        if self.read_bytes(&mut out) {
-            Some(u64::from_le_bytes(out))
-        } else {
-            None
-        }
-    }
-
-    #[inline]
-    fn read_i64(&mut self) -> Option<i64> {
-        self.read_u64().map(|x| x as i64)
-    }
-
     #[inline]
     fn peek_and_consume(&mut self, bits: u32) -> u64 {
         let res = self.peek(bits);
