@@ -1,3 +1,7 @@
+# v0.9.13 - May 15th, 2024
+
+- Update bitter dependency to 0.7
+
 # v0.9.12 - April 21st, 2024
 
 - Support RL 2.39 Replays with Replicated Boost
