@@ -929,8 +929,8 @@ impl AttributeDecoder {
         &self,
         bits: &mut LittleEndianReader<'_>,
     ) -> Result<Attribute, AttributeError> {
-        let len = bits.refill_lookahead();
-        if len < 33 {
+        bits.refill_lookahead();
+        if bits.lookahead_bits() < 33 {
             return Err(AttributeError::NotEnoughDataFor("Active Actor"))?;
         }
 
