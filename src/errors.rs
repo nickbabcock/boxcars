@@ -105,14 +105,6 @@ impl Display for AttributeError {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct ContextObjectAttribute {
-    obj_id: ObjectId,
-    obj_name: String,
-    prop_id: ObjectId,
-    prop_name: String,
-}
-
 #[derive(PartialEq, Debug, Clone)]
 pub struct FrameContext {
     pub objects: Vec<String>,
