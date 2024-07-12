@@ -187,7 +187,7 @@ pub(crate) fn parse(header: &Header, body: &ReplayBody) -> Result<NetworkFrames,
                 .map(|&x| i32::from(x))
                 .max()
                 .unwrap_or(2)
-                .wrapping_add(1);
+                .saturating_add(1);
 
             let max_bit_width = crate::bits::bit_width(max as u64);
             Ok((
@@ -205,7 +205,7 @@ pub(crate) fn parse(header: &Header, body: &ReplayBody) -> Result<NetworkFrames,
 
     // 1023 stolen from rattletrap
     let max_channels = header.max_channels().unwrap_or(1023) as u32;
-    let channel_width = crate::bits::bit_width(u64::from(max_channels)).wrapping_sub(1);
+    let channel_width = crate::bits::bit_width(u64::from(max_channels)).saturating_sub(1);
     let channel_bits = cmp::max(channel_width, 0);
     let num_frames = header.num_frames();
     let is_lan = header.match_type().map(|x| x == "Lan").unwrap_or(false);
