@@ -1,3 +1,7 @@
+# v0.9.14 - July 12th, 2024
+
+- Fix overflow edge cases in network parser 
+
 # v0.9.13 - May 15th, 2024
 
 - Update bitter dependency to 0.7
