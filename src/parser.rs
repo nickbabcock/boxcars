@@ -1,7 +1,7 @@
 //! # Parsing
 //!
-//! A Rocket League replay is a binary file that is little endian encoded. What follows below is a
-//! detailed account of the Rocket League replay format.
+//! A Rocket League replay is a binary file that is little endian encoded. What
+//! follows below is a detailed account of the Rocket League replay format.
 //!
 //! A replay is split into three major sections, a header, body, and footer.
 //!
@@ -9,38 +9,43 @@
 //!
 //! - First 32 bits: the number of bytes that comprises the header data
 //! - Second 32 bits: the [cyclic redundancy check
-//! (CRC)](https://en.wikipedia.org/wiki/Cyclic_redundancy_check) (the checksum to ensure the
-//! replay isn't corrupt). It should be unsigned.
+//!   (CRC)](https://en.wikipedia.org/wiki/Cyclic_redundancy_check) (the
+//!   checksum to ensure the replay isn't corrupt). It should be unsigned.
 //! - Now we arrive at the header data
 //! - Third 32 bits: the replay major version (it'll be something like 868)
 //! - Fourth 32 bits: the replay minor version (it'll be something like 20)
-//! - Fifth 32 bits:  the replay network version (very old replays won't have this, you'll need
-//! to check that the major _version > 865 and minor_version > 17.
+//! - Fifth 32 bits:  the replay network version (very old replays won't have
+//!   this, you'll need to check that the major _version > 865 and minor_version
+//!   > 17.
 //!
-//! Now we get to where the game type is encoded as a string. Below is the formula for decoding a
-//! string.
+//! Now we get to where the game type is encoded as a string. Below is the
+//! formula for decoding a string.
 //!
 //! - The size of text as a 32bit integer
-//!   - If the size is positive, we're dealing with a windows-1252 encoding, so we don't need to do
-//!   anything to get the number of bytes that the string consumes (as windows-1252 is a 8bit
-//!   encoding).
-//!   - If the size is negative, the string is encoded with UTF-16, so multiply it by -2 to get the
-//!   number of bytes needed to read the string.
-//! - Consume the number of bytes determined, but drop the last letter (1 byte for windows-1252, 2
-//! for UTF-16) as this will be a null character which we don't want.
+//!   - If the size is positive, we're dealing with a windows-1252 encoding, so
+//!     we don't need to do anything to get the number of bytes that the string
+//!     consumes (as windows-1252 is a 8bit encoding).
+//!   - If the size is negative, the string is encoded with UTF-16, so multiply
+//!     it by -2 to get the number of bytes needed to read the string.
+//! - Consume the number of bytes determined, but drop the last letter (1 byte
+//!   for windows-1252, 2 for UTF-16) as this will be a null character which we
+//!   don't want.
 //!
 //! ### Header Properties
 //!
-//! The properties is where all the good nuggets of info reside (goals, player stats, etc).
-//! Visualize the properties as a map of key-value pairs. The format is to:
+//! The properties is where all the good nuggets of info reside (goals, player
+//! stats, etc). Visualize the properties as a map of key-value pairs. The
+//! format is to:
 //!
 //!  - Read string. This will be the key
 //!  - If the key is "None" we're done with given key value pair
 //!  - Read string to determine the value type
-//!  - Skip next 8 bytes (there's debate about what this means, but it doesn't matter)
+//!  - Skip next 8 bytes (there's debate about what this means, but it doesn't
+//!    matter)
 //!  - Decode the value based on the value type:
 //!    - "BoolProperty": read byte. Does it equal 1?
-//!    - "ByteProperty": read two strings (unless the first seen is related to steam / ps4)
+//!    - "ByteProperty": read two strings (unless the first seen is related to
+//!      steam / ps4)
 //!    - "FloatProperty": little endian encoded 32bit float
 //!    - "IntProperty": 32bit signed integer
 //!    - "NameProperty": read string
@@ -51,26 +56,30 @@
 //!
 //! ## Body
 //!
-//! Next comes the bulk of the replay, the body. Just like the header, the body starts out with a
-//! pair of 32 bit integers representing the number of bytes and the CRC of the section.
+//! Next comes the bulk of the replay, the body. Just like the header, the body
+//! starts out with a pair of 32 bit integers representing the number of bytes
+//! and the CRC of the section.
 //!
-//! The first data point in the body is a list of levels encoded as a list of strings. A list in a
-//! replay is prefixed by the number of elements contained in the list as a 32 bit integer. Use
-//! this integer and decode said number of elements.
+//! The first data point in the body is a list of levels encoded as a list of
+//! strings. A list in a replay is prefixed by the number of elements contained
+//! in the list as a 32 bit integer. Use this integer and decode said number of
+//! elements.
 //!
-//! Then it's a list of keyframes where a keyframe is 12 bytes (time: 32 bit float, frame: 32 bit
-//! integer, and position: 32 bit integer).
+//! Then it's a list of keyframes where a keyframe is 12 bytes (time: 32 bit
+//! float, frame: 32 bit integer, and position: 32 bit integer).
 //!
-//! Network data is next. Since the network data complex enough to warrant it's own section later.
-//! Thankfully it is prefixed with a 32 bit integer denoting its size, so we can skip it with ease.
+//! Network data is next. Since the network data complex enough to warrant it's
+//! own section later. Thankfully it is prefixed with a 32 bit integer denoting
+//! its size, so we can skip it with ease.
 //!
 //! ## Footer
 //!
-//! Since the network data is about 95% of the data, everything that comes after it is the footer
-//! (it's not technically a dedicated section with a length prefix + crc, but I like to think of it
-//! as a separate section).
+//! Since the network data is about 95% of the data, everything that comes after
+//! it is the footer (it's not technically a dedicated section with a length
+//! prefix + crc, but I like to think of it as a separate section).
 //!
-//! Unless parsing the network data, there isn't too much that is interesting in the footer.
+//! Unless parsing the network data, there isn't too much that is interesting in
+//! the footer.
 //!
 //! - List of debug info: (frame: 32 bit integer, user: string, text: string)
 //! - List of tickmarks: (description: string, frame: 32 bit integer)
@@ -78,31 +87,38 @@
 //! - Objects: a string list
 //! - Names: a string list
 //! - List of class indices: (class: string, index: 32 bit integer)
-//! - List of network attribute encodings: (object_ind: 32 bit integer, parent_id: 32 bit integer,
-//! cache_id: 32 bit integer, properties: a list of 32bit pairs (object_ind and stream_id))
+//! - List of network attribute encodings: (object_ind: 32 bit integer,
+//!   parent_id: 32 bit integer, cache_id: 32 bit integer, properties: a list of
+//!   32bit pairs (object_ind and stream_id))
 //!
 //! ## Network Body
 //!
-//! The number of frames in the body is hinted by the "NumFrames" property in the header.
+//! The number of frames in the body is hinted by the "NumFrames" property in
+//! the header.
 //!
-//! Do note that the network data is bit level. Meaning that a parser will read bit by bit. Thus a
-//! request for 32bits of data may span 5 bytes if the parser was in the middle of a byte.
+//! Do note that the network data is bit level. Meaning that a parser will read
+//! bit by bit. Thus a request for 32bits of data may span 5 bytes if the parser
+//! was in the middle of a byte.
 //!
-//! Each frame is led by a pair of 32bit floating point numbers representing the absolute time of a
-//! frame and the delta, or elapsed time, from the previous frame.
+//! Each frame is led by a pair of 32bit floating point numbers representing the
+//! absolute time of a frame and the delta, or elapsed time, from the previous
+//! frame.
 //!
 //! Next comes actor data.
 //!
 //! - While there is more actor data in the frame (bit is on)
-//!   - Decode the actor id, which is the number of bits needed to represent the "NumChannels" value in the header
+//!   - Decode the actor id, which is the number of bits needed to represent the
+//!     "NumChannels" value in the header
 //!   - If the actor is alive (bit is on)
 //!     - If actor is new (bit is on)
 //!       - Parse new actor:
 //!         - 32bit integer representing the index in the `names` list
 //!         - Unused bit
 //!         - 32bit integer representing the ObjectId
-//!         - Decode initial position if available (basically is the object not part of the crowd): Vector3i
-//!         - Decode initial rotation if available (basically is the object a ball or car): Rotation
+//!         - Decode initial position if available (basically is the object not
+//!           part of the crowd): Vector3i
+//!         - Decode initial rotation if available (basically is the object a
+//!           ball or car): Rotation
 //!
 //! Quick aside:
 //!
@@ -121,31 +137,35 @@
 //!   - pitch: signed 8 bits
 //!   - roll: signed 8 bits
 //!
-//! Ok, we can decode a new actor! How about update an existing actor with a new attribute? The
-//! actor is new bit would be off. Every actor receiving an update, is an actor we've already seen.
-//! So we'll look up the actor's ObjectId using the decoded ActorId seen when the actor was
-//! instantiated.
+//! Ok, we can decode a new actor! How about update an existing actor with a new
+//! attribute? The actor is new bit would be off. Every actor receiving an
+//! update, is an actor we've already seen. So we'll look up the actor's
+//! ObjectId using the decoded ActorId seen when the actor was instantiated.
 //!
-//! - ObjectId: the index that the object appears in the `objects` list in the footer that we
-//!   previously parsed. For instance, "Core.Object" would have an ObjectId of 0.
-//! - ActorId: the temporary id of an actor while it is in game. Once an actor is deleted, the
-//!   actor id may be recycled.
+//! - ObjectId: the index that the object appears in the `objects` list in the
+//!   footer that we previously parsed. For instance, "Core.Object" would have
+//!   an ObjectId of 0.
+//! - ActorId: the temporary id of an actor while it is in game. Once an actor
+//!   is deleted, the actor id may be recycled.
 //!
 //! Then while the next bit is on, there are more attributes for our actor.
 //!
-//! We need to read from the stream, the number of bits that can compose the largest stream id /
-//! attribute id for the object without exceeding this max value. Very confusing, so let's take a
-//! step back with an example. Let's say we need to read the next 5 bits for the attribute stream
-//! id. If the result is 16, the attribute resolves differently depending on the actor's ObjectId.
-//! A contrived example: "16" for an "Engine.Pawn" ObjectId could point to the attribute
-//! "Engine.Pawn:bCanSwatTurn", while a "16" for "TAGame.Vehicle_TA" could be
-//! "TAGame.Vehicle_TA:bDriving".
+//! We need to read from the stream, the number of bits that can compose the
+//! largest stream id / attribute id for the object without exceeding this max
+//! value. Very confusing, so let's take a step back with an example. Let's say
+//! we need to read the next 5 bits for the attribute stream id. If the result
+//! is 16, the attribute resolves differently depending on the actor's ObjectId.
+//! A contrived example: "16" for an "Engine.Pawn" ObjectId could point to the
+//! attribute "Engine.Pawn:bCanSwatTurn", while a "16" for "TAGame.Vehicle_TA"
+//! could be "TAGame.Vehicle_TA:bDriving".
 //!
-//! So we need to construct a lookup for an ObjectId where we can find out how much to read for the
-//! attribute's stream id and resolve the stream id to an actual attribute.
+//! So we need to construct a lookup for an ObjectId where we can find out how
+//! much to read for the attribute's stream id and resolve the stream id to an
+//! actual attribute.
 //!
-//! To construct this lookup, we need to examine the net_cache previously decoded from the footer.
-//! The net_cache represents a hierarchy of attributes that children inherit from parents.
+//! To construct this lookup, we need to examine the net_cache previously
+//! decoded from the footer. The net_cache represents a hierarchy of attributes
+//! that children inherit from parents.
 //!
 //! ```json
 //! [{
@@ -178,19 +198,22 @@
 //! }]
 //! ```
 //!
-//! Going back to "We need to read from the stream, the number of bits that can compose the largest
-//! stream id / attribute id", we can see in the previous example that the largest stream_id for a
-//! TAGame.VehiclePickup_TA is 21, so 4 bits are needed with an optional 5th bit if the accumulator
-//! couldn't exceed the max value with another "on" bit of information. These bits are the
+//! Going back to "We need to read from the stream, the number of bits that can
+//! compose the largest stream id / attribute id", we can see in the previous
+//! example that the largest stream_id for a TAGame.VehiclePickup_TA is 21, so 4
+//! bits are needed with an optional 5th bit if the accumulator couldn't exceed
+//! the max value with another "on" bit of information. These bits are the
 //! attribute stream id. For Engine.Actor, only 1 bit needs to be read.
 //!
-//! With all this information, we can decode the attribute! Since there are 40 attribute types,
-//! it's not feasible to document them all here. It may take a lot of guesswork to determine the
-//! attribute type of a new attribute introduced in a released patch. Basically the recommendation
-//! is to look at the source code. Attribute parsing reuses all the concepts we've gone over
+//! With all this information, we can decode the attribute! Since there are 40
+//! attribute types, it's not feasible to document them all here. It may take a
+//! lot of guesswork to determine the attribute type of a new attribute
+//! introduced in a released patch. Basically the recommendation is to look at
+//! the source code. Attribute parsing reuses all the concepts we've gone over
 //!
-//! The only thing left is the other branch when the "actor is alive" bit is off. This means that
-//! the actor is deleted and that the given actor id can be recycled.
+//! The only thing left is the other branch when the "actor is alive" bit is
+//! off. This means that the actor is deleted and that the given actor id can be
+//! recycled.
 
 use crate::core_parser::CoreParser;
 use crate::crc::calc_crc;
