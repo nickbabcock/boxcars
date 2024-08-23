@@ -108,7 +108,7 @@ impl Quaternion {
         //
         // Bakkes copied jjbott. Rattletrap is more in line here
         let res = bits.peek_and_consume(16) as i32;
-        ((res + i32::from(std::i16::MIN)) as f32) * (std::i16::MAX as f32).recip()
+        ((res + i32::from(i16::MIN)) as f32) * (i16::MAX as f32).recip()
     }
 
     pub fn decode_compressed(bits: &mut LittleEndianReader<'_>) -> Option<Self> {
