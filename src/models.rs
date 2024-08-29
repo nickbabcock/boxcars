@@ -289,14 +289,12 @@ impl Serialize for HeaderProp {
     {
         match *self {
             HeaderProp::Array(ref x) => {
+                #[derive(Serialize)]
+                struct Elem<'a>(#[serde(serialize_with = "pair_vec")] &'a [(String, HeaderProp)]);
+
                 let mut state = serializer.serialize_seq(Some(x.len()))?;
                 for inner in x {
-                    // Look for a better way to do this instead of allocating the intermediate map
-                    let mut els = HashMap::new();
-                    for (key, val) in inner.iter() {
-                        els.insert(key, val);
-                    }
-                    state.serialize_element(&els)?;
+                    state.serialize_element(&Elem(inner.as_slice()))?;
                 }
                 state.end()
             }
