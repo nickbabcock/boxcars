@@ -1,0 +1,9 @@
+---
+source: tests/integration_tests.rs
+expression: snapshot
+input_file: assets/replays/good/rlcs2.replay
+---
+{
+  "frames": 10664,
+  "hex": "0x4c72b4bcfd2d334d6fe9c766dc66a0c6bc14da74c5cc22fc562f676471d568b5"
+}

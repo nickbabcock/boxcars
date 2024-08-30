@@ -1,0 +1,9 @@
+---
+source: tests/integration_tests.rs
+expression: snapshot
+input_file: assets/replays/good/many_actors.replay
+---
+{
+  "frames": 4179,
+  "hex": "0x902c94f635dfd98bf11c914ba7dae35d88d84530d6dd85a85890d8632f4ede0e"
+}

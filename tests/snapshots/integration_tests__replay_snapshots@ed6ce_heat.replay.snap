@@ -1,0 +1,9 @@
+---
+source: tests/integration_tests.rs
+expression: snapshot
+input_file: assets/replays/good/ed6ce_heat.replay
+---
+{
+  "frames": 10920,
+  "hex": "0x31a28695f3c5cf9e461af5173aeca34a228701bad123f8f7d4f6a6eac72b5601"
+}

@@ -1,0 +1,9 @@
+---
+source: tests/integration_tests.rs
+expression: snapshot
+input_file: assets/replays/good/epic.replay
+---
+{
+  "frames": 7231,
+  "hex": "0xa16332824e08e2d4f3a9f26d286ab7ef8d2c750fe51cbb47ed3472f2b7868877"
+}

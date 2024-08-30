@@ -1,0 +1,9 @@
+---
+source: tests/integration_tests.rs
+expression: snapshot
+input_file: assets/replays/good/fecd.replay
+---
+{
+  "frames": 12180,
+  "hex": "0xc9ae542276c7c931ed4bbfa6d4bb5cd31671d5b31958b9a4827bf4d2c22797d7"
+}
