@@ -21,6 +21,8 @@ bitter = "0.7"
 [dev-dependencies]
 serde_json = "1"
 criterion = "0.5"
+insta = { version = "1.39.0", features = ["glob", "serde", "json"] }
+highway = "1.2.0"
 
 [profile.bench]
 lto = true
@@ -30,3 +32,7 @@ codegen-units = 1
 path = "benches/bench_boxcars.rs"
 name = "bench_boxcars"
 harness = false
+
+[profile.dev.package]
+insta.opt-level = 3
+similar.opt-level = 3

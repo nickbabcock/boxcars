@@ -1,0 +1,9 @@
+---
+source: tests/integration_tests.rs
+expression: snapshot
+input_file: assets/replays/good/soccar-lan.replay
+---
+{
+  "frames": 7398,
+  "hex": "0xad642be5311c20b9063c4dab7a47c937cf58c2fb1b95d307716ce2387054caa9"
+}

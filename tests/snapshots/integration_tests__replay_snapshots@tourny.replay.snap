@@ -1,0 +1,9 @@
+---
+source: tests/integration_tests.rs
+expression: snapshot
+input_file: assets/replays/good/tourny.replay
+---
+{
+  "frames": 10275,
+  "hex": "0xac34d48d4cb232414eba274102ac7a41def31bee09994ac487edcc27cf598d98"
+}

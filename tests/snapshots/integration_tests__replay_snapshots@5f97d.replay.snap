@@ -1,0 +1,9 @@
+---
+source: tests/integration_tests.rs
+expression: snapshot
+input_file: assets/replays/good/5f97d.replay
+---
+{
+  "frames": 10780,
+  "hex": "0x0ba0245f7aad3707186621e6a9006a2c8b7ac59211530986ea4d5aa7779e8f41"
+}

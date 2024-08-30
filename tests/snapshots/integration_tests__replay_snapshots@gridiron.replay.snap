@@ -1,0 +1,9 @@
+---
+source: tests/integration_tests.rs
+expression: snapshot
+input_file: assets/replays/good/gridiron.replay
+---
+{
+  "frames": 11118,
+  "hex": "0x349fbb17ff5ec0b88713dcf19a2277790fa6cebdc94d36ca7ff177a4114cdfb0"
+}
