@@ -11,7 +11,6 @@
 use crate::network::Frame;
 use serde::ser::{SerializeMap, SerializeSeq, SerializeStruct};
 use serde::{Serialize, Serializer};
-use std::collections::HashMap;
 
 /// The structure that a rocket league replay is parsed into.
 #[derive(Serialize, PartialEq, Debug, Clone)]

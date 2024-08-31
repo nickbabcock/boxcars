@@ -36,6 +36,20 @@ impl<'a> CoreParser<'a> {
         }
     }
 
+    pub fn sub_parser(&mut self, size: usize) -> Result<CoreParser<'a>, ParseError> {
+        let col = self.col;
+        let subbed = self.take_data(size)?;
+        Ok(CoreParser { data: subbed, col })
+    }
+
+    pub fn take_bytes<const N: usize>(&mut self, size: usize) -> Result<[u8; N], ParseError> {
+        let head = self.take_data(size)?;
+        let result = head
+            .first_chunk::<N>()
+            .ok_or_else(|| ParseError::InsufficientData(size as i32, self.data.len() as i32))?;
+        Ok(*result)
+    }
+
     pub fn take_data(&mut self, size: usize) -> Result<&'a [u8], ParseError> {
         let res = self.view_data(size)?;
         self.advance(size);
@@ -51,10 +65,6 @@ impl<'a> CoreParser<'a> {
         let res = f(self.view_data(size)?);
         self.advance(size);
         Ok(res)
-    }
-
-    pub fn skip(&mut self, size: usize) -> Result<(), ParseError> {
-        self.take(size, |_| ())
     }
 
     pub fn take_i32(&mut self, section: &'static str) -> Result<i32, ParseError> {
@@ -98,15 +108,7 @@ impl<'a> CoreParser<'a> {
 
     /// Parses UTF-8 string from replay
     pub fn parse_str(&mut self) -> Result<&'a str, ParseError> {
-        let mut size = self.take(4, le_i32)? as usize;
-
-        // Replay 6688 has a property name that is listed as having a length of 0x5000000, but it's
-        // really the `\0\0\0None` property. I'm guess at some point in Rocket League, this was a
-        // bug that was fixed. What's interesting is that I couldn't find this constant in
-        // `RocketLeagueReplayParser`, only rattletrap.
-        if size == 0x0500_0000 {
-            size = 8;
-        }
+        let size = self.take(4, le_i32)? as usize;
         self.take_data(size).and_then(decode_str)
     }
 
