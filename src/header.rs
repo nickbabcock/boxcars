@@ -103,6 +103,8 @@ fn parse_rdict(
             "ByteProperty" => match mode {
                 ParserMode::Standard => {
                     let kind = rlp.parse_str()?;
+
+                    // kind SHOULD equal "OnlinePlatform"
                     let value = rlp.parse_str().map(Some)?;
                     Ok(HeaderProp::Byte {
                         kind: String::from(kind),
