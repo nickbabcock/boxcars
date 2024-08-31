@@ -29,49 +29,31 @@ pub struct Vector3i {
 
 impl Vector3i {
     pub fn decode(bits: &mut LittleEndianReader<'_>, net_version: i32) -> Option<Vector3i> {
-        if bits.has_bits_remaining(128) {
-            unsafe { bits.refill_lookahead_unchecked() }
-            let size_bits = bits.peek_bits_max_computed(4, if net_version >= 7 { 22 } else { 20 });
-            let bias = 1 << (size_bits + 1);
-            let bit_limit = (size_bits + 2) as u32;
-
-            let dx = bits.peek_and_consume(bit_limit) as u32;
-            unsafe { bits.refill_lookahead_unchecked() }
-            let dy = bits.peek_and_consume(bit_limit) as u32;
-            let dz = bits.peek_and_consume(bit_limit) as u32;
-
-            Some(Vector3i {
-                x: (dx as i32) - bias,
-                y: (dy as i32) - bias,
-                z: (dz as i32) - bias,
-            })
-        } else {
-            bits.refill_lookahead();
-            if bits.lookahead_bits() < 5 {
-                return None;
-            }
-
-            let size_bits = bits.peek_bits_max_computed(4, if net_version >= 7 { 22 } else { 20 });
-            let bias = 1 << (size_bits + 1);
-            let bit_limit = (size_bits + 2) as u32;
-
-            if !bits.has_bits_remaining(3 * bit_limit as usize) {
-                return None;
-            }
-
-            let dx = bits.peek_and_consume(bit_limit) as u32;
-
-            bits.refill_lookahead();
-            debug_assert!(bits.lookahead_bits() >= bit_limit * 2);
-
-            let dy = bits.peek_and_consume(bit_limit) as u32;
-            let dz = bits.peek_and_consume(bit_limit) as u32;
-            Some(Vector3i {
-                x: (dx as i32) - bias,
-                y: (dy as i32) - bias,
-                z: (dz as i32) - bias,
-            })
+        bits.refill_lookahead();
+        if bits.lookahead_bits() < 5 {
+            return None;
         }
+
+        let size_bits = bits.peek_bits_max_computed(4, if net_version >= 7 { 22 } else { 20 });
+        let bias = 1 << (size_bits + 1);
+        let bit_limit = (size_bits + 2) as u32;
+
+        if !bits.has_bits_remaining(3 * bit_limit as usize) {
+            return None;
+        }
+
+        let dx = bits.peek_and_consume(bit_limit) as u32;
+
+        bits.refill_lookahead();
+        debug_assert!(bits.lookahead_bits() >= bit_limit * 2);
+
+        let dy = bits.peek_and_consume(bit_limit) as u32;
+        let dz = bits.peek_and_consume(bit_limit) as u32;
+        Some(Vector3i {
+            x: (dx as i32) - bias,
+            y: (dy as i32) - bias,
+            z: (dz as i32) - bias,
+        })
     }
 }
 
@@ -176,25 +158,17 @@ impl Rotation {
     pub fn decode(bits: &mut LittleEndianReader<'_>) -> Option<Rotation> {
         bits.refill_lookahead();
         if bits.lookahead_bits() >= 3 * 9 {
-            let yaw = if bits.peek_and_consume(1) != 0 {
-                Some(bits.peek_and_consume(8) as i8)
-            } else {
-                None
-            };
-
-            let pitch = if bits.peek_and_consume(1) != 0 {
-                Some(bits.peek_and_consume(8) as i8)
-            } else {
-                None
-            };
-
-            let roll = if bits.peek_and_consume(1) != 0 {
-                Some(bits.peek_and_consume(8) as i8)
-            } else {
-                None
-            };
-
-            Some(Rotation { yaw, pitch, roll })
+            let has_yaw = bits.peek_and_consume(1);
+            let yaw = bits.peek_and_consume((has_yaw << 3) as u32) as i8;
+            let has_pitch = bits.peek_and_consume(1);
+            let pitch = bits.peek_and_consume((has_pitch << 3) as u32) as i8;
+            let has_roll = bits.peek_and_consume(1);
+            let roll = bits.peek_and_consume((has_roll << 3) as u32) as i8;
+            Some(Rotation {
+                yaw: if has_yaw != 0 { Some(yaw) } else { None },
+                pitch: if has_pitch != 0 { Some(pitch) } else { None },
+                roll: if has_roll != 0 { Some(roll) } else { None },
+            })
         } else {
             let yaw = bits.if_get(LittleEndianReader::read_i8)?;
             let pitch = bits.if_get(LittleEndianReader::read_i8)?;

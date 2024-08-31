@@ -63,6 +63,8 @@
 //! Boxcars will also check for replay corruption on error, but this can be configured to always
 //! check for corruption or never check.
 
+#![forbid(unsafe_code)]
+
 #[macro_use]
 extern crate serde;
 
