@@ -221,7 +221,6 @@ use crate::errors::{NetworkError, ParseError};
 use crate::header::{self, Header};
 use crate::models::*;
 use crate::network;
-use crate::parsing_utils::{le_f32, le_i32};
 
 /// Determines under what circumstances the parser should perform the crc check for replay
 /// corruption. Since the crc check is the most time consuming part when parsing the header,
@@ -471,7 +470,7 @@ impl<'a> Parser<'a> {
 
         let network_size = self.core.take_i32("network size")?;
 
-        let network_data = self.core.take(network_size as usize, |d| d).map_err(|e| {
+        let network_data = self.core.take_data(network_size as usize).map_err(|e| {
             ParseError::ParseError("network data", self.core.bytes_read(), Box::new(e))
         })?;
 
@@ -522,7 +521,7 @@ impl<'a> Parser<'a> {
         self.core.list_of(|s| {
             Ok(TickMark {
                 description: s.parse_text()?,
-                frame: s.take(4, le_i32)?,
+                frame: s.take::<4>().map(i32::from_le_bytes)?,
             })
         })
     }
@@ -530,9 +529,9 @@ impl<'a> Parser<'a> {
     fn parse_keyframe(&mut self) -> Result<Vec<KeyFrame>, ParseError> {
         self.core.list_of(|s| {
             Ok(KeyFrame {
-                time: s.take(4, le_f32)?,
-                frame: s.take(4, le_i32)?,
-                position: s.take(4, le_i32)?,
+                time: s.take::<4>().map(f32::from_le_bytes)?,
+                frame: s.take::<4>().map(i32::from_le_bytes)?,
+                position: s.take::<4>().map(i32::from_le_bytes)?,
             })
         })
     }
@@ -540,7 +539,7 @@ impl<'a> Parser<'a> {
     fn parse_debuginfo(&mut self) -> Result<Vec<DebugInfo>, ParseError> {
         self.core.list_of(|s| {
             Ok(DebugInfo {
-                frame: s.take(4, le_i32)?,
+                frame: s.take::<4>().map(i32::from_le_bytes)?,
                 user: s.parse_text()?,
                 text: s.parse_text()?,
             })
@@ -551,7 +550,7 @@ impl<'a> Parser<'a> {
         self.core.list_of(|s| {
             Ok(ClassIndex {
                 class: s.parse_str().map(String::from)?,
-                index: s.take(4, le_i32)?,
+                index: s.take::<4>().map(i32::from_le_bytes)?,
             })
         })
     }
@@ -559,13 +558,13 @@ impl<'a> Parser<'a> {
     fn parse_classcache(&mut self) -> Result<Vec<ClassNetCache>, ParseError> {
         self.core.list_of(|x| {
             Ok(ClassNetCache {
-                object_ind: x.take(4, le_i32)?,
-                parent_id: x.take(4, le_i32)?,
-                cache_id: x.take(4, le_i32)?,
+                object_ind: x.take::<4>().map(i32::from_le_bytes)?,
+                parent_id: x.take::<4>().map(i32::from_le_bytes)?,
+                cache_id: x.take::<4>().map(i32::from_le_bytes)?,
                 properties: x.list_of(|s| {
                     Ok(CacheProp {
-                        object_ind: s.take(4, le_i32)?,
-                        stream_id: s.take(4, le_i32)?,
+                        object_ind: s.take::<4>().map(i32::from_le_bytes)?,
+                        stream_id: s.take::<4>().map(i32::from_le_bytes)?,
                     })
                 })?,
             })

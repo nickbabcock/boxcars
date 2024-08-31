@@ -1,7 +1,6 @@
 use crate::core_parser::CoreParser;
 use crate::errors::ParseError;
 use crate::models::HeaderProp;
-use crate::parsing_utils::le_u64;
 
 /// Intermediate parsing structure for the header
 #[derive(Debug, PartialEq)]
@@ -93,7 +92,7 @@ fn parse_rdict(
         }
 
         let kind = rlp.parse_str()?;
-        let size = rlp.take(8, le_u64)? as usize;
+        let size = u64::from_le_bytes(rlp.take::<8>()?) as usize;
         let val = match kind {
             "BoolProperty" => match mode {
                 // The size SHOULD be zero, but we're ignoring it.
@@ -112,31 +111,34 @@ fn parse_rdict(
                     })
                 }
                 ParserMode::Quirks => rlp
-                    .sub_parser(size)
+                    .scope(size)
                     .and_then(|mut x| x.parse_text())
                     .map(|kind| HeaderProp::Byte { kind, value: None }),
             },
             "ArrayProperty" => rlp
-                .sub_parser(size)
+                .scope(size)
                 .and_then(|mut x| array_property(&mut x, mode)),
             "FloatProperty" => rlp
-                .take_bytes::<4>(size)
+                .scope(size)
+                .and_then(|mut x| x.take::<4>())
                 .map(f32::from_le_bytes)
                 .map(HeaderProp::Float),
             "IntProperty" => rlp
-                .take_bytes::<4>(size)
+                .scope(size)
+                .and_then(|mut x| x.take::<4>())
                 .map(i32::from_le_bytes)
                 .map(HeaderProp::Int),
             "QWordProperty" => rlp
-                .take_bytes::<8>(size)
+                .scope(size)
+                .and_then(|mut x| x.take::<8>())
                 .map(u64::from_le_bytes)
                 .map(HeaderProp::QWord),
             "NameProperty" => rlp
-                .sub_parser(size)
+                .scope(size)
                 .and_then(|mut x| x.parse_text())
                 .map(HeaderProp::Name),
             "StrProperty" => rlp
-                .sub_parser(size)
+                .scope(size)
                 .and_then(|mut x| x.parse_text())
                 .map(HeaderProp::Str),
             x => Err(ParseError::UnexpectedProperty(String::from(x))),
