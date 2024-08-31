@@ -92,7 +92,6 @@ fn parse_rdict(
         }
 
         let kind = rlp.parse_str()?;
-
         // This size is normally the number of bytes a property takes up,
         // but it can't be trusted, so we're ignoring it.
         let _size = rlp.take_u32("property size")? as usize;
@@ -107,7 +106,7 @@ fn parse_rdict(
                 ParserMode::Standard => {
                     let kind = rlp.parse_str()?;
                     if kind == "None" {
-                        rlp.advance(1);
+                        rlp.take_data(1)?;
                         continue;
                     }
 
