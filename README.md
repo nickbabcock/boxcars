@@ -17,6 +17,7 @@ See where Boxcars in used:
 - Inside the [rrrocket CLI app](https://github.com/nickbabcock/rrrocket) to turn Rocket League Replays into JSON
 - Compiled to [WebAssembly and embedded in a web page](https://rl.nickb.dev/)
 - Underpins the python analyzer of the [popular calculated.gg site](https://calculated.gg/)
+- Powers the [`subtr-actor`](https://github.com/rlrml/subtr-actor) library that offers an ergonomic interface to processing replay data
 
 ## Quick Start
 
