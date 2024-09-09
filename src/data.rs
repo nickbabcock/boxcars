@@ -243,6 +243,7 @@ pub(crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = phf::phf_ma
     "TAGame.GameEvent_TA:BotSkill" => AttributeTag::Int,
     "TAGame.GameEvent_TA:GameMode" => AttributeTag::GameMode,
     "TAGame.GameEvent_TA:MatchTypeClass" => AttributeTag::ActiveActor,
+    "TAGame.GameEvent_TA:MatchStartEpoch" => AttributeTag::Int64,
     "TAGame.GameEvent_TA:ReplicatedGameStateTimeRemaining" => AttributeTag::Int,
     "TAGame.GameEvent_TA:ReplicatedRoundCountDownNumber" => AttributeTag::Int,
     "TAGame.GameEvent_TA:ReplicatedStateIndex" => AttributeTag::Byte,
