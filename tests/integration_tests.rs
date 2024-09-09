@@ -7,11 +7,19 @@ use std::fs;
 fn test_replay_snapshots() {
     glob!("../assets/replays/good", "*.replay", |path| {
         let data = fs::read(path).unwrap();
-        let replay = ParserBuilder::new(&data[..])
+        let parsed = ParserBuilder::new(&data[..])
             .always_check_crc()
             .must_parse_network_data()
-            .parse()
-            .unwrap();
+            .parse();
+
+        let replay = match parsed {
+            Ok(x) => x,
+            Err(e) => panic!(
+                "failed parsing: (INSTA_GLOB_FILTER={}) {}",
+                path.file_name().unwrap().to_string_lossy(),
+                e
+            ),
+        };
 
         // Hash the output otherwise we'll have 2.5GB+ of snapshot data
         let mut hasher = highway::HighwayHasher::new(highway::Key::default());
