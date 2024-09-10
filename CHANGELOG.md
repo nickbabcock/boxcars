@@ -1,3 +1,9 @@
+# v0.9.15 - September 9th, 2024
+
+- Support for v2.43 replays
+- Deterministic JSON serialization
+- Bump MSRV to 1.77
+
 # v0.9.14 - July 12th, 2024
 
 - Fix overflow edge cases in network parser 
