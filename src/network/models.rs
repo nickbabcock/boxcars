@@ -115,7 +115,7 @@ impl Quaternion {
         let a = Quaternion::unpack(bits.peek_and_consume(18) as u32);
         let b = Quaternion::unpack(bits.peek_and_consume(18) as u32);
         let c = Quaternion::unpack(bits.peek_and_consume(18) as u32);
-        let extra = (1.0 - (a * a) - (b * b) - (c * c)).sqrt();
+        let extra = (c.mul_add(-c, b.mul_add(-b, a.mul_add(-a, 1.0)))).sqrt();
         match largest {
             0 => Some(Quaternion {
                 x: extra,
