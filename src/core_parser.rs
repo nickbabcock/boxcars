@@ -1,5 +1,5 @@
 use crate::errors::ParseError;
-use crate::parsing_utils::{decode_str, decode_utf16, decode_windows1252, le_i32};
+use crate::parsing_utils::{decode_str, decode_utf16, decode_windows1252};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct CoreParser<'a> {
@@ -18,63 +18,49 @@ impl<'a> CoreParser<'a> {
         self.col
     }
 
-    /// Used for skipping some amount of data
-    pub fn advance(&mut self, ind: usize) {
-        self.col += ind as i32;
-        self.data = &self.data[ind..];
-    }
-
     /// Returns a slice of the replay after ensuring there is enough space for the requested slice
     pub fn view_data(&self, size: usize) -> Result<&'a [u8], ParseError> {
-        if size > self.data.len() {
-            Err(ParseError::InsufficientData(
-                size as i32,
-                self.data.len() as i32,
-            ))
-        } else {
-            Ok(&self.data[..size])
-        }
+        self.data
+            .get(..size)
+            .ok_or_else(|| ParseError::InsufficientData(size as i32, self.data.len() as i32))
     }
 
-    pub fn sub_parser(&mut self, size: usize) -> Result<CoreParser<'a>, ParseError> {
+    pub fn scope(&mut self, size: usize) -> Result<CoreParser<'a>, ParseError> {
         let col = self.col;
         let subbed = self.take_data(size)?;
         Ok(CoreParser { data: subbed, col })
     }
 
-    pub fn take_bytes<const N: usize>(&mut self, size: usize) -> Result<[u8; N], ParseError> {
-        let head = self.take_data(size)?;
-        let result = head
-            .first_chunk::<N>()
-            .ok_or_else(|| ParseError::InsufficientData(size as i32, self.data.len() as i32))?;
-        Ok(*result)
-    }
-
     pub fn take_data(&mut self, size: usize) -> Result<&'a [u8], ParseError> {
-        let res = self.view_data(size)?;
-        self.advance(size);
-        Ok(res)
+        let (head, tail) = self
+            .data
+            .split_at_checked(size)
+            .ok_or_else(|| ParseError::InsufficientData(size as i32, self.data.len() as i32))?;
+        self.col += size as i32;
+        self.data = tail;
+        Ok(head)
     }
 
-    /// Take the next `size` of bytes and interpret them in an infallible fashion
     #[inline]
-    pub fn take<F, T>(&mut self, size: usize, mut f: F) -> Result<T, ParseError>
-    where
-        F: FnMut(&'a [u8]) -> T,
-    {
-        let res = f(self.view_data(size)?);
-        self.advance(size);
-        Ok(res)
+    pub fn take<const N: usize>(&mut self) -> Result<[u8; N], ParseError> {
+        let (head, tail) = self
+            .data
+            .split_first_chunk::<N>()
+            .ok_or_else(|| ParseError::InsufficientData(N as i32, self.data.len() as i32))?;
+        self.col += N as i32;
+        self.data = tail;
+        Ok(*head)
     }
 
     pub fn take_i32(&mut self, section: &'static str) -> Result<i32, ParseError> {
-        self.take(4, le_i32)
+        self.take::<4>()
+            .map(i32::from_le_bytes)
             .map_err(|e| ParseError::ParseError(section, self.bytes_read(), Box::new(e)))
     }
 
     pub fn take_u32(&mut self, section: &'static str) -> Result<u32, ParseError> {
-        self.take(4, le_i32)
-            .map(|x| x as u32)
+        self.take::<4>()
+            .map(u32::from_le_bytes)
             .map_err(|e| ParseError::ParseError(section, self.bytes_read(), Box::new(e)))
     }
 
@@ -98,7 +84,7 @@ impl<'a> CoreParser<'a> {
     where
         F: FnMut(&mut Self) -> Result<T, ParseError>,
     {
-        let size = self.take(4, le_i32)?;
+        let size = self.take::<4>().map(i32::from_le_bytes)?;
         CoreParser::repeat(size as usize, || f(self))
     }
 
@@ -108,15 +94,15 @@ impl<'a> CoreParser<'a> {
 
     /// Parses UTF-8 string from replay
     pub fn parse_str(&mut self) -> Result<&'a str, ParseError> {
-        let size = self.take(4, le_i32)? as usize;
-        self.take_data(size).and_then(decode_str)
+        let size = self.take::<4>().map(i32::from_le_bytes)?;
+        self.take_data(size as usize).and_then(decode_str)
     }
 
     /// Parses either UTF-16 or Windows-1252 encoded strings
     pub fn parse_text(&mut self) -> Result<String, ParseError> {
         // The number of bytes that the string is composed of. If negative, the string is UTF-16,
         // else the string is windows 1252 encoded.
-        let characters = self.take(4, le_i32)?;
+        let characters = self.take::<4>().map(i32::from_le_bytes)?;
 
         // size.abs() will panic at min_value, so we eschew it for manual checking
         if characters == 0 {
