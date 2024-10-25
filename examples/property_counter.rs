@@ -26,6 +26,10 @@ fn count_properties(
                 }
                 format!("{}:array", new_prefix)
             }
+            HeaderProp::Struct { fields, .. } => {
+                count_properties(fields, counter, &new_prefix);
+                format!("{}:struct", new_prefix)
+            }
             HeaderProp::Bool(_) => format!("{}:bool", new_prefix),
             HeaderProp::Byte { .. } => format!("{}:byte", new_prefix),
             HeaderProp::Float(_) => format!("{}:float", new_prefix),

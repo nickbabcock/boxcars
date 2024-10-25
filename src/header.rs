@@ -1,7 +1,6 @@
 use crate::core_parser::CoreParser;
 use crate::errors::ParseError;
 use crate::models::HeaderProp;
-use crate::parsing_utils::le_u64;
 
 /// Intermediate parsing structure for the header
 #[derive(Debug, PartialEq)]
@@ -93,7 +92,8 @@ fn parse_rdict(
         }
 
         let kind = rlp.parse_str()?;
-        let size = rlp.take(8, le_u64)? as usize;
+        let size = rlp.take_u32("property size")? as usize;
+        let _ignored = rlp.take_data(4)?;
         let val = match kind {
             "BoolProperty" => match mode {
                 // The size SHOULD be zero, but we're ignoring it.
@@ -103,6 +103,10 @@ fn parse_rdict(
             "ByteProperty" => match mode {
                 ParserMode::Standard => {
                     let kind = rlp.parse_str()?;
+                    if kind == "None" {
+                        rlp.advance(1);
+                        continue;
+                    }
 
                     // kind SHOULD equal "OnlinePlatform"
                     let value = rlp.parse_str().map(Some)?;
@@ -139,6 +143,14 @@ fn parse_rdict(
                 .sub_parser(size)
                 .and_then(|mut x| x.parse_text())
                 .map(HeaderProp::Str),
+            "StructProperty" => {
+                let name = rlp.parse_str()?;
+                let fields = parse_rdict(rlp, mode)?;
+                Ok(HeaderProp::Struct {
+                    name: String::from(name),
+                    fields,
+                })
+            }
             x => Err(ParseError::UnexpectedProperty(String::from(x))),
         }?;
 
