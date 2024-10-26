@@ -80,12 +80,19 @@ pub struct KeyFrame {
 pub enum HeaderProp {
     Array(Vec<Vec<(String, HeaderProp)>>),
     Bool(bool),
-    Byte { kind: String, value: Option<String> },
+    Byte {
+        kind: String,
+        value: Option<String>,
+    },
     Float(f32),
     Int(i32),
     Name(String),
     QWord(u64),
     Str(String),
+    Struct {
+        name: String,
+        fields: Vec<(String, HeaderProp)>,
+    },
 }
 
 impl HeaderProp {
@@ -296,6 +303,18 @@ impl Serialize for HeaderProp {
                     state.serialize_element(&Elem(inner.as_slice()))?;
                 }
                 state.end()
+            }
+            HeaderProp::Struct {
+                ref name,
+                ref fields,
+            } => {
+                #[derive(Serialize)]
+                struct Elem<'a>(#[serde(serialize_with = "pair_vec")] &'a [(String, HeaderProp)]);
+
+                let mut st = serializer.serialize_struct("Struct", 2)?;
+                st.serialize_field("name", name)?;
+                st.serialize_field("fields", &Elem(fields.as_slice()))?;
+                st.end()
             }
             HeaderProp::Bool(ref x) => serializer.serialize_bool(*x),
             HeaderProp::Byte {

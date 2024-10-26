@@ -119,9 +119,7 @@ impl<'a> CoreParser<'a> {
         let characters = self.take(4, le_i32)?;
 
         // size.abs() will panic at min_value, so we eschew it for manual checking
-        if characters == 0 {
-            Err(ParseError::ZeroSize)
-        } else if !(-10_000..=10_000).contains(&characters) {
+        if !(-10_000..=10_000).contains(&characters) {
             Err(ParseError::TextTooLarge(characters))
         } else if characters < 0 {
             // We're dealing with UTF-16 and each character is two bytes, we
@@ -164,18 +162,14 @@ mod tests {
     fn parse_text_zero_size() {
         let mut parser = CoreParser::new(&[0, 0, 0, 0, 0]);
         let res = parser.parse_str();
-        assert!(res.is_err());
-        let error = res.unwrap_err();
-        assert_eq!(error, ParseError::ZeroSize);
+        assert_eq!(res, Ok(""));
     }
 
     #[test]
     fn parse_text_zero_size2() {
         let mut parser = CoreParser::new(&[0, 0, 0, 0, 0]);
         let res = parser.parse_text();
-        assert!(res.is_err());
-        let error = res.unwrap_err();
-        assert_eq!(error, ParseError::ZeroSize);
+        assert_eq!(res, Ok(String::new()));
     }
 
     #[test]

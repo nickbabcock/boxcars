@@ -10,7 +10,6 @@ use std::str;
 #[derive(PartialEq, Debug, Clone)]
 pub enum ParseError {
     ParseError(&'static str, i32, Box<ParseError>),
-    ZeroSize,
     Utf8Error(str::Utf8Error),
     TextTooLarge(i32),
     InsufficientData(i32, i32),
@@ -24,7 +23,6 @@ pub enum ParseError {
 impl Display for ParseError {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            ParseError::ZeroSize => write!(f, "A size of zero is not valid"),
             ParseError::Utf8Error(utf8_error) => {
                 write!(f, "Unable decode data as utf8: {}", utf8_error)
             }
