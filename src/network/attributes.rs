@@ -16,6 +16,7 @@ pub(crate) enum AttributeTag {
     ClubColors,
     Demolish,
     DemolishFx,
+    DemolishExtended,
     Enum,
     Explosion,
     ExtendedExplosion,
@@ -67,6 +68,7 @@ pub enum Attribute {
     CamSettings(Box<CamSettings>),
     ClubColors(ClubColors),
     Demolish(Box<Demolish>),
+    DemolishExtended(Box<DemolishExtended>),
     DemolishFx(Box<DemolishFx>),
     Enum(u16),
     Explosion(Explosion),
@@ -167,6 +169,18 @@ pub struct Demolish {
     pub victim_flag: bool,
     pub victim: ActorId,
     pub attack_velocity: Vector3f,
+    pub victim_velocity: Vector3f,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+pub struct DemolishExtended {
+    pub attacker_pri: ActiveActor, // player replication info
+    pub self_demo: ActiveActor,
+    pub self_demolish: bool,
+    pub goal_explosion_owner: ActiveActor,
+    pub attacker: ActiveActor,
+    pub victim: ActiveActor,
+    pub attacker_velocity: Vector3f,
     pub victim_velocity: Vector3f,
 }
 
@@ -514,6 +528,7 @@ impl AttributeDecoder {
             AttributeTag::CamSettings => self.decode_cam_settings(bits),
             AttributeTag::ClubColors => self.decode_club_colors(bits),
             AttributeTag::Demolish => self.decode_demolish(bits),
+            AttributeTag::DemolishExtended => self.decode_demolish_extended(bits),
             AttributeTag::DemolishFx => self.decode_demolish_fx(bits),
             AttributeTag::Enum => self.decode_enum(bits),
             AttributeTag::Explosion => self.decode_explosion(bits),
@@ -761,6 +776,41 @@ impl AttributeDecoder {
             .ok_or(AttributeError::NotEnoughDataFor("DemolishFx"))
     }
 
+    pub fn _decode_demolish_extended(
+        &self,
+        bits: &mut LittleEndianReader<'_>,
+    ) -> Option<DemolishExtended> {
+        let attacker_pri = self._decode_active_actor(bits)?;
+        let self_demo = self._decode_active_actor(bits)?;
+        let self_demolish = bits.read_bit()?;
+        let goal_explosion_owner = self._decode_active_actor(bits)?;
+        let attacker = self._decode_active_actor(bits)?;
+        let victim = self._decode_active_actor(bits)?;
+        let attacker_velocity = Vector3f::decode(bits, self.version.net_version())?;
+        let victim_velocity = Vector3f::decode(bits, self.version.net_version())?;
+
+        Some(DemolishExtended {
+            attacker_pri,
+            self_demo,
+            self_demolish,
+            goal_explosion_owner,
+            attacker,
+            victim,
+            attacker_velocity,
+            victim_velocity,
+        })
+    }
+
+    pub fn decode_demolish_extended(
+        &self,
+        bits: &mut LittleEndianReader<'_>,
+    ) -> Result<Attribute, AttributeError> {
+        self._decode_demolish_extended(bits)
+            .map(Box::new)
+            .map(Attribute::DemolishExtended)
+            .ok_or(AttributeError::NotEnoughDataFor("DemolishExtended"))
+    }
+
     pub fn decode_enum(
         &self,
         bits: &mut LittleEndianReader<'_>,
@@ -925,18 +975,24 @@ impl AttributeDecoder {
             .ok_or(AttributeError::NotEnoughDataFor("Extended Explosion"))
     }
 
-    pub fn decode_active_actor(
-        &self,
-        bits: &mut LittleEndianReader<'_>,
-    ) -> Result<Attribute, AttributeError> {
+    pub fn _decode_active_actor(&self, bits: &mut LittleEndianReader<'_>) -> Option<ActiveActor> {
         bits.refill_lookahead();
         if bits.lookahead_bits() < 33 {
-            return Err(AttributeError::NotEnoughDataFor("Active Actor"))?;
+            return None;
         }
 
         let active = bits.peek_and_consume(1) == 1;
         let actor = ActorId(bits.peek_and_consume(32) as i32);
-        Ok(Attribute::ActiveActor(ActiveActor { active, actor }))
+        Some(ActiveActor { active, actor })
+    }
+
+    pub fn decode_active_actor(
+        &self,
+        bits: &mut LittleEndianReader<'_>,
+    ) -> Result<Attribute, AttributeError> {
+        self._decode_active_actor(bits)
+            .map(Attribute::ActiveActor)
+            .ok_or(AttributeError::NotEnoughDataFor("Active Actor"))
     }
 
     pub fn decode_float(

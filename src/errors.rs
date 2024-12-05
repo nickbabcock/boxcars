@@ -186,7 +186,14 @@ impl FrameContext {
 
 impl fmt::Display for FrameContext {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "on frame: {}, ", self.frames.len())?;
+        let last_frame = self.frames.last();
+        write!(
+            f,
+            "on frame: {} (time: {} delta: {}), ",
+            self.frames.len(),
+            last_frame.map(|x| x.time).unwrap_or_default(),
+            last_frame.map(|x| x.delta).unwrap_or_default()
+        )?;
         if let Some(updated) = self.updated_actors.last() {
             write!(f, "last updated actor: ")?;
             self.display_update(f, updated)
