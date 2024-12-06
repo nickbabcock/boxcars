@@ -9,10 +9,17 @@ fn main() {
     let replay = ParserBuilder::new(&data)
         .always_check_crc()
         .must_parse_network_data()
-        .parse()
-        .unwrap();
+        .parse();
+
+    let replay = match replay {
+        Ok(replay) => replay,
+        Err(e) => {
+            eprintln!("An error occurred: {}", e);
+            ::std::process::exit(1);
+        }
+    };
 
     let stdout = io::stdout();
     let mut out = stdout.lock();
-    serde_json::to_writer_pretty(&mut out, &replay).unwrap();
+    let _ = serde_json::to_writer_pretty(&mut out, &replay);
 }
