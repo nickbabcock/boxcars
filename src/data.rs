@@ -123,6 +123,7 @@ pub(crate) static SPAWN_STATS: phf::Map<&'static str, SpawnTrajectory> = phf::ph
     "Mutators.Mutators.Mutators.OnlineFreeplay:CarArchetype" => SpawnTrajectory::LocationAndRotation,
     "GameInfo_GodBall.GameInfo.GameInfo_GodBall:Archetype" => SpawnTrajectory::Location,
     "GameInfo_GodBall.GameInfo.GameInfo_GodBall:GameReplicationInfoArchetype" => SpawnTrajectory::Location,
+    "Gameinfo_Hockey.GameInfo.Gameinfo_Hockey:Archetype" => SpawnTrajectory::Location,
 };
 
 pub(crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = phf::phf_map! {
@@ -456,7 +457,8 @@ pub(crate) fn object_classes() -> Vec<(&'static str, &'static str)> {
         ("TAGame.Default__TrackerWallDynamicMeshActor_TA", "TAGame.TrackerWallDynamicMeshActor_TA"),
         ("TAGame.Default__FreeplayCommands_TA", "TAGame.FreeplayCommands_TA"),
         ("Mutators.Mutators.Mutators.OnlineFreeplay:CarArchetype", "TAGame.Car_Freeplay_TA"),
-        ("Archetypes.CarComponents.CarComponent_TerritoryDemolish", "TAGame.CarComponent_TerritoryDemolish_TA")
+        ("Archetypes.CarComponents.CarComponent_TerritoryDemolish", "TAGame.CarComponent_TerritoryDemolish_TA"),
+        ("Gameinfo_Hockey.GameInfo.Gameinfo_Hockey:Archetype", "TAGame.GameEvent_Soccar_TA")
     ]
 }
 
