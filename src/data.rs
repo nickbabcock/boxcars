@@ -119,6 +119,11 @@ pub(crate) static SPAWN_STATS: phf::Map<&'static str, SpawnTrajectory> = phf::ph
     "Archetypes.KnockOut.GameEvent_Knockout" => SpawnTrajectory::Location,
     "GameInfo_KnockOut.KnockOut.GameInfo_KnockOut:GameReplicationInfoArchetype" => SpawnTrajectory::Location,
     "TAGame.Default__PRI_KnockOut_TA" => SpawnTrajectory::Location,
+    "TAGame.Default__FreeplayCommands_TA" => SpawnTrajectory::Location,
+    "Mutators.Mutators.Mutators.OnlineFreeplay:CarArchetype" => SpawnTrajectory::LocationAndRotation,
+    "GameInfo_GodBall.GameInfo.GameInfo_GodBall:Archetype" => SpawnTrajectory::Location,
+    "GameInfo_GodBall.GameInfo.GameInfo_GodBall:GameReplicationInfoArchetype" => SpawnTrajectory::Location,
+    "Gameinfo_Hockey.GameInfo.Gameinfo_Hockey:Archetype" => SpawnTrajectory::Location,
 };
 
 pub(crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = phf::phf_map! {
@@ -415,6 +420,7 @@ pub(crate) fn object_classes() -> Vec<(&'static str, &'static str)> {
         ("GameInfo_Soccar.GameInfo.GameInfo_Soccar:GameReplicationInfoArchetype", "TAGame.GRI_TA"),
         ("GameInfo_Tutorial.GameInfo.GameInfo_Tutorial:GameReplicationInfoArchetype", "TAGame.GRI_TA"),
         ("gameinfo_godball.GameInfo.gameinfo_godball:GameReplicationInfoArchetype", "TAGame.GRI_TA"),
+        ("GameInfo_GodBall.GameInfo.GameInfo_GodBall:GameReplicationInfoArchetype", "TAGame.GRI_TA"),
         ("GameInfo_FootBall.GameInfo.GameInfo_FootBall:GameReplicationInfoArchetype", "TAGame.GRI_TA"),
         ("GameInfo_KnockOut.KnockOut.GameInfo_KnockOut:GameReplicationInfoArchetype", "TAGame.GRI_TA"),
         ("GameInfo_Tutorial.GameEvent.GameEvent_Tutorial_Aerial", "TAGame.GameEvent_Tutorial_TA"),
@@ -433,6 +439,7 @@ pub(crate) fn object_classes() -> Vec<(&'static str, &'static str)> {
         ("Haunted_TrainStation_P.TheWorld:PersistentLevel.HauntedBallTrapTrigger_TA_0", "TAGame.HauntedBallTrapTrigger_TA"),
         ("Archetypes.Tutorial.Cannon", "TAGame.Cannon_TA"),
         ("gameinfo_godball.GameInfo.gameinfo_godball:Archetype", "TAGame.GameEvent_GodBall_TA"),
+        ("GameInfo_GodBall.GameInfo.GameInfo_GodBall:Archetype", "TAGame.GameEvent_GodBall_TA"),
         ("GameInfo_FootBall.GameInfo.GameInfo_FootBall:Archetype", "TAGame.GameEvent_Football_TA"),
         ("Archetypes.Ball.Ball_God", "TAGame.Ball_God_TA"),
         ("TheWorld:PersistentLevel.PlayerStart_Platform_TA", "TAGame.PlayerStart_Platform_TA"),
@@ -446,7 +453,12 @@ pub(crate) fn object_classes() -> Vec<(&'static str, &'static str)> {
         ("Archetypes.KnockOut.GameEvent_Knockout:CarArchetype.Boost", "TAGame.CarComponent_Boost_KO_TA"),
         ("TAGame.Default__PRI_KnockOut_TA", "TAGame.PRI_KnockOut_TA"),
         ("Archetypes.KnockOut.GameEvent_Knockout:CarArchetype.StunlockArchetype", "TAGame.Stunlock_TA"),
-        ("Archetypes.KnockOut.GameEvent_Knockout:CarArchetype.Boost", "TAGame.CarComponent_Boost_KO_TA")
+        ("Archetypes.KnockOut.GameEvent_Knockout:CarArchetype.Boost", "TAGame.CarComponent_Boost_KO_TA"),
+        ("TAGame.Default__TrackerWallDynamicMeshActor_TA", "TAGame.TrackerWallDynamicMeshActor_TA"),
+        ("TAGame.Default__FreeplayCommands_TA", "TAGame.FreeplayCommands_TA"),
+        ("Mutators.Mutators.Mutators.OnlineFreeplay:CarArchetype", "TAGame.Car_Freeplay_TA"),
+        ("Archetypes.CarComponents.CarComponent_TerritoryDemolish", "TAGame.CarComponent_TerritoryDemolish_TA"),
+        ("Gameinfo_Hockey.GameInfo.Gameinfo_Hockey:Archetype", "TAGame.GameEvent_Soccar_TA")
     ]
 }
 
@@ -514,4 +526,7 @@ pub(crate) static PARENT_CLASSES: phf::Map<&'static str, &'static str> = phf::ph
     "TAGame.Stunlock_TA" => "Engine.Actor",
     "TAGame.CarComponent_Boost_KO_TA" => "TAGame.CarComponent_Boost_TA",
     "TAGame.GameEvent_KnockOut_TA" => "TAGame.GameEvent_Soccar_TA",
+    "TAGame.CarComponent_TerritoryDemolish_TA" => "TAGame.CarComponent_TA",
+    "TAGame.FreeplayCommands_TA" => "Engine.Actor",
+    "TAGame.TrackerWallDynamicMeshActor_TA" => "TAGame.DynamicMeshActor_TA"
 };
