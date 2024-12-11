@@ -4,7 +4,7 @@ use crate::network::{ActorId, ObjectId, Quaternion, Rotation, Vector3f, VersionT
 use crate::parsing_utils::{decode_utf16, decode_windows1252};
 use bitter::{BitReader, LittleEndianReader};
 use encoding_rs::WINDOWS_1252;
-use std::collections::HashMap;
+use fnv::FnvHashMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum AttributeTag {
@@ -425,26 +425,26 @@ pub(crate) struct ProductValueDecoder {
 }
 
 impl ProductValueDecoder {
-    pub fn create(version: VersionTriplet, name_obj_ind: &HashMap<&str, Vec<ObjectId>>) -> Self {
+    pub fn create(version: VersionTriplet, name_obj_ind: &FnvHashMap<&str, ObjectId>) -> Self {
         let color_ind = name_obj_ind
             .get("TAGame.ProductAttribute_UserColor_TA")
-            .map(|x| x[0])
+            .copied()
             .unwrap_or(ObjectId(0));
         let painted_ind = name_obj_ind
             .get("TAGame.ProductAttribute_Painted_TA")
-            .map(|x| x[0])
+            .copied()
             .unwrap_or(ObjectId(0));
         let title_ind = name_obj_ind
             .get("TAGame.ProductAttribute_TitleID_TA")
-            .map(|x| x[0])
+            .copied()
             .unwrap_or(ObjectId(0));
         let special_edition_ind = name_obj_ind
             .get("TAGame.ProductAttribute_SpecialEdition_TA")
-            .map(|x| x[0])
+            .copied()
             .unwrap_or(ObjectId(0));
         let team_edition_ind = name_obj_ind
             .get("TAGame.ProductAttribute_TeamEdition_TA")
-            .map(|x| x[0])
+            .copied()
             .unwrap_or(ObjectId(0));
 
         ProductValueDecoder {

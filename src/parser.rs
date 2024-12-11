@@ -689,7 +689,6 @@ mod tests {
         let data = include_bytes!("../assets/replays/bad/fuzz-large-object-id.replay");
         let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Always);
         let err = parser.parse().unwrap_err();
-        assert_eq!("Object Id of 1547 exceeds range", format!("{}", err));
         assert!(err.source().is_some());
     }
 
