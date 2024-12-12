@@ -356,7 +356,7 @@ pub struct PrivateMatchSettings {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Product {
     pub unknown: bool,
-    pub object_ind: u32,
+    pub object_ind: ObjectId,
     pub value: ProductValue,
 }
 
@@ -417,35 +417,35 @@ pub struct ReplicatedBoost {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct ProductValueDecoder {
     version: VersionTriplet,
-    color_ind: u32,
-    painted_ind: u32,
-    special_edition_ind: u32,
-    team_edition_ind: u32,
-    title_ind: u32,
+    color_ind: ObjectId,
+    painted_ind: ObjectId,
+    special_edition_ind: ObjectId,
+    team_edition_ind: ObjectId,
+    title_ind: ObjectId,
 }
 
 impl ProductValueDecoder {
     pub fn create(version: VersionTriplet, name_obj_ind: &HashMap<&str, Vec<ObjectId>>) -> Self {
         let color_ind = name_obj_ind
             .get("TAGame.ProductAttribute_UserColor_TA")
-            .map(|x| usize::from(x[0]) as u32)
-            .unwrap_or(0);
+            .map(|x| x[0])
+            .unwrap_or(ObjectId(0));
         let painted_ind = name_obj_ind
             .get("TAGame.ProductAttribute_Painted_TA")
-            .map(|x| usize::from(x[0]) as u32)
-            .unwrap_or(0);
+            .map(|x| x[0])
+            .unwrap_or(ObjectId(0));
         let title_ind = name_obj_ind
             .get("TAGame.ProductAttribute_TitleID_TA")
-            .map(|x| usize::from(x[0]) as u32)
-            .unwrap_or(0);
+            .map(|x| x[0])
+            .unwrap_or(ObjectId(0));
         let special_edition_ind = name_obj_ind
             .get("TAGame.ProductAttribute_SpecialEdition_TA")
-            .map(|x| usize::from(x[0]) as u32)
-            .unwrap_or(0);
+            .map(|x| x[0])
+            .unwrap_or(ObjectId(0));
         let team_edition_ind = name_obj_ind
             .get("TAGame.ProductAttribute_TeamEdition_TA")
-            .map(|x| usize::from(x[0]) as u32)
-            .unwrap_or(0);
+            .map(|x| x[0])
+            .unwrap_or(ObjectId(0));
 
         ProductValueDecoder {
             version,
@@ -460,7 +460,7 @@ impl ProductValueDecoder {
     pub fn decode(
         &self,
         bits: &mut LittleEndianReader<'_>,
-        obj_ind: u32,
+        obj_ind: ObjectId,
         buf: &mut [u8],
     ) -> Option<ProductValue> {
         if obj_ind == self.color_ind {
@@ -1397,7 +1397,7 @@ impl AttributeDecoder {
 
     fn decode_product(&self, bits: &mut LittleEndianReader<'_>, buf: &mut [u8]) -> Option<Product> {
         let unknown = bits.read_bit()?;
-        let obj_ind = bits.read_u32()?;
+        let obj_ind = ObjectId(bits.read_i32()?);
         let val = self.product_decoder.decode(bits, obj_ind, buf)?;
 
         Some(Product {
