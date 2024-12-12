@@ -5,7 +5,7 @@ pub mod attributes;
 mod frame_decoder;
 mod models;
 
-use crate::data::{object_classes, ATTRIBUTES, PARENT_CLASSES, SPAWN_STATS};
+use crate::data::{ATTRIBUTES, OBJECT_CLASSES, PARENT_CLASSES, SPAWN_STATS};
 use crate::errors::NetworkError;
 use crate::header::Header;
 use crate::models::*;
@@ -154,7 +154,7 @@ pub(crate) fn parse(header: &Header, body: &ReplayBody) -> Result<NetworkFrames,
         object_ind_attrs.insert(ObjectId(cache.object_ind), all_props);
     }
 
-    for (obj, parent) in object_classes().iter() {
+    for (obj, parent) in OBJECT_CLASSES {
         // It's ok if an object class doesn't appear in our replay. For instance, basketball
         // objects don't appear in a soccer replay.
         if let Some(object_ids) = normalized_name_obj_ind.get(obj) {
