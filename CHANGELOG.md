@@ -1,3 +1,10 @@
+# v0.9.18 - December 13th, 2024
+
+- Improved support for Freeplay replays
+- Fix double jump decoded as dodge
+- Change type of `Product.object_ind` from u32 to `ObjectId`
+- Reworked internal class hierarchy (no observable changes expected)
+
 # v0.9.17 - December 10th, 2024
 
 - Support for v2.46 replays (this may not be complete, so additional bug reports are welcome).
