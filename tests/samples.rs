@@ -1,7 +1,6 @@
 use boxcars::attributes::{ActiveActor, Demolish, Pickup, RigidBody, StatEvent, Welded};
 use boxcars::{
-    self, ActorId, NetworkError, ParseError, ParserBuilder, Quaternion, Trajectory, Vector3f,
-    Vector3i,
+    self, ActorId, ParseError, ParserBuilder, Quaternion, Trajectory, Vector3f, Vector3i,
 };
 
 #[test]
@@ -249,12 +248,7 @@ fn test_error_extraction() {
         _ => panic!("Expecting network error"),
     };
 
-    match *ne {
-        NetworkError::ObjectIdOutOfRange(obj) => {
-            assert!(obj.0 != 0);
-        }
-        x => panic!("Expecting object id out of range. not {:?}", x),
-    }
+    assert!(format!("{}", ne).contains("attribute unknown or not implemented"));
 }
 
 #[test]
