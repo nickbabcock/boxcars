@@ -1,9 +1,11 @@
 pub(crate) use self::attributes::*;
 pub use self::models::*;
+pub(crate) use self::object_index::*;
 
 pub mod attributes;
 mod frame_decoder;
 mod models;
+mod object_index;
 
 use crate::data::{ATTRIBUTES, PARENT_CLASSES, SPAWN_STATS};
 use crate::errors::NetworkError;
@@ -13,7 +15,6 @@ use crate::network::frame_decoder::FrameDecoder;
 use crate::parser::ReplayBody;
 use fnv::FnvHashMap;
 use std::cmp;
-use std::collections::hash_map::Entry;
 
 #[derive(Debug)]
 pub(crate) struct CacheInfo<'a> {
@@ -47,39 +48,17 @@ pub(crate) fn parse(header: &Header, body: &ReplayBody) -> Result<NetworkFrames,
     // Create a parallel vector where each object has it's name normalized
     let normalized_objects: Vec<&str> = body.objects.iter().map(|x| normalize_object(x)).collect();
 
-    // The exact same name can appear multiple times in body.objects. Very annoying.
-    // So we designate a primary index for each name, and reverse lookups.
-    let mut name_index: FnvHashMap<&str, ObjectId> = FnvHashMap::default();
-    let mut secondary_indices: FnvHashMap<ObjectId, Vec<ObjectId>> = FnvHashMap::default();
-    let mut primary_ind: FnvHashMap<ObjectId, ObjectId> = FnvHashMap::default();
-
-    for (i, name) in body.objects.iter().enumerate() {
-        let val = ObjectId(i as i32);
-        match name_index.entry(name) {
-            Entry::Occupied(occupied_entry) => {
-                primary_ind.insert(val, *occupied_entry.get());
-                secondary_indices
-                    .entry(*occupied_entry.get())
-                    .or_default()
-                    .push(val);
-            }
-            Entry::Vacant(vacant_entry) => {
-                vacant_entry.insert(val);
-            }
-        };
-    }
+    let object_index = object_index::ObjectIndex::new(&body.objects);
 
     // Create a parallel vector where we lookup how to decode an object's initial trajectory
     // when they spawn as a new actor
     let mut spawns: Vec<Option<SpawnTrajectory>> = vec![None; body.objects.len()];
     for (object_name, spawn) in SPAWN_STATS.iter() {
-        let all_indices = name_index
-            .get(object_name)
-            .map(|ind| std::iter::once(ind).chain(secondary_indices.get(ind).into_iter().flatten()))
-            .into_iter()
-            .flatten();
+        let Some(id) = object_index.primary_by_name(object_name) else {
+            continue;
+        };
 
-        for i in all_indices {
+        for i in object_index.all_indices(id) {
             spawns[i.0 as usize] = Some(*spawn);
         }
     }
@@ -92,13 +71,7 @@ pub(crate) fn parse(header: &Header, body: &ReplayBody) -> Result<NetworkFrames,
 
         parent_stack.clear();
         parent_stack.push(ObjectId(i as i32));
-        spawn_traversal(
-            name,
-            &name_index,
-            &secondary_indices,
-            &mut spawns,
-            &mut parent_stack,
-        );
+        spawn_traversal(name, &object_index, &mut spawns, &mut parent_stack);
     }
 
     let mut net_properties: FnvHashMap<ObjectId, Vec<(_, _)>> = FnvHashMap::default();
@@ -128,7 +101,7 @@ pub(crate) fn parse(header: &Header, body: &ReplayBody) -> Result<NetworkFrames,
             .collect::<Result<Vec<(_, _)>, NetworkError>>()?;
 
         let key = ObjectId(cache.object_ind);
-        let primary_object = primary_ind.get(&key).copied().unwrap_or(key);
+        let primary_object = object_index.primary_by_index(key);
 
         // The same primary object can occur multiple times, though it tends to
         // be just duplicates.
@@ -144,11 +117,11 @@ pub(crate) fn parse(header: &Header, body: &ReplayBody) -> Result<NetworkFrames,
     let mut acc_attrs = Vec::new();
     let mut parent_stack = Vec::new();
     for (name, normalized_name) in body.objects.iter().zip(normalized_objects) {
-        let Some(obj_ind) = name_index.get(name.as_str()) else {
+        let Some(obj_ind) = object_index.primary_by_name(name.as_str()) else {
             continue;
         };
 
-        if object_ind_attrs.contains_key(obj_ind) {
+        if object_ind_attrs.contains_key(&obj_ind) {
             continue;
         }
 
@@ -157,9 +130,8 @@ pub(crate) fn parse(header: &Header, body: &ReplayBody) -> Result<NetworkFrames,
             &mut acc_attrs,
             &mut parent_stack,
             &net_properties,
-            obj_ind,
-            &name_index,
-            &secondary_indices,
+            &obj_ind,
+            &object_index,
             &mut object_ind_attrs,
         );
 
@@ -169,9 +141,8 @@ pub(crate) fn parse(header: &Header, body: &ReplayBody) -> Result<NetworkFrames,
                 &mut acc_attrs,
                 &mut parent_stack,
                 &net_properties,
-                obj_ind,
-                &name_index,
-                &secondary_indices,
+                &obj_ind,
+                &object_index,
                 &mut object_ind_attrs,
             );
         }
@@ -200,7 +171,7 @@ pub(crate) fn parse(header: &Header, body: &ReplayBody) -> Result<NetworkFrames,
         })
         .collect::<Result<FnvHashMap<_, _>, NetworkError>>()?;
 
-    let product_decoder = ProductValueDecoder::create(version, &name_index);
+    let product_decoder = ProductValueDecoder::create(version, &object_index);
 
     // 1023 stolen from rattletrap
     let max_channels = header.max_channels().unwrap_or(1023) as u32;
@@ -246,8 +217,7 @@ fn net_traversal(
     parent_stack: &mut Vec<(ObjectId, Vec<(StreamId, ObjectAttribute)>)>,
     net_properties: &FnvHashMap<ObjectId, Vec<(StreamId, ObjectAttribute)>>,
     obj_ind: &ObjectId,
-    name_index: &FnvHashMap<&str, ObjectId>,
-    secondary_indices: &FnvHashMap<ObjectId, Vec<ObjectId>>,
+    object_index: &object_index::ObjectIndex,
     object_ind_attrs: &mut FnvHashMap<ObjectId, FnvHashMap<StreamId, ObjectAttribute>>,
 ) {
     acc_attrs.clear();
@@ -259,26 +229,21 @@ fn net_traversal(
     while let Some(parent) = PARENT_CLASSES.get(object_name) {
         object_name = parent;
 
-        let Some(ind) = name_index.get(parent) else {
+        let Some(ind) = object_index.primary_by_name(parent) else {
             continue;
         };
 
-        let attrs = net_properties.get(ind).cloned().unwrap_or_default();
-        parent_stack.push((*ind, attrs));
-
-        let Some(parent_attributes) = object_ind_attrs.get(ind) else {
-            let attrs = net_properties.get(ind).cloned().unwrap_or_default();
-            parent_stack.push((*ind, attrs));
+        let Some(parent_attributes) = object_ind_attrs.get(&ind) else {
+            let attrs = net_properties.get(&ind).cloned().unwrap_or_default();
+            parent_stack.push((ind, attrs));
             continue;
         };
 
         acc_attrs.extend(parent_attributes.iter().map(|(x, y)| (*x, *y)));
         while let Some((ind, attrs)) = parent_stack.pop() {
             acc_attrs.extend(attrs);
-            let equiv_parents =
-                std::iter::once(&ind).chain(secondary_indices.get(&ind).into_iter().flatten());
-            for parent in equiv_parents {
-                object_ind_attrs.insert(*parent, acc_attrs.iter().cloned().collect());
+            for parent in object_index.all_indices(ind) {
+                object_ind_attrs.insert(parent, acc_attrs.iter().cloned().collect());
             }
         }
 
@@ -288,10 +253,8 @@ fn net_traversal(
     while let Some((ind, attrs)) = parent_stack.pop() {
         acc_attrs.extend(attrs);
         if !acc_attrs.is_empty() {
-            let equiv_parents =
-                std::iter::once(&ind).chain(secondary_indices.get(&ind).into_iter().flatten());
-            for parent in equiv_parents {
-                object_ind_attrs.insert(*parent, acc_attrs.iter().cloned().collect());
+            for parent in object_index.all_indices(ind) {
+                object_ind_attrs.insert(parent, acc_attrs.iter().cloned().collect());
             }
         }
     }
@@ -299,27 +262,24 @@ fn net_traversal(
 
 fn spawn_traversal(
     mut object_name: &str,
-    name_index: &FnvHashMap<&str, ObjectId>,
-    secondary_indices: &FnvHashMap<ObjectId, Vec<ObjectId>>,
+    object_index: &object_index::ObjectIndex,
     spawns: &mut [Option<SpawnTrajectory>],
     parent_stack: &mut Vec<ObjectId>,
 ) {
     while let Some(parent) = PARENT_CLASSES.get(object_name) {
         object_name = parent;
 
-        let Some(ind) = name_index.get(parent) else {
+        let Some(ind) = object_index.primary_by_name(parent) else {
             continue;
         };
 
         let Some(parent_spawn) = spawns[ind.0 as usize] else {
-            parent_stack.push(*ind);
+            parent_stack.push(ind);
             continue;
         };
 
         while let Some(p_ind) = parent_stack.pop() {
-            let equiv_parents =
-                std::iter::once(&p_ind).chain(secondary_indices.get(&p_ind).into_iter().flatten());
-            for i in equiv_parents {
+            for i in object_index.all_indices(p_ind) {
                 spawns[i.0 as usize] = Some(parent_spawn)
             }
         }

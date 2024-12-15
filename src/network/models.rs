@@ -226,7 +226,7 @@ pub struct Frame {
 /// A replay encodes a list of objects that appear in the network data. The index of an object in
 /// this list is used as a key in many places: reconstructing the attribute hierarchy and new
 /// actors in the network data.
-#[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Debug, Hash, Serialize)]
+#[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Debug, Hash, Serialize, Default)]
 pub struct ObjectId(pub i32);
 
 impl From<ObjectId> for i32 {
