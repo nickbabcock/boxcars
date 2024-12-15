@@ -1,10 +1,11 @@
 use crate::bits::RlBits;
 use crate::errors::AttributeError;
-use crate::network::{ActorId, ObjectId, Quaternion, Rotation, Vector3f, VersionTriplet};
+use crate::network::{
+    ActorId, ObjectId, ObjectIndex, Quaternion, Rotation, Vector3f, VersionTriplet,
+};
 use crate::parsing_utils::{decode_utf16, decode_windows1252};
 use bitter::{BitReader, LittleEndianReader};
 use encoding_rs::WINDOWS_1252;
-use fnv::FnvHashMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum AttributeTag {
@@ -425,27 +426,22 @@ pub(crate) struct ProductValueDecoder {
 }
 
 impl ProductValueDecoder {
-    pub fn create(version: VersionTriplet, name_obj_ind: &FnvHashMap<&str, ObjectId>) -> Self {
-        let color_ind = name_obj_ind
-            .get("TAGame.ProductAttribute_UserColor_TA")
-            .copied()
-            .unwrap_or(ObjectId(0));
-        let painted_ind = name_obj_ind
-            .get("TAGame.ProductAttribute_Painted_TA")
-            .copied()
-            .unwrap_or(ObjectId(0));
-        let title_ind = name_obj_ind
-            .get("TAGame.ProductAttribute_TitleID_TA")
-            .copied()
-            .unwrap_or(ObjectId(0));
-        let special_edition_ind = name_obj_ind
-            .get("TAGame.ProductAttribute_SpecialEdition_TA")
-            .copied()
-            .unwrap_or(ObjectId(0));
-        let team_edition_ind = name_obj_ind
-            .get("TAGame.ProductAttribute_TeamEdition_TA")
-            .copied()
-            .unwrap_or(ObjectId(0));
+    pub fn create(version: VersionTriplet, object_index: &ObjectIndex) -> Self {
+        let color_ind = object_index
+            .primary_by_name("TAGame.ProductAttribute_UserColor_TA")
+            .unwrap_or_default();
+        let painted_ind = object_index
+            .primary_by_name("TAGame.ProductAttribute_Painted_TA")
+            .unwrap_or_default();
+        let title_ind = object_index
+            .primary_by_name("TAGame.ProductAttribute_TitleID_TA")
+            .unwrap_or_default();
+        let special_edition_ind = object_index
+            .primary_by_name("TAGame.ProductAttribute_SpecialEdition_TA")
+            .unwrap_or_default();
+        let team_edition_ind = object_index
+            .primary_by_name("TAGame.ProductAttribute_TeamEdition_TA")
+            .unwrap_or_default();
 
         ProductValueDecoder {
             version,
