@@ -340,6 +340,12 @@ impl Trajectory {
 /// `TheWorld:PersistentLevel.VehiclePickup_Boost_TA` so that we don't have to work around each
 /// stadium and pickup that is released.
 pub(crate) fn normalize_object(name: &str) -> &str {
+    if name.len() <= "TheWorld:PersistentLevel.CrowdActor_TA".len()
+        || !name.contains("TheWorld:PersistentLevel.")
+    {
+        return name;
+    }
+
     if name.contains("TheWorld:PersistentLevel.CrowdActor_TA") {
         "TheWorld:PersistentLevel.CrowdActor_TA"
     } else if name.contains("TheWorld:PersistentLevel.CrowdManager_TA") {
