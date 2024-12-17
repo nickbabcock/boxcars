@@ -1,6 +1,8 @@
-use crate::ObjectId;
+use crate::{data::PARENT_CLASSES, ObjectId};
 use fnv::FnvHashMap;
 use std::collections::hash_map::Entry;
+
+use super::normalize_object;
 
 /// A lookup of an object's ID (its index in body.objects) from its name.
 ///
@@ -62,5 +64,29 @@ impl<'a> ObjectIndex<'a> {
                 .flatten()
                 .copied(),
         )
+    }
+
+    /// Returns the inheritance hierarchy `ObjectId` starting with self
+    pub(crate) fn hierarchy<'b>(&'b self, name: &'b str) -> AncestorIterator<'a, 'b> {
+        AncestorIterator { name, index: self }
+    }
+}
+
+pub(crate) struct AncestorIterator<'a, 'b> {
+    name: &'b str,
+    index: &'a ObjectIndex<'b>,
+}
+
+impl<'a, 'b> Iterator for AncestorIterator<'a, 'b> {
+    type Item = ObjectId;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let current = self.name;
+            self.name = PARENT_CLASSES.get(normalize_object(self.name))?;
+            if let sme @ Some(_) = self.index.primary_by_name(current) {
+                return sme;
+            }
+        }
     }
 }

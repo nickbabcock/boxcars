@@ -7,7 +7,7 @@ mod frame_decoder;
 mod models;
 mod object_index;
 
-use crate::data::{ATTRIBUTES, PARENT_CLASSES, SPAWN_STATS};
+use crate::data::{ATTRIBUTES, SPAWN_STATS};
 use crate::errors::NetworkError;
 use crate::header::Header;
 use crate::models::*;
@@ -45,9 +45,6 @@ pub(crate) fn parse(header: &Header, body: &ReplayBody) -> Result<NetworkFrames,
         header.net_version.unwrap_or(0),
     );
 
-    // Create a parallel vector where each object has it's name normalized
-    let normalized_objects: Vec<&str> = body.objects.iter().map(|x| normalize_object(x)).collect();
-
     let object_index = object_index::ObjectIndex::new(&body.objects);
 
     // Create a parallel vector where we lookup how to decode an object's initial trajectory
@@ -64,14 +61,24 @@ pub(crate) fn parse(header: &Header, body: &ReplayBody) -> Result<NetworkFrames,
     }
 
     let mut parent_stack = Vec::new();
-    for (i, name) in body.objects.iter().enumerate() {
-        if spawns[i].is_some() {
-            continue;
+    for name in &body.objects {
+        let mut result = SpawnTrajectory::None;
+        for object in object_index.hierarchy(name) {
+            match spawns[object.0 as usize] {
+                Some(spawn) => {
+                    result = spawn;
+                    break;
+                }
+                None => parent_stack.push(object),
+            }
         }
 
-        parent_stack.clear();
-        parent_stack.push(ObjectId(i as i32));
-        spawn_traversal(name, &object_index, &mut spawns, &mut parent_stack);
+        let inds = parent_stack
+            .drain(..)
+            .flat_map(|ind| object_index.all_indices(ind));
+        for ind in inds {
+            spawns[ind.0 as usize] = Some(result)
+        }
     }
 
     let mut net_properties: FnvHashMap<ObjectId, Vec<(_, _)>> = FnvHashMap::default();
@@ -80,7 +87,8 @@ pub(crate) fn parse(header: &Header, body: &ReplayBody) -> Result<NetworkFrames,
             .properties
             .iter()
             .map(|x| {
-                let attr = normalized_objects
+                let attr = body
+                    .objects
                     .get(x.object_ind as usize)
                     .map(|x| {
                         ATTRIBUTES
@@ -115,37 +123,15 @@ pub(crate) fn parse(header: &Header, body: &ReplayBody) -> Result<NetworkFrames,
         Default::default();
 
     let mut acc_attrs = Vec::new();
-    let mut parent_stack = Vec::new();
-    for (name, normalized_name) in body.objects.iter().zip(normalized_objects) {
-        let Some(obj_ind) = object_index.primary_by_name(name.as_str()) else {
-            continue;
-        };
-
-        if object_ind_attrs.contains_key(&obj_ind) {
-            continue;
-        }
-
+    for name in &body.objects {
         net_traversal(
             name.as_str(),
             &mut acc_attrs,
             &mut parent_stack,
             &net_properties,
-            &obj_ind,
             &object_index,
             &mut object_ind_attrs,
         );
-
-        if normalized_name != name {
-            net_traversal(
-                normalized_name,
-                &mut acc_attrs,
-                &mut parent_stack,
-                &net_properties,
-                &obj_ind,
-                &object_index,
-                &mut object_ind_attrs,
-            );
-        }
     }
 
     let object_ind_attributes: FnvHashMap<ObjectId, CacheInfo> = object_ind_attrs
@@ -212,79 +198,30 @@ pub(crate) fn parse(header: &Header, body: &ReplayBody) -> Result<NetworkFrames,
 }
 
 fn net_traversal(
-    mut object_name: &str,
+    object_name: &str,
     acc_attrs: &mut Vec<(StreamId, ObjectAttribute)>,
-    parent_stack: &mut Vec<(ObjectId, Vec<(StreamId, ObjectAttribute)>)>,
+    parent_stack: &mut Vec<ObjectId>,
     net_properties: &FnvHashMap<ObjectId, Vec<(StreamId, ObjectAttribute)>>,
-    obj_ind: &ObjectId,
     object_index: &object_index::ObjectIndex,
     object_ind_attrs: &mut FnvHashMap<ObjectId, FnvHashMap<StreamId, ObjectAttribute>>,
 ) {
     acc_attrs.clear();
-    parent_stack.clear();
-
-    let self_attributes = net_properties.get(obj_ind).cloned().unwrap_or_default();
-    parent_stack.push((*obj_ind, self_attributes));
-
-    while let Some(parent) = PARENT_CLASSES.get(object_name) {
-        object_name = parent;
-
-        let Some(ind) = object_index.primary_by_name(parent) else {
-            continue;
-        };
-
-        let Some(parent_attributes) = object_ind_attrs.get(&ind) else {
-            let attrs = net_properties.get(&ind).cloned().unwrap_or_default();
-            parent_stack.push((ind, attrs));
-            continue;
-        };
-
-        acc_attrs.extend(parent_attributes.iter().map(|(x, y)| (*x, *y)));
-        while let Some((ind, attrs)) = parent_stack.pop() {
-            acc_attrs.extend(attrs);
-            for parent in object_index.all_indices(ind) {
-                object_ind_attrs.insert(parent, acc_attrs.iter().cloned().collect());
+    for object in object_index.hierarchy(object_name) {
+        match object_ind_attrs.get(&object) {
+            Some(attrs) => {
+                acc_attrs.extend(attrs.iter().map(|(x, y)| (*x, *y)));
+                break;
             }
+            None => parent_stack.push(object),
         }
-
-        return;
     }
 
-    while let Some((ind, attrs)) = parent_stack.pop() {
+    for ind in parent_stack.drain(..).rev() {
+        let attrs = net_properties.get(&ind).into_iter().flatten().copied();
         acc_attrs.extend(attrs);
-        if !acc_attrs.is_empty() {
-            for parent in object_index.all_indices(ind) {
-                object_ind_attrs.insert(parent, acc_attrs.iter().cloned().collect());
-            }
+        for parent in object_index.all_indices(ind) {
+            object_ind_attrs.insert(parent, acc_attrs.iter().cloned().collect());
         }
-    }
-}
-
-fn spawn_traversal(
-    mut object_name: &str,
-    object_index: &object_index::ObjectIndex,
-    spawns: &mut [Option<SpawnTrajectory>],
-    parent_stack: &mut Vec<ObjectId>,
-) {
-    while let Some(parent) = PARENT_CLASSES.get(object_name) {
-        object_name = parent;
-
-        let Some(ind) = object_index.primary_by_name(parent) else {
-            continue;
-        };
-
-        let Some(parent_spawn) = spawns[ind.0 as usize] else {
-            parent_stack.push(ind);
-            continue;
-        };
-
-        while let Some(p_ind) = parent_stack.pop() {
-            for i in object_index.all_indices(p_ind) {
-                spawns[i.0 as usize] = Some(parent_spawn)
-            }
-        }
-
-        break;
     }
 }
 
