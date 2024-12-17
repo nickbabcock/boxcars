@@ -14,13 +14,14 @@ use crate::models::*;
 use crate::network::frame_decoder::FrameDecoder;
 use crate::parser::ReplayBody;
 use fnv::FnvHashMap;
+use frame_decoder::SegmentedArray;
 use std::cmp;
 
 #[derive(Debug)]
-pub(crate) struct CacheInfo<'a> {
+pub(crate) struct CacheInfo {
     max_prop_id: u32,
     prop_id_bits: u32,
-    attributes: &'a FnvHashMap<StreamId, ObjectAttribute>,
+    attributes: SegmentedArray<ObjectAttribute>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -134,28 +135,37 @@ pub(crate) fn parse(header: &Header, body: &ReplayBody) -> Result<NetworkFrames,
         );
     }
 
-    let object_ind_attributes: FnvHashMap<ObjectId, CacheInfo> = object_ind_attrs
-        .iter()
-        .map(|(obj_id, attrs)| {
-            let id = *obj_id;
-            let max = attrs
-                .keys()
-                .map(|&x| i32::from(x))
-                .max()
-                .unwrap_or(2)
-                .saturating_add(1);
+    let mut object_ind_attributes: Vec<Option<CacheInfo>> = Vec::with_capacity(body.objects.len());
+    object_ind_attributes.resize_with(body.objects.len(), || None);
 
-            let max_bit_width = crate::bits::bit_width(max as u64);
-            Ok((
-                id,
-                CacheInfo {
-                    max_prop_id: max as u32,
-                    prop_id_bits: cmp::max(max_bit_width, 1) - 1,
-                    attributes: attrs,
-                },
-            ))
-        })
-        .collect::<Result<FnvHashMap<_, _>, NetworkError>>()?;
+    let iter = object_ind_attrs.into_iter().map(|(obj_id, attrs)| {
+        let id = obj_id;
+        let max = attrs
+            .keys()
+            .map(|&x| i32::from(x))
+            .max()
+            .unwrap_or(2)
+            .saturating_add(1);
+        let mut attributes = SegmentedArray::new(64);
+        for (k, v) in attrs {
+            attributes.insert(k.0 as usize, v);
+        }
+
+        let max_bit_width = crate::bits::bit_width(max as u64);
+        Ok((
+            id,
+            CacheInfo {
+                max_prop_id: max as u32,
+                prop_id_bits: cmp::max(max_bit_width, 1) - 1,
+                attributes,
+            },
+        ))
+    });
+
+    for x in iter {
+        let (object, cache) = x?;
+        object_ind_attributes[object.0 as usize] = Some(cache);
+    }
 
     let product_decoder = ProductValueDecoder::create(version, &object_index);
 
