@@ -11,12 +11,12 @@ use crate::network::{CacheInfo, VersionTriplet};
 use crate::parser::ReplayBody;
 
 #[derive(Debug)]
-pub(crate) struct SegmentedArray<T> {
+pub(crate) struct RawSegmentedArray<T> {
     array: Vec<Option<T>>,
     map: FnvHashMap<usize, T>,
 }
 
-impl<T> SegmentedArray<T> {
+impl<T> RawSegmentedArray<T> {
     pub(crate) fn new(size: usize) -> Self {
         let mut array = Vec::with_capacity(size);
         array.resize_with(size, || None);
@@ -51,6 +51,36 @@ impl<T> SegmentedArray<T> {
                 self.map.remove(&key);
             }
         };
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct SegmentedArray<K, V> {
+    raw: RawSegmentedArray<V>,
+    marker: std::marker::PhantomData<K>,
+}
+
+impl<K, V> SegmentedArray<K, V>
+where
+    K: Into<usize>,
+{
+    pub(crate) fn new(size: usize) -> Self {
+        Self {
+            raw: RawSegmentedArray::new(size),
+            marker: std::marker::PhantomData,
+        }
+    }
+
+    pub(crate) fn insert(&mut self, key: K, value: V) {
+        self.raw.insert(key.into(), value);
+    }
+
+    pub(crate) fn get(&self, key: K) -> Option<&V> {
+        self.raw.get(key.into())
+    }
+
+    pub(crate) fn delete(&mut self, key: K) {
+        self.raw.delete(key.into());
     }
 }
 
@@ -117,7 +147,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
         attr_decoder: &AttributeDecoder,
         bits: &mut LittleEndianReader<'_>,
         buf: &mut [u8],
-        actors: &mut SegmentedArray<(ObjectId, &'c CacheInfo)>,
+        actors: &mut SegmentedArray<ActorId, (ObjectId, &'c CacheInfo)>,
         new_actors: &mut Vec<NewActor>,
         deleted_actors: &mut Vec<ActorId>,
         updated_actors: &mut Vec<UpdatedAttribute>,
@@ -169,20 +199,20 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                     // overwrite it.
                     let cache_info = self
                         .object_ind_attributes
-                        .get(actor.object_id.0 as usize)
+                        .get(usize::from(actor.object_id))
                         .and_then(|x| x.as_ref())
                         .ok_or(FrameError::MissingCache {
                             actor: actor_id,
                             actor_object: actor.object_id,
                         })?;
 
-                    actors.insert(actor.actor_id.0 as usize, (actor.object_id, cache_info));
+                    actors.insert(actor.actor_id, (actor.object_id, cache_info));
                     new_actors.push(actor);
                 } else {
                     // We'll be updating an existing actor with some attributes so we need
                     // to track down what the actor's type is and what attributes are available
                     let (object_id, cache_info) = actors
-                        .get(actor_id.0 as usize)
+                        .get(actor_id)
                         .ok_or(FrameError::MissingActor { actor: actor_id })?;
 
                     // While there are more attributes to update for our actor:
@@ -208,7 +238,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                         // decoding function. Experience has told me replays that fail to
                         // parse, fail to do so here, so a large chunk is dedicated to
                         // generating an error message with context
-                        let attr = cache_info.attributes.get(stream_id.0 as usize).ok_or(
+                        let attr = cache_info.attributes.get(stream_id).ok_or(
                             FrameError::MissingAttribute {
                                 actor: actor_id,
                                 actor_object: *object_id,
@@ -242,7 +272,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                 }
             } else {
                 deleted_actors.push(actor_id);
-                actors.delete(actor_id.0 as usize);
+                actors.delete(actor_id);
             }
         }
 
@@ -296,6 +326,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                                         ObjectId(key as i32),
                                         value
                                             .attributes
+                                            .raw
                                             .map
                                             .iter()
                                             .enumerate()
@@ -308,6 +339,7 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                                 .collect(),
                             frames: frames.clone(),
                             actors: actors
+                                .raw
                                 .map
                                 .iter()
                                 .map(|(k, (o, _))| (ActorId(*k as i32), *o))

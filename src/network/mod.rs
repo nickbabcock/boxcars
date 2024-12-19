@@ -21,7 +21,7 @@ use std::cmp;
 pub(crate) struct CacheInfo {
     max_prop_id: u32,
     prop_id_bits: u32,
-    attributes: SegmentedArray<ObjectAttribute>,
+    attributes: SegmentedArray<StreamId, ObjectAttribute>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -148,7 +148,7 @@ pub(crate) fn parse(header: &Header, body: &ReplayBody) -> Result<NetworkFrames,
             .saturating_add(1);
         let mut attributes = SegmentedArray::new(64);
         for (k, v) in attrs {
-            attributes.insert(k.0 as usize, v);
+            attributes.insert(k, v);
         }
 
         let max_bit_width = crate::bits::bit_width(max as u64);
