@@ -259,6 +259,12 @@ impl From<StreamId> for i32 {
     }
 }
 
+impl From<StreamId> for usize {
+    fn from(val: StreamId) -> Self {
+        val.0 as usize
+    }
+}
+
 impl fmt::Display for StreamId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
@@ -273,6 +279,12 @@ pub struct ActorId(pub i32);
 impl From<ActorId> for i32 {
     fn from(x: ActorId) -> i32 {
         x.0
+    }
+}
+
+impl From<ActorId> for usize {
+    fn from(val: ActorId) -> Self {
+        val.0 as usize
     }
 }
 
