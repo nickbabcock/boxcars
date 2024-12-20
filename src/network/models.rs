@@ -29,6 +29,32 @@ pub struct Vector3i {
 
 impl Vector3i {
     pub fn decode(bits: &mut LittleEndianReader<'_>, net_version: i32) -> Option<Vector3i> {
+        // Do we have enough data available to blindly refill the lookahead twice?
+        // Note: this code doesn't actually use the unchecked bitter API as the
+        // compiler was able to emit the same code with both as long as we
+        // ensured there was 16 bytes left (even though a `Vector3i` will never
+        // need that many bytes).
+        if bits.unbuffered_bytes_remaining() >= 16 {
+            bits.refill_lookahead();
+            let size_bits = bits.peek_bits_max_computed(4, if net_version >= 7 { 22 } else { 20 });
+            let bias = 1 << (size_bits + 1);
+            let bit_limit = (size_bits + 2) as u32;
+            let dx = bits.peek_and_consume(bit_limit) as u32;
+            bits.refill_lookahead();
+            let dy = bits.peek_and_consume(bit_limit) as u32;
+            let dz = bits.peek_and_consume(bit_limit) as u32;
+            Some(Vector3i {
+                x: (dx as i32) - bias,
+                y: (dy as i32) - bias,
+                z: (dz as i32) - bias,
+            })
+        } else {
+            Vector3i::eof_decode(bits, net_version)
+        }
+    }
+
+    #[cold]
+    pub fn eof_decode(bits: &mut LittleEndianReader<'_>, net_version: i32) -> Option<Vector3i> {
         bits.refill_lookahead();
         if bits.lookahead_bits() < 5 {
             return None;
