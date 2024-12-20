@@ -17,17 +17,17 @@ use fnv::FnvHashMap;
 use frame_decoder::SegmentedArray;
 use std::cmp;
 
-#[derive(Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub(crate) struct CacheInfo {
-    max_prop_id: u32,
-    prop_id_bits: u32,
-    attributes: SegmentedArray<StreamId, ObjectAttribute>,
+    pub(crate) max_prop_id: u32,
+    pub(crate) prop_id_bits: u32,
+    pub(crate) attributes: SegmentedArray<StreamId, ObjectAttribute>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct ObjectAttribute {
-    attribute: AttributeTag,
-    object_id: ObjectId,
+    pub(crate) attribute: AttributeTag,
+    pub(crate) object_id: ObjectId,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
