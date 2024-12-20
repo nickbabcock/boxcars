@@ -54,10 +54,40 @@ impl<T> RawSegmentedArray<T> {
     }
 }
 
+impl<T: Clone> Clone for RawSegmentedArray<T> {
+    fn clone(&self) -> Self {
+        Self {
+            array: self.array.clone(),
+            map: self.map.clone(),
+        }
+    }
+}
+
+impl<T: PartialEq> PartialEq for RawSegmentedArray<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.array == other.array && self.map == other.map
+    }
+}
+
 #[derive(Debug)]
 pub(crate) struct SegmentedArray<K, V> {
     raw: RawSegmentedArray<V>,
     marker: std::marker::PhantomData<K>,
+}
+
+impl<K, V: Clone> Clone for SegmentedArray<K, V> {
+    fn clone(&self) -> Self {
+        Self {
+            raw: self.raw.clone(),
+            marker: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<K, V: PartialEq> PartialEq for SegmentedArray<K, V> {
+    fn eq(&self, other: &Self) -> bool {
+        self.raw == other.raw
+    }
 }
 
 impl<K, V> SegmentedArray<K, V>
@@ -316,33 +346,24 @@ impl<'a, 'b> FrameDecoder<'a, 'b> {
                         e,
                         Box::new(FrameContext {
                             objects: self.body.objects.clone(),
-                            object_attributes: self
-                                .object_ind_attributes
-                                .iter()
-                                .enumerate()
-                                .flat_map(|(i, x)| Some((i, x.as_ref()?)))
-                                .map(|(key, value)| {
-                                    (
-                                        ObjectId(key as i32),
-                                        value
-                                            .attributes
-                                            .raw
-                                            .map
-                                            .iter()
-                                            .enumerate()
-                                            .map(|(key2, value)| {
-                                                (StreamId(key2 as i32), value.1.object_id)
-                                            })
-                                            .collect(),
-                                    )
-                                })
-                                .collect(),
+                            object_attributes: self.object_ind_attributes.clone(),
                             frames: frames.clone(),
                             actors: actors
                                 .raw
-                                .map
+                                .array
                                 .iter()
-                                .map(|(k, (o, _))| (ActorId(*k as i32), *o))
+                                .enumerate()
+                                .filter_map(|(i, x)| {
+                                    let (obj_id, _) = x.as_ref()?;
+                                    Some((ActorId(i as i32), *obj_id))
+                                })
+                                .chain(
+                                    actors
+                                        .raw
+                                        .map
+                                        .iter()
+                                        .map(|(k, (o, _))| (ActorId(*k as i32), *o)),
+                                )
                                 .collect(),
                             new_actors: new_actors.clone(),
                             updated_actors: updated_actors.clone(),
