@@ -89,7 +89,9 @@ with the following options and the estimated elapsed time.
 
 ## Special Thanks
 
-Special thanks needs to be given to everyone in the Rocket League community who figured out the replay format and all its intricacies. Boxcars wouldn't exist if it weren't for them. I heavily leaned on implementations in [rattletrap](https://github.com/tfausak/rattletrap), [RocketLeagueReplayParser](https://github.com/jjbott/RocketLeagueReplayParser), and [Bakkes' replay parser](https://github.com/Bakkes/CPPRP). One of those should be your go to Rocket League Replay tool, unless you need speed, as those implementations are more mature than boxcars.
+Boxcars doesn't exist in a vacuum! If boxcars doesn't fit your needs, check out one of these other high quality Rocket League Replay parsers:
+
+[rattletrap](https://github.com/tfausak/rattletrap) | [Bakkes' replay parser](https://github.com/Bakkes/CPPRP) | [RocketLeagueReplayParser](https://github.com/jjbott/RocketLeagueReplayParser) | [RocketRP](https://github.com/Drogebot/RocketRP)
 
 ## Difference between rattletrap and boxcars
 
