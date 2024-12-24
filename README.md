@@ -80,10 +80,10 @@ with the following options and the estimated elapsed time.
 
 | Header | Corruption Check | Body | Output JSON | Elapsed | Throughput |
 | -      | -                | -    | -           | -       | -          |
-| ✔      |                  |      |             | 68.0 µs |            |
-| ✔      | ✔                | ✔    |             | 6.6 ms | 223 MiB/s  |
-| ✔      |                  | ✔    |             | 6.3 ms | 232 MiB/s  |
-| ✔      | ✔                | ✔    | ✔           | 35 ms |  531 MiB/s ^1  |
+| ✔      |                  |      |             | 32 µs |            |
+| ✔      | ✔                | ✔    |             | 5.1 ms | 290 MiB/s  |
+| ✔      |                  | ✔    |             | 4.8 ms | 315 MiB/s  |
+| ✔      | ✔                | ✔    | ✔           | 31 ms |  600 MiB/s ^1  |
 
 ^1: JSON serialization throughput includes the amount of JSON produced
 
