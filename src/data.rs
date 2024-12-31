@@ -409,6 +409,7 @@ pub(crate) static PARENT_CLASSES: phf::Map<&'static str, &'static str> = phf::ph
     "TAGame.Default__PRI_TA" => "TAGame.PRI_TA",
     "TAGame.Default__RumblePickups_TA" => "TAGame.RumblePickups_TA",
     "TAGame.Default__TrackerWallDynamicMeshActor_TA" => "TAGame.TrackerWallDynamicMeshActor_TA",
+    "TAGame.Default__VoteActor_TA" => "TAGame.VoteActor_TA",
     "TAGame.DynamicMeshActor_TA" => "Engine.Actor",
     "TAGame.FreeplayCommands_TA" => "Engine.Actor",
     "TAGame.GameEvent_Breakout_TA" => "TAGame.GameEvent_Soccar_TA",
