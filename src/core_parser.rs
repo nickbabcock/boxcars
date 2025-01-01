@@ -36,17 +36,13 @@ impl<'a> CoreParser<'a> {
         }
     }
 
-    pub fn sub_parser(&mut self, size: usize) -> Result<CoreParser<'a>, ParseError> {
-        let col = self.col;
-        let subbed = self.take_data(size)?;
-        Ok(CoreParser { data: subbed, col })
-    }
-
-    pub fn take_bytes<const N: usize>(&mut self, size: usize) -> Result<[u8; N], ParseError> {
-        let head = self.take_data(size)?;
-        let result = head
-            .first_chunk::<N>()
-            .ok_or_else(|| ParseError::InsufficientData(size as i32, self.data.len() as i32))?;
+    pub fn take_bytes<const N: usize>(&mut self) -> Result<[u8; N], ParseError> {
+        let (result, tail) = self
+            .data
+            .split_first_chunk::<N>()
+            .ok_or_else(|| ParseError::InsufficientData(N as i32, self.data.len() as i32))?;
+        self.col += N as i32;
+        self.data = tail;
         Ok(*result)
     }
 

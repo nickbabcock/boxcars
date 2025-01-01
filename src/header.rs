@@ -92,7 +92,10 @@ fn parse_rdict(
         }
 
         let kind = rlp.parse_str()?;
-        let size = rlp.take_u32("property size")? as usize;
+        
+        // This size is normally the number of bytes a property takes up,
+        // but it can't be trusted, so we're ignoring it.
+        let _size = rlp.take_u32("property size")? as usize;
         let _ignored = rlp.take_data(4)?;
         let val = match kind {
             "BoolProperty" => match mode {
@@ -115,34 +118,25 @@ fn parse_rdict(
                         value: value.map(String::from),
                     })
                 }
-                ParserMode::Quirks => rlp
-                    .sub_parser(size)
-                    .and_then(|mut x| x.parse_text())
+                ParserMode::Quirks => rlp.parse_text()
                     .map(|kind| HeaderProp::Byte { kind, value: None }),
             },
-            "ArrayProperty" => rlp
-                .sub_parser(size)
-                .and_then(|mut x| array_property(&mut x, mode)),
+            "ArrayProperty" => array_property(rlp, mode),
             "FloatProperty" => rlp
-                .take_bytes::<4>(size)
+                .take_bytes::<4>()
                 .map(f32::from_le_bytes)
                 .map(HeaderProp::Float),
             "IntProperty" => rlp
-                .take_bytes::<4>(size)
+                .take_bytes::<4>()
                 .map(i32::from_le_bytes)
                 .map(HeaderProp::Int),
             "QWordProperty" => rlp
-                .take_bytes::<8>(size)
+                .take_bytes::<8>()
                 .map(u64::from_le_bytes)
                 .map(HeaderProp::QWord),
-            "NameProperty" => rlp
-                .sub_parser(size)
-                .and_then(|mut x| x.parse_text())
+            "NameProperty" => rlp.parse_text()
                 .map(HeaderProp::Name),
-            "StrProperty" => rlp
-                .sub_parser(size)
-                .and_then(|mut x| x.parse_text())
-                .map(HeaderProp::Str),
+            "StrProperty" => rlp.parse_text().map(HeaderProp::Str),
             "StructProperty" => {
                 let name = rlp.parse_str()?;
                 let fields = parse_rdict(rlp, mode)?;
