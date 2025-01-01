@@ -1284,10 +1284,23 @@ impl AttributeDecoder {
         let component = "Reservation";
         let number = get_or!(bits.read_bits(3).map(|x| x as u32), component)?;
         let unique = decode_unique_id(bits, self.version.net_version(), buf)?;
-        let mut name = None;
-        if unique.system_id != 0 {
-            name = Some(decode_text(bits, buf)?);
-        }
+        let name = if unique.system_id != 0 {
+            Some(decode_text(bits, buf)?)
+        } else if unique.remote_id != RemoteId::SplitScreen(0) {
+            // A split screen of zero seems to mean rocket host replays,
+            // which use null terminated string up to an arbitrary length.
+            // https://github.com/Bakkes/CPPRP/blob/9a4ea97299247f0284b238c84fbdbb8c31ed7f3c/CPPRP/CPPBitReader.h#L245
+            let mut result = String::new();
+            while result.len() < 255 {
+                match get_or!(bits.read_u8(), component)? {
+                    0 => break,
+                    c => result.push(c as char),
+                }
+            }
+            Some(result)
+        } else {
+            None
+        };
 
         let unknown1 = get_or!(bits.read_bit(), component)?;
         let unknown2 = get_or!(bits.read_bit(), component)?;
