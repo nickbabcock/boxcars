@@ -1,3 +1,10 @@
+# v0.9.19 - January 2nd, 2025
+
+- Support rocket host replays
+- Fix edge case of failing to parse saves with UTF-16 player names
+- Fix regression on Replays with vote actors
+- 25% throughput increase due segmented array lookups
+
 # v0.9.18 - December 13th, 2024
 
 - Improved support for Freeplay replays
