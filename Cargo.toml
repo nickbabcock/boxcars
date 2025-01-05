@@ -36,3 +36,6 @@ harness = false
 [profile.dev.package]
 insta.opt-level = 3
 similar.opt-level = 3
+ryu.opt-level = 3
+serde_json.opt-level = 3
+highway.opt-level = 3
