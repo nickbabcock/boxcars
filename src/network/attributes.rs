@@ -53,6 +53,7 @@ pub(crate) enum AttributeTag {
     PickupInfo,
     Impulse,
     ReplicatedBoost,
+    LogoData,
 }
 
 /// The attributes for updated actors in the network data.
@@ -109,6 +110,7 @@ pub enum Attribute {
     PickupInfo(PickupInfo),
     Impulse(Impulse),
     ReplicatedBoost(ReplicatedBoost),
+    LogoData(LogoData),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -415,6 +417,12 @@ pub struct ReplicatedBoost {
     pub unused2: u8,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct LogoData {
+    pub logo_id: u32,
+    pub swap_colors: bool,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct ProductValueDecoder {
     version: VersionTriplet,
@@ -561,6 +569,7 @@ impl AttributeDecoder {
             AttributeTag::PickupInfo => self.decode_pickup_info(bits),
             AttributeTag::Impulse => self.decode_impulse(bits),
             AttributeTag::ReplicatedBoost => self.decode_replicated_boost(bits),
+            AttributeTag::LogoData => self.decode_logo_data(bits),
         }
     }
 
@@ -1442,6 +1451,12 @@ impl AttributeDecoder {
         } else {
             None
         }
+    }
+
+    fn decode_logo_data(&self, bits: &mut LittleEndianReader<'_>) -> Result<Attribute, AttributeError> {
+        let logo_id = bits.read_u32().ok_or(AttributeError::NotEnoughDataFor("LogoData"))?;
+        let swap_colors = bits.read_bit().ok_or(AttributeError::NotEnoughDataFor("LogoData"))?;
+        Ok(Attribute::LogoData(LogoData { logo_id, swap_colors }))
     }
 }
 
