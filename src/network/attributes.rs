@@ -376,7 +376,7 @@ pub enum ProductValue {
     NoColor,
     Absent,
     OldColor(u32),
-    NewColor(i32),
+    NewColor(u32),
     OldPaint(u32),
     NewPaint(u32),
     Title(String),
@@ -469,7 +469,7 @@ impl ProductValueDecoder {
     ) -> Option<ProductValue> {
         if obj_ind == self.color_ind {
             if self.version >= VersionTriplet(868, 23, 8) {
-                bits.read_i32().map(ProductValue::NewColor)
+                bits.read_u32().map(ProductValue::NewColor)
             } else {
                 bits.if_get(|b| {
                     b.read_bits(31)
