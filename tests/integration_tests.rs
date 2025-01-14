@@ -8,7 +8,7 @@ fn test_replay_snapshots() {
     glob!("../assets/replays/good", "*.replay", |path| {
         let data = fs::read(path).unwrap();
         let parsed = ParserBuilder::new(&data[..])
-            .on_error_check_crc() // CRC checking in debug mode makes tests 2x slower
+            .always_check_crc()
             .must_parse_network_data()
             .parse();
 
