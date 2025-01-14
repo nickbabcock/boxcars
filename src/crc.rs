@@ -32,7 +32,9 @@ const fn gen_crc_table<const N: usize>(poly: u32) -> [[u32; 256]; N] {
     table
 }
 
-const CRC_TABLE: [[u32; 256]; 16] = gen_crc_table(0x04c1_1db7);
+// Prefer static over const to cut test times in half
+// ref: https://github.com/srijs/rust-crc32fast/commit/e61ce6a39bbe9da495198a4037292ec299e8970f
+static CRC_TABLE: [[u32; 256]; 16] = gen_crc_table(0x04c1_1db7);
 
 /// Calculates the crc-32 for rocket league replays. Not all CRC algorithms are the same. The crc
 /// algorithm can be generated with the following parameters (pycrc):
