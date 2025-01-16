@@ -364,6 +364,7 @@ pub(crate) static PARENT_CLASSES: phf::Map<&'static str, &'static str> = phf::ph
     "GameInfo_Season.GameInfo.GameInfo_Season:GameReplicationInfoArchetype" => "TAGame.GRI_TA",
     "GameInfo_Soccar.GameInfo.GameInfo_Soccar:GameReplicationInfoArchetype" => "TAGame.GRI_TA",
     "GameInfo_Tutorial.GameEvent.GameEvent_Tutorial_Aerial" => "TAGame.GameEvent_Training_Aerial_TA",
+    "GameInfo_Tutorial.GameEvent.GameEvent_Tutorial_Goalie" => "TAGame.GameEvent_Training_Goalie_TA",
     "GameInfo_Tutorial.GameEvent.GameEvent_Tutorial_Striker" => "TAGame.GameEvent_Training_Striker_TA",
     "GameInfo_Tutorial.GameInfo.GameInfo_Tutorial:GameReplicationInfoArchetype" => "TAGame.GRI_TA",
     "Haunted_TrainStation_P.TheWorld:PersistentLevel.HauntedBallTrapTrigger_TA_0" => "TAGame.HauntedBallTrapTrigger_TA",
