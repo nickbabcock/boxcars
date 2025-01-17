@@ -1,3 +1,12 @@
+# v0.10.0 - January 17th, 2025
+
+Some minor breaking changes in the data structures and JSON output
+
+- Update `NewColor` product value from i32 to u32
+- Update logo data decoding and field structure
+- Improve support for knockout replays
+- Improve support for tutorial replays
+
 # v0.9.19 - January 2nd, 2025
 
 - Support rocket host replays
