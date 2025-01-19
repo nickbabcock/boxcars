@@ -63,6 +63,7 @@ pub(crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = phf::phf_ma
     "TAGame.Ball_TA:ReplicatedExplosionData" => AttributeTag::Explosion,
     "TAGame.Ball_TA:ReplicatedExplosionDataExtended" => AttributeTag::ExtendedExplosion,
     "TAGame.Ball_TA:ReplicatedWorldBounceScale" => AttributeTag::Float,
+    "TAGame.Ball_TA:bWarnBallReset" => AttributeTag::Boolean,
     "TAGame.Ball_God_TA:TargetSpeed" => AttributeTag::Float,
     "TAGame.BreakOutActor_Platform_TA:DamageState" => AttributeTag::DamageState,
     "TAGame.CameraSettingsActor_TA:bUsingBehindView" => AttributeTag::Boolean,
