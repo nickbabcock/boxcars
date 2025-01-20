@@ -77,7 +77,7 @@ pub(crate) struct AncestorIterator<'a, 'b> {
     index: &'a ObjectIndex<'b>,
 }
 
-impl<'a, 'b> Iterator for AncestorIterator<'a, 'b> {
+impl Iterator for AncestorIterator<'_, '_> {
     type Item = ObjectId;
 
     fn next(&mut self) -> Option<Self::Item> {

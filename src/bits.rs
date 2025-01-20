@@ -14,7 +14,7 @@ pub(crate) trait RlBits {
         F: FnMut(&mut Self) -> Option<T>;
 }
 
-impl<'a> RlBits for LittleEndianReader<'a> {
+impl RlBits for LittleEndianReader<'_> {
     #[inline]
     fn peek_and_consume(&mut self, bits: u32) -> u64 {
         let res = self.peek(bits);
