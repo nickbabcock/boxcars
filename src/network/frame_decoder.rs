@@ -133,7 +133,7 @@ enum DecodedFrame {
     Frame(Frame),
 }
 
-impl<'a, 'b> FrameDecoder<'a, 'b> {
+impl FrameDecoder<'_, '_> {
     fn parse_new_actor(
         &self,
         bits: &mut LittleEndianReader<'_>,

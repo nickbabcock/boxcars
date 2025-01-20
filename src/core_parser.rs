@@ -37,10 +37,13 @@ impl<'a> CoreParser<'a> {
     }
 
     pub fn take_bytes<const N: usize>(&mut self) -> Result<[u8; N], ParseError> {
-        let (result, tail) = self
-            .data
-            .split_first_chunk::<N>()
-            .ok_or_else(|| ParseError::InsufficientData(N as i32, self.data.len() as i32))?;
+        let (result, tail) =
+            self.data
+                .split_first_chunk::<N>()
+                .ok_or(ParseError::InsufficientData(
+                    N as i32,
+                    self.data.len() as i32,
+                ))?;
         self.col += N as i32;
         self.data = tail;
         Ok(*result)
