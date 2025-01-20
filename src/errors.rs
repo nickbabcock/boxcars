@@ -295,7 +295,14 @@ impl FrameError {
                             attr_obj.attribute, actor_obj_name
                         )?;
                     } else {
-                        writeln!(f, "attribute: {}", context.objects.get(usize::from(attr_obj.object_id)).map_or("<unknown>", |v| v))?;
+                        writeln!(
+                            f,
+                            "attribute: {}",
+                            context
+                                .objects
+                                .get(usize::from(attr_obj.object_id))
+                                .map_or("<unknown>", |v| v)
+                        )?;
 
                         // No need for further context so we return early.
                         return Ok(());

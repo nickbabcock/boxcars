@@ -1453,10 +1453,20 @@ impl AttributeDecoder {
         }
     }
 
-    fn decode_logo_data(&self, bits: &mut LittleEndianReader<'_>) -> Result<Attribute, AttributeError> {
-        let logo_id = bits.read_u32().ok_or(AttributeError::NotEnoughDataFor("LogoData"))?;
-        let swap_colors = bits.read_bit().ok_or(AttributeError::NotEnoughDataFor("LogoData"))?;
-        Ok(Attribute::LogoData(LogoData { logo_id, swap_colors }))
+    fn decode_logo_data(
+        &self,
+        bits: &mut LittleEndianReader<'_>,
+    ) -> Result<Attribute, AttributeError> {
+        let logo_id = bits
+            .read_u32()
+            .ok_or(AttributeError::NotEnoughDataFor("LogoData"))?;
+        let swap_colors = bits
+            .read_bit()
+            .ok_or(AttributeError::NotEnoughDataFor("LogoData"))?;
+        Ok(Attribute::LogoData(LogoData {
+            logo_id,
+            swap_colors,
+        }))
     }
 }
 

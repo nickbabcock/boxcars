@@ -92,7 +92,7 @@ fn parse_rdict(
         }
 
         let kind = rlp.parse_str()?;
-        
+
         // This size is normally the number of bytes a property takes up,
         // but it can't be trusted, so we're ignoring it.
         let _size = rlp.take_u32("property size")? as usize;
@@ -118,7 +118,8 @@ fn parse_rdict(
                         value: value.map(String::from),
                     })
                 }
-                ParserMode::Quirks => rlp.parse_text()
+                ParserMode::Quirks => rlp
+                    .parse_text()
                     .map(|kind| HeaderProp::Byte { kind, value: None }),
             },
             "ArrayProperty" => array_property(rlp, mode),
@@ -134,8 +135,7 @@ fn parse_rdict(
                 .take_bytes::<8>()
                 .map(u64::from_le_bytes)
                 .map(HeaderProp::QWord),
-            "NameProperty" => rlp.parse_text()
-                .map(HeaderProp::Name),
+            "NameProperty" => rlp.parse_text().map(HeaderProp::Name),
             "StrProperty" => rlp.parse_text().map(HeaderProp::Str),
             "StructProperty" => {
                 let name = rlp.parse_str()?;
