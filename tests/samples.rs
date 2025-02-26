@@ -224,14 +224,14 @@ fn test_preserve_endian() {
             boxcars::Attribute::LoadoutsOnline(x) => Some(x.blue.iter().flat_map(|pr| pr.iter())),
             _ => None,
         })
-        .flat_map(|x| x)
+        .flatten()
         .filter_map(|x| match x.value {
             boxcars::attributes::ProductValue::NewPaint(p) => Some(p),
             _ => None,
         })
         .collect::<Vec<_>>();
 
-    assert_eq!(*new_paints.get(0).unwrap(), 11);
+    assert_eq!(*new_paints.first().unwrap(), 11);
 }
 
 #[test]
