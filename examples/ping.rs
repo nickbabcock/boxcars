@@ -99,7 +99,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                     // Fill in the name of the latest entry with the same
                     // actor id that either has the same name or no name.
                     let entry = actor_pings.iter().rev().rposition(|x| {
-                        x.actor_id == act_id && x.name.as_ref().map_or(true, |n| n == &name)
+                        x.actor_id == act_id && x.name.as_ref().is_none_or(|n| n == &name)
                     });
                     if let Some(position) = entry {
                         actor_pings[position].name.replace(name);
@@ -111,7 +111,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                         });
                     }
                 } else {
-                    return Err("expected player name to be a string")?;
+                    Err("expected player name to be a string")?;
                 }
             } else if attr.object_id == ping_id {
                 if let Attribute::Byte(ping) = attr.attribute {
@@ -130,7 +130,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                         });
                     }
                 } else {
-                    return Err("expected ping to be a byte")?;
+                    Err("expected ping to be a byte")?;
                 }
             }
         }
@@ -149,7 +149,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             .and_modify(|e| {
                 e.extend_from_slice(&player.pings);
             })
-            .or_insert_with(Vec::new);
+            .or_default();
     }
 
     for (player, pings) in &pings {

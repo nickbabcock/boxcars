@@ -13,7 +13,7 @@ fn count_properties(
     prefix: &str,
 ) {
     for (key, prop) in props.iter() {
-        let new_prefix = if prefix == "" {
+        let new_prefix = if prefix.is_empty() {
             Cow::Borrowed(key)
         } else {
             Cow::Owned(format!("{}:{}", prefix, key))

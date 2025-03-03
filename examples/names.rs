@@ -76,7 +76,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             _ => return Err("expected player stats to be an array".into()),
         };
 
-        let header_names = names_in_header(&stats);
+        let header_names = names_in_header(stats);
         for name in header_names {
             println!("{}", name);
         }
