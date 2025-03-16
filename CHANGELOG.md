@@ -1,3 +1,7 @@
+# v0.10.2 - March 16th, 2025
+
+- Initial support for v2.49 replays
+
 # v0.10.1 - January 20th, 2025
 
 - Improve split shot support
