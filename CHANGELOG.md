@@ -1,3 +1,7 @@
+# v0.10.3 - March 17th, 2025
+
+- Improved support for v2.49 replays with `TAGame.PRI_TA:bIdleBanned` attribute
+
 # v0.10.2 - March 16th, 2025
 
 - Initial support for v2.49 replays
