@@ -202,6 +202,7 @@ pub(crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = phf::phf_ma
     "TAGame.PRI_TA:SelfDemolitions" => AttributeTag::Int,
     "TAGame.PRI_TA:CarDemolitions" => AttributeTag::Int,
     "TAGame.PRI_TA:CurrentVoiceRoom" => AttributeTag::String,
+    "TAGame.PRI_TA:bIdleBanned" => AttributeTag::Boolean,
     "TAGame.RBActor_TA:bFrozen" => AttributeTag::Boolean,
     "TAGame.RBActor_TA:bIgnoreSyncing" => AttributeTag::Boolean,
     "TAGame.RBActor_TA:bReplayActor" => AttributeTag::Boolean,
