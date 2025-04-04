@@ -39,7 +39,7 @@ fn bench_json_serialization(c: &mut Criterion) {
         };
 
         b.iter(|| {
-            black_box(serde_json::to_writer(&mut bytes, &replay).unwrap());
+            serde_json::to_writer(&mut bytes, &replay).unwrap();
             unsafe {
                 bytes.set_len(0);
             };
@@ -116,7 +116,7 @@ fn bench_parse_crc_json(c: &mut Criterion) {
         let mut bytes = Vec::with_capacity(2_usize.pow(25));
         b.iter(|| {
             let data = ParserBuilder::new(data).always_check_crc().parse().unwrap();
-            black_box(serde_json::to_writer(&mut bytes, &data).unwrap());
+            serde_json::to_writer(&mut bytes, &data).unwrap();
             unsafe {
                 bytes.set_len(0);
             }

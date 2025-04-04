@@ -29,11 +29,10 @@ fn test_replay_snapshots() {
         let mut writer = BufWriter::with_capacity(0x8000, hasher);
         serde_json::to_writer(&mut writer, &replay).unwrap();
         let hash = writer.into_inner().unwrap().finalize256();
-        let out = hash
-            .iter()
-            .map(|x| format!("{:016x}", x))
-            .collect::<String>();
-        let hex = format!("0x{}", out);
+        let hex = format!(
+            "0x{:016x}{:016x}{:016x}{:016x}",
+            hash[0], hash[1], hash[2], hash[3]
+        );
 
         let snapshot = serde_json::json!({
             "frames": replay.network_frames.unwrap().frames.len(),
