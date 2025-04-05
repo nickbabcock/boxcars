@@ -66,12 +66,9 @@ fn extract_online_id(replay: &boxcars::Replay, user: &str) -> (u64, boxcars::att
             let our_player = arr
                 .iter()
                 .find(|properties| {
-                    properties
-                        .iter()
-                        .find(|(prop, val)| {
-                            *prop == "Name" && *val == boxcars::HeaderProp::Str(String::from(user))
-                        })
-                        .is_some()
+                    properties.iter().any(|(prop, val)| {
+                        *prop == "Name" && *val == boxcars::HeaderProp::Str(String::from(user))
+                    })
                 })
                 .unwrap();
 
