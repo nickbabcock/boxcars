@@ -1,0 +1,10 @@
+---
+source: tests/integration_tests.rs
+assertion_line: 41
+expression: snapshot
+input_file: assets/replays/good/rl-254.replay
+---
+{
+  "frames": 581,
+  "hex": "0x4446ea93ce06ef655afc3e4d57becbf89d7eec79be84864ba4a70fba659ee3d6"
+}
