@@ -25,8 +25,6 @@ pub(crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = phf::phf_ma
     "Engine.Actor:RemoteRole" => AttributeTag::Enum,
     "Engine.Actor:Role" => AttributeTag::Enum,
     "Engine.Actor:Rotation" => AttributeTag::RotationTag,
-    "Engine.Actor:Velocity" => AttributeTag::Location,
-    "Engine.Actor:Instigator" => AttributeTag::ActiveActor,
     "Engine.GameReplicationInfo:bMatchIsOver" => AttributeTag::Boolean,
     "Engine.GameReplicationInfo:GameClass" => AttributeTag::ActiveActor,
     "Engine.GameReplicationInfo:ServerName" => AttributeTag::String,
@@ -274,7 +272,6 @@ pub(crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = phf::phf_ma
     "TAGame.Stunlock_TA:MaxStunTime" => AttributeTag::Float,
     "TAGame.ViralItemActor_TA:InfectedStatus" => AttributeTag::Byte,
     "TAGame.ViralItemActor_TA:ClientFXInfectedType" => AttributeTag::Byte,
-    "TAGame.ViralItemActor_TA:InfectedTypeToGive" => AttributeTag::Byte,
 };
 
 pub(crate) static PARENT_CLASSES: phf::Map<&'static str, &'static str> = phf::phf_map! {
