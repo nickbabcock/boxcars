@@ -1,3 +1,7 @@
+# v0.10.8 - September 29th, 2025
+
+- Support for v2.56 replays with `TotalIdleTime` attribute
+
 # v0.10.7 - September 18th, 2025
 
 - Support for v2.56 replays
