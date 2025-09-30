@@ -1,0 +1,10 @@
+---
+source: tests/integration_tests.rs
+assertion_line: 41
+expression: snapshot
+input_file: assets/replays/good/total-idle-time.replay
+---
+{
+  "frames": 8295,
+  "hex": "0xe5cd525375fd967a50841987b87a0ac1e643dc88b1a625924eaf622a6ce8f9ea"
+}
