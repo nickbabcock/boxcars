@@ -122,6 +122,7 @@ pub(crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = phf::phf_ma
     "TAGame.GameEvent_Soccar_TA:bReadyToStartGame" => AttributeTag::Boolean,
     "TAGame.GameEvent_Soccar_TA:bGoalsEnabled" => AttributeTag::Boolean,
     "TAGame.GameEvent_Soccar_TA:bOverTime" => AttributeTag::Boolean,
+    "TAGame.GameEvent_Soccar_TA:bMatchCreatorAdminEnabled" => AttributeTag::Boolean,
     "TAGame.GameEvent_Soccar_TA:bMatchEnded" => AttributeTag::Boolean,
     "TAGame.GameEvent_Soccar_TA:bNoContest" => AttributeTag::Boolean,
     "TAGame.GameEvent_Soccar_TA:bShowIntroScene" => AttributeTag::Boolean,
