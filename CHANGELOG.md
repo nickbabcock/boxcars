@@ -1,3 +1,7 @@
+# v0.10.9 - December 12th, 2025
+
+- Support for v2.63 replays with the `bMatchCreatorAdminEnabled` attribute
+
 # v0.10.8 - September 29th, 2025
 
 - Support for v2.56 replays with `TotalIdleTime` attribute
