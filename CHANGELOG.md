@@ -1,3 +1,7 @@
+# v0.10.10 - January 25th, 2025
+
+- Support for v2.64 replays with `bFullMatchWinnerDecided` attribute
+
 # v0.10.9 - December 12th, 2025
 
 - Support for v2.63 replays with the `bMatchCreatorAdminEnabled` attribute
