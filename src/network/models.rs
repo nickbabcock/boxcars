@@ -10,6 +10,7 @@ pub struct Vector3f {
 }
 
 impl Vector3f {
+    #[inline]
     pub fn decode(bits: &mut LittleEndianReader<'_>, net_version: i32) -> Option<Vector3f> {
         Vector3i::decode(bits, net_version).map(|vec| Vector3f {
             x: (vec.x as f32) / 100.0,
@@ -28,6 +29,7 @@ pub struct Vector3i {
 }
 
 impl Vector3i {
+    #[inline]
     pub fn decode(bits: &mut LittleEndianReader<'_>, net_version: i32) -> Option<Vector3i> {
         // Do we have enough data available to blindly refill the lookahead twice?
         // Note: this code doesn't actually use the unchecked bitter API as the
@@ -378,24 +380,37 @@ impl Trajectory {
 /// `TheWorld:PersistentLevel.VehiclePickup_Boost_TA` so that we don't have to work around each
 /// stadium and pickup that is released.
 pub(crate) fn normalize_object(name: &str) -> &str {
-    if name.len() <= "TheWorld:PersistentLevel.CrowdActor_TA".len()
-        || !name.contains("TheWorld:PersistentLevel.")
-    {
+    const PREFIX: &str = "TheWorld:PersistentLevel.";
+    if name.len() <= "TheWorld:PersistentLevel.CrowdActor_TA".len() {
         return name;
     }
 
-    if name.contains("TheWorld:PersistentLevel.CrowdActor_TA") {
+    // Fast path: name starts directly with the prefix (no stadium prefix).
+    // Slow path: name has a stadium prefix ending with '.', e.g. "stadium_p.TheWorld:..."
+    let rest = if let Some(r) = name.strip_prefix(PREFIX) {
+        r
+    } else {
+        let Some(dot) = name.find('.') else {
+            return name;
+        };
+        let Some(r) = name[dot + 1..].strip_prefix(PREFIX) else {
+            return name;
+        };
+        r
+    };
+
+    if rest.starts_with("CrowdActor_TA") {
         "TheWorld:PersistentLevel.CrowdActor_TA"
-    } else if name.contains("TheWorld:PersistentLevel.CrowdManager_TA") {
+    } else if rest.starts_with("CrowdManager_TA") {
         "TheWorld:PersistentLevel.CrowdManager_TA"
-    } else if name.contains("TheWorld:PersistentLevel.VehiclePickup_Boost_TA") {
+    } else if rest.starts_with("VehiclePickup_Boost_TA") {
         "TheWorld:PersistentLevel.VehiclePickup_Boost_TA"
-    } else if name.contains("TheWorld:PersistentLevel.InMapScoreboard_TA") {
+    } else if rest.starts_with("InMapScoreboard_TA") {
         "TheWorld:PersistentLevel.InMapScoreboard_TA"
-    } else if name.contains("TheWorld:PersistentLevel.BreakOutActor_Platform_TA") {
+    } else if rest.starts_with("BreakOutActor_Platform_TA") {
         "TheWorld:PersistentLevel.BreakOutActor_Platform_TA"
-    } else if name.contains("TheWorld:PersistentLevel.PlayerStart_Platform_TA") {
-        return "TheWorld:PersistentLevel.PlayerStart_Platform_TA";
+    } else if rest.starts_with("PlayerStart_Platform_TA") {
+        "TheWorld:PersistentLevel.PlayerStart_Platform_TA"
     } else {
         name
     }

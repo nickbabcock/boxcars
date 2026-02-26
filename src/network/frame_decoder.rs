@@ -133,6 +133,17 @@ enum DecodedFrame {
     Frame(Frame),
 }
 
+#[inline]
+fn take_with_capacity_hint<T>(values: &mut Vec<T>) -> Vec<T> {
+    let len = values.len();
+    if len == 0 {
+        std::mem::take(values)
+    } else {
+        let next_capacity = len + (len >> 2) + 1;
+        std::mem::replace(values, Vec::with_capacity(next_capacity))
+    }
+}
+
 impl FrameDecoder<'_, '_> {
     fn parse_new_actor(
         &self,
@@ -309,9 +320,9 @@ impl FrameDecoder<'_, '_> {
         Ok(DecodedFrame::Frame(Frame {
             time,
             delta,
-            new_actors: std::mem::take(new_actors),
-            deleted_actors: std::mem::take(deleted_actors),
-            updated_actors: std::mem::take(updated_actors),
+            new_actors: take_with_capacity_hint(new_actors),
+            deleted_actors: take_with_capacity_hint(deleted_actors),
+            updated_actors: take_with_capacity_hint(updated_actors),
         }))
     }
 
