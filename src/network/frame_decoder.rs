@@ -307,12 +307,39 @@ impl FrameDecoder<'_, '_> {
             }
         }
 
+        let next_actors = if new_actors.is_empty() {
+            Vec::new()
+        } else {
+            std::mem::replace(
+                new_actors,
+                Vec::with_capacity(new_actors.len().next_power_of_two()),
+            )
+        };
+
+        let next_updated = if updated_actors.is_empty() {
+            Vec::new()
+        } else {
+            std::mem::replace(
+                updated_actors,
+                Vec::with_capacity(updated_actors.len().next_power_of_two()),
+            )
+        };
+
+        let next_deleted = if deleted_actors.is_empty() {
+            Vec::new()
+        } else {
+            std::mem::replace(
+                deleted_actors,
+                Vec::with_capacity(deleted_actors.len().next_power_of_two()),
+            )
+        };
+
         Ok(DecodedFrame::Frame(Frame {
             time,
             delta,
-            new_actors: std::mem::take(new_actors),
-            deleted_actors: std::mem::take(deleted_actors),
-            updated_actors: std::mem::take(updated_actors),
+            new_actors: next_actors,
+            deleted_actors: next_deleted,
+            updated_actors: next_updated,
         }))
     }
 
