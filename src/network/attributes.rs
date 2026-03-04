@@ -524,9 +524,26 @@ impl AttributeDecoder {
         bits: &mut LittleEndianReader<'_>,
         buf: &mut [u8],
     ) -> Result<Attribute, AttributeError> {
+        // Fast path for the four dominant attribute types (~92% of all attribute updates).
+        // Keeping this match small reduces I1 instruction cache pressure.
         match tag {
-            AttributeTag::Boolean => self.decode_boolean(bits),
+            AttributeTag::RigidBody => self.decode_rigid_body(bits),
             AttributeTag::Byte => self.decode_byte(bits),
+            AttributeTag::Boolean => self.decode_boolean(bits),
+            AttributeTag::ActiveActor => self.decode_active_actor(bits),
+            _ => self.decode_uncommon(tag, bits, buf),
+        }
+    }
+
+    #[cold]
+    #[inline(never)]
+    fn decode_uncommon(
+        &self,
+        tag: AttributeTag,
+        bits: &mut LittleEndianReader<'_>,
+        buf: &mut [u8],
+    ) -> Result<Attribute, AttributeError> {
+        match tag {
             AttributeTag::AppliedDamage => self.decode_applied_damage(bits),
             AttributeTag::DamageState => self.decode_damage_state(bits),
             AttributeTag::CamSettings => self.decode_cam_settings(bits),
@@ -537,7 +554,6 @@ impl AttributeDecoder {
             AttributeTag::Enum => self.decode_enum(bits),
             AttributeTag::Explosion => self.decode_explosion(bits),
             AttributeTag::ExtendedExplosion => self.decode_extended_explosion(bits),
-            AttributeTag::ActiveActor => self.decode_active_actor(bits),
             AttributeTag::FlaggedByte => self.decode_flagged_byte(bits),
             AttributeTag::Float => self.decode_float(bits),
             AttributeTag::GameMode => self.decode_game_mode(bits),
@@ -552,7 +568,6 @@ impl AttributeDecoder {
             AttributeTag::PlayerHistoryKey => self.decode_player_history_key(bits),
             AttributeTag::QWordString => self.decode_qword_string(bits, buf),
             AttributeTag::Welded => self.decode_welded(bits),
-            AttributeTag::RigidBody => self.decode_rigid_body(bits),
             AttributeTag::Title => self.decode_title(bits),
             AttributeTag::TeamPaint => self.decode_team_paint(bits),
             AttributeTag::NotImplemented => self.decode_not_implemented(bits),
@@ -570,6 +585,7 @@ impl AttributeDecoder {
             AttributeTag::Impulse => self.decode_impulse(bits),
             AttributeTag::ReplicatedBoost => self.decode_replicated_boost(bits),
             AttributeTag::LogoData => self.decode_logo_data(bits),
+            _ => unreachable!(),
         }
     }
 
