@@ -87,6 +87,7 @@ pub(crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = phf::phf_ma
     "TAGame.Car_TA:ReplicatedDemolish_CustomFX" => AttributeTag::DemolishFx,
     "TAGame.Car_TA:ReplicatedDemolishGoalExplosion" => AttributeTag::DemolishFx,
     "TAGame.Car_TA:RumblePickups" => AttributeTag::ActiveActor,
+    "TAGame.Car_TA:DodgesRefreshedCounter" => AttributeTag::Int,
     "TAGame.RumblePickups_TA:ConcurrentItemCount" => AttributeTag::Int,
     "TAGame.RumblePickups_TA:AttachedPickup" => AttributeTag::ActiveActor,
     "TAGame.RumblePickups_TA:PickupInfo" => AttributeTag::PickupInfo,
