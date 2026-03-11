@@ -456,7 +456,7 @@ fn test_rumble_actor_id() {
 
 #[test]
 fn test_dodges_refreshed_counter() {
-    let data = include_bytes!("../assets/replays/good/8206ef81-dfa5-41bd-b48c-68d3f27c606b.replay");
+    let data = include_bytes!("../assets/replays/good/8206e.replay");
     let replay = ParserBuilder::new(&data[..])
         .always_check_crc()
         .must_parse_network_data()
@@ -477,15 +477,10 @@ fn test_dodges_refreshed_counter() {
         .frames
         .iter()
         .flat_map(|frame| frame.updated_actors.iter())
-        .filter_map(|updated| {
-            if updated.object_id == object_id {
-                match updated.attribute {
-                    boxcars::Attribute::Int(value) => Some(value),
-                    _ => None,
-                }
-            } else {
-                None
-            }
+        .filter(|updated| updated.object_id == object_id)
+        .filter_map(|updated| match updated.attribute {
+            boxcars::Attribute::Int(value) => Some(value),
+            _ => None,
         })
         .collect();
 
