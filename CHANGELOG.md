@@ -1,4 +1,8 @@
-# v0.10.10 - January 25th, 2025
+# v0.10.11 - March 11, 2026
+
+- Support for v2.66 replays with `DodgesRefreshedCounter` attribute
+
+# v0.10.10 - January 25th, 2026
 
 - Support for v2.64 replays with `bFullMatchWinnerDecided` attribute
 
