@@ -453,3 +453,39 @@ fn test_rumble_actor_id() {
         .collect();
     assert_eq!(pickups[264].instigator, Some(ActorId(-1)));
 }
+
+#[test]
+fn test_dodges_refreshed_counter() {
+    let data = include_bytes!("../assets/replays/good/8206e.replay");
+    let replay = ParserBuilder::new(&data[..])
+        .always_check_crc()
+        .must_parse_network_data()
+        .parse()
+        .unwrap();
+
+    let object_id = replay
+        .objects
+        .iter()
+        .position(|obj| obj == "TAGame.Car_TA:DodgesRefreshedCounter")
+        .map(|index| boxcars::ObjectId(index as i32))
+        .unwrap();
+
+    let mut values: Vec<i32> = replay
+        .network_frames
+        .as_ref()
+        .unwrap()
+        .frames
+        .iter()
+        .flat_map(|frame| frame.updated_actors.iter())
+        .filter(|updated| updated.object_id == object_id)
+        .filter_map(|updated| match updated.attribute {
+            boxcars::Attribute::Int(value) => Some(value),
+            _ => None,
+        })
+        .collect();
+
+    assert!(!values.is_empty());
+    values.sort_unstable();
+    values.dedup();
+    assert_eq!(vec![0, 1, 2, 3], values);
+}
