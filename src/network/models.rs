@@ -395,7 +395,7 @@ pub(crate) fn normalize_object(name: &str) -> &str {
     } else if name.contains("TheWorld:PersistentLevel.BreakOutActor_Platform_TA") {
         "TheWorld:PersistentLevel.BreakOutActor_Platform_TA"
     } else if name.contains("TheWorld:PersistentLevel.PlayerStart_Platform_TA") {
-        return "TheWorld:PersistentLevel.PlayerStart_Platform_TA";
+        "TheWorld:PersistentLevel.PlayerStart_Platform_TA"
     } else {
         name
     }

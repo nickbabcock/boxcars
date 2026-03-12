@@ -172,6 +172,7 @@ impl FrameDecoder<'_, '_> {
         })
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn decode_frame<'c>(
         &'c self,
         attr_decoder: &AttributeDecoder,
