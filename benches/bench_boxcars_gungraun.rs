@@ -11,6 +11,9 @@ fn parse_crc_body(data: &[u8]) -> boxcars::Replay {
         .unwrap()
 }
 
-library_benchmark_group!(name = parse_crc_body_benches, benchmarks = [parse_crc_body,]);
+library_benchmark_group!(
+    name = parse_crc_body_benches,
+    benchmarks = [parse_crc_body,]
+);
 
 gungraun::main!(library_benchmark_groups = parse_crc_body_benches);
