@@ -19,7 +19,7 @@ phf = { version = "0.13", features = ["macros"] }
 serde = { version = "1", features = ["derive"] }
 
 [dev-dependencies]
-criterion = "0.5"
+criterion = "0.8"
 gungraun = "0.17.2"
 highway = "1.3.0"
 insta = { version = "1.39.0", features = ["glob", "serde", "json"] }
