@@ -1,6 +1,6 @@
-use boxcars::crc::calc_crc;
-use boxcars::*;
-use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
+use boxcars::{crc::calc_crc, ParserBuilder};
+use criterion::{criterion_group, criterion_main, Criterion, Throughput};
+use std::hint::black_box;
 
 fn bench_crc(c: &mut Criterion) {
     let data = include_bytes!("../assets/replays/good/rumble.replay");
