@@ -1,16 +1,5 @@
 use crate::errors::ParseError;
 use encoding_rs::{UTF_16LE, WINDOWS_1252};
-use std::convert::TryInto;
-
-#[inline]
-pub fn le_i32(d: &[u8]) -> i32 {
-    i32::from_le_bytes(d[..4].try_into().unwrap())
-}
-
-#[inline]
-pub fn le_f32(d: &[u8]) -> f32 {
-    f32::from_le_bytes(d[..4].try_into().unwrap())
-}
 
 /// Reads a string of a given size from the data. The size includes a null
 /// character as the last character, so we drop it in the returned string
