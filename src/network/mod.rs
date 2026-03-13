@@ -61,7 +61,7 @@ pub(crate) fn parse(header: &Header, body: &ReplayBody) -> Result<NetworkFrames,
         }
     }
 
-    let mut parent_stack = Vec::new();
+    let mut parent_stack = Vec::with_capacity(body.objects.len());
     for name in &body.objects {
         let mut result = SpawnTrajectory::None;
         for object in object_index.hierarchy(name) {
@@ -82,48 +82,40 @@ pub(crate) fn parse(header: &Header, body: &ReplayBody) -> Result<NetworkFrames,
         }
     }
 
-    let mut net_properties: FnvHashMap<ObjectId, Vec<(_, _)>> = FnvHashMap::default();
+    let mut net_properties: FnvHashMap<ObjectId, Vec<(_, _)>> =
+        FnvHashMap::with_capacity_and_hasher(body.net_cache.len(), Default::default());
     for cache in &body.net_cache {
-        let properties = cache
-            .properties
-            .iter()
-            .map(|x| {
-                let attr = body
-                    .objects
-                    .get(x.object_ind as usize)
-                    .map(|x| {
-                        ATTRIBUTES
-                            .get(x)
-                            .copied()
-                            .unwrap_or(AttributeTag::NotImplemented)
-                    })
-                    .ok_or(NetworkError::StreamTooLargeIndex(x.stream_id, x.object_ind))?;
-
-                Ok((
-                    StreamId(x.stream_id),
-                    ObjectAttribute {
-                        attribute: attr,
-                        object_id: ObjectId(x.object_ind),
-                    },
-                ))
-            })
-            .collect::<Result<Vec<(_, _)>, NetworkError>>()?;
-
         let key = ObjectId(cache.object_ind);
         let primary_object = object_index.primary_by_index(key);
+        let properties = net_properties.entry(primary_object).or_default();
+        properties.reserve(cache.properties.len());
 
-        // The same primary object can occur multiple times, though it tends to
-        // be just duplicates.
-        net_properties
-            .entry(primary_object)
-            .or_default()
-            .extend(properties);
+        for x in &cache.properties {
+            let attr = body
+                .objects
+                .get(x.object_ind as usize)
+                .map(|x| {
+                    ATTRIBUTES
+                        .get(x)
+                        .copied()
+                        .unwrap_or(AttributeTag::NotImplemented)
+                })
+                .ok_or(NetworkError::StreamTooLargeIndex(x.stream_id, x.object_ind))?;
+
+            properties.push((
+                StreamId(x.stream_id),
+                ObjectAttribute {
+                    attribute: attr,
+                    object_id: ObjectId(x.object_ind),
+                },
+            ));
+        }
     }
 
     let mut object_ind_attrs: FnvHashMap<ObjectId, FnvHashMap<StreamId, ObjectAttribute>> =
-        Default::default();
+        FnvHashMap::with_capacity_and_hasher(body.objects.len(), Default::default());
 
-    let mut acc_attrs = Vec::new();
+    let mut acc_attrs = Vec::with_capacity(32);
     for name in &body.objects {
         net_traversal(
             name.as_str(),
@@ -226,11 +218,14 @@ fn net_traversal(
         }
     }
 
+    let mut cache_attrs = FnvHashMap::default();
     for ind in parent_stack.drain(..).rev() {
         let attrs = net_properties.get(&ind).into_iter().flatten().copied();
         acc_attrs.extend(attrs);
+        cache_attrs.clear();
+        cache_attrs.extend(acc_attrs.iter().cloned());
         for parent in object_index.all_indices(ind) {
-            object_ind_attrs.insert(parent, acc_attrs.iter().cloned().collect());
+            object_ind_attrs.insert(parent, cache_attrs.clone());
         }
     }
 }
