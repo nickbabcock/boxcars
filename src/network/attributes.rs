@@ -7,8 +7,9 @@ use crate::parsing_utils::{decode_utf16, decode_windows1252};
 use bitter::{BitReader, LittleEndianReader};
 use encoding_rs::WINDOWS_1252;
 
+/// The decoded attribute type associated with a network property.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum AttributeTag {
+pub enum AttributeTag {
     Boolean,
     Byte,
     AppliedDamage,
@@ -111,6 +112,58 @@ pub enum Attribute {
     Impulse(Impulse),
     ReplicatedBoost(ReplicatedBoost),
     LogoData(LogoData),
+}
+
+impl Attribute {
+    #[must_use]
+    pub fn tag(&self) -> AttributeTag {
+        match self {
+            Attribute::Boolean(_) => AttributeTag::Boolean,
+            Attribute::Byte(_) => AttributeTag::Byte,
+            Attribute::AppliedDamage(_) => AttributeTag::AppliedDamage,
+            Attribute::DamageState(_) => AttributeTag::DamageState,
+            Attribute::CamSettings(_) => AttributeTag::CamSettings,
+            Attribute::ClubColors(_) => AttributeTag::ClubColors,
+            Attribute::Demolish(_) => AttributeTag::Demolish,
+            Attribute::DemolishExtended(_) => AttributeTag::DemolishExtended,
+            Attribute::DemolishFx(_) => AttributeTag::DemolishFx,
+            Attribute::Enum(_) => AttributeTag::Enum,
+            Attribute::Explosion(_) => AttributeTag::Explosion,
+            Attribute::ExtendedExplosion(_) => AttributeTag::ExtendedExplosion,
+            Attribute::FlaggedByte(_, _) => AttributeTag::FlaggedByte,
+            Attribute::ActiveActor(_) => AttributeTag::ActiveActor,
+            Attribute::Float(_) => AttributeTag::Float,
+            Attribute::GameMode(_, _) => AttributeTag::GameMode,
+            Attribute::Int(_) => AttributeTag::Int,
+            Attribute::Int64(_) => AttributeTag::Int64,
+            Attribute::Loadout(_) => AttributeTag::Loadout,
+            Attribute::TeamLoadout(_) => AttributeTag::TeamLoadout,
+            Attribute::Location(_) => AttributeTag::Location,
+            Attribute::MusicStinger(_) => AttributeTag::MusicStinger,
+            Attribute::Pickup(_) => AttributeTag::Pickup,
+            Attribute::PickupNew(_) => AttributeTag::PickupNew,
+            Attribute::PlayerHistoryKey(_) => AttributeTag::PlayerHistoryKey,
+            Attribute::QWord(_) => AttributeTag::QWordString,
+            Attribute::Welded(_) => AttributeTag::Welded,
+            Attribute::RigidBody(_) => AttributeTag::RigidBody,
+            Attribute::Title(_, _, _, _, _, _, _, _) => AttributeTag::Title,
+            Attribute::TeamPaint(_) => AttributeTag::TeamPaint,
+            Attribute::String(_) => AttributeTag::String,
+            Attribute::UniqueId(_) => AttributeTag::UniqueId,
+            Attribute::Reservation(_) => AttributeTag::Reservation,
+            Attribute::PartyLeader(_) => AttributeTag::PartyLeader,
+            Attribute::PrivateMatch(_) => AttributeTag::PrivateMatchSettings,
+            Attribute::LoadoutOnline(_) => AttributeTag::LoadoutOnline,
+            Attribute::LoadoutsOnline(_) => AttributeTag::LoadoutsOnline,
+            Attribute::StatEvent(_) => AttributeTag::StatEvent,
+            Attribute::Rotation(_) => AttributeTag::RotationTag,
+            Attribute::RepStatTitle(_) => AttributeTag::RepStatTitle,
+            Attribute::PickupInfo(_) => AttributeTag::PickupInfo,
+            Attribute::Impulse(_) => AttributeTag::Impulse,
+            Attribute::ReplicatedBoost(_) => AttributeTag::ReplicatedBoost,
+            Attribute::LogoData(_) => AttributeTag::LogoData,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -1734,6 +1787,32 @@ mod tests {
         assert!(
             ::std::mem::size_of::<Attribute>()
                 <= ::std::mem::size_of::<RigidBody>() + ::std::mem::size_of::<usize>()
+        );
+    }
+
+    #[test]
+    fn attribute_tag_matches_non_obvious_variants() {
+        assert_eq!(Attribute::QWord(42).tag(), AttributeTag::QWordString);
+        assert_eq!(
+            Attribute::PrivateMatch(Box::new(PrivateMatchSettings {
+                mutators: String::new(),
+                joinable_by: 0,
+                max_players: 0,
+                game_name: String::new(),
+                password: String::new(),
+                flag: false,
+            }))
+            .tag(),
+            AttributeTag::PrivateMatchSettings
+        );
+        assert_eq!(
+            Attribute::Rotation(Rotation {
+                yaw: None,
+                pitch: None,
+                roll: None,
+            })
+            .tag(),
+            AttributeTag::RotationTag
         );
     }
 }
