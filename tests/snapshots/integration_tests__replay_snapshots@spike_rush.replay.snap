@@ -1,0 +1,9 @@
+---
+source: tests/integration_tests.rs
+expression: snapshot
+input_file: assets/replays/good/spike_rush.replay
+---
+{
+  "frames": 4342,
+  "hex": "0x4b83fa0be992e0ba821b258e4f1be147058aca00a419400e210311b0be930017"
+}
