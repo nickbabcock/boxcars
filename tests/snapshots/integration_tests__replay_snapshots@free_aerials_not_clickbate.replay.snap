@@ -1,0 +1,9 @@
+---
+source: tests/integration_tests.rs
+expression: snapshot
+input_file: assets/replays/good/free_aerials_not_clickbate.replay
+---
+{
+  "frames": 10451,
+  "hex": "0x7150c7853c20ebbaab3d734df7044118edd09159941ee515ac11806474136513"
+}

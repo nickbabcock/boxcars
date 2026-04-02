@@ -166,6 +166,7 @@ pub(crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = phf::phf_ma
     "TAGame.MaxTimeWarningData_TA:EndGameWarningEpochTime" => AttributeTag::Int64,
     "TAGame.MaxTimeWarningData_TA:EndGameEpochTime" => AttributeTag::Int64,
     "TAGame.GRI_TA:NewDedicatedServerIP" => AttributeTag::String,
+    "TAGame.GRI_TA:bAllowTargetFind" => AttributeTag::Boolean,
     "TAGame.PRI_TA:bIsDistracted" => AttributeTag::Boolean,
     "TAGame.PRI_TA:bIsInSplitScreen" => AttributeTag::Boolean,
     "TAGame.PRI_TA:bMatchMVP" => AttributeTag::Boolean,
