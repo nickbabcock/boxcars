@@ -16,10 +16,8 @@ fn test_replay_snapshots() {
         .collect();
 
     glob!("../assets/replays/good", "*.replay", |path| {
-        if target_replays.len() == 0 || (
-            path.file_stem().map_or(
-                false, |x| target_replays.contains(x)
-            )
+        if target_replays.is_empty() || (
+            path.file_stem().is_some_and(|x| target_replays.contains(x))
         ) {
             let data = fs::read(path).unwrap();
             let parsed = ParserBuilder::new(&data[..])
