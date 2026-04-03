@@ -2,7 +2,6 @@
 source: tests/integration_tests.rs
 expression: snapshot
 input_file: assets/replays/good/1afa.replay
-snapshot_kind: text
 ---
 {
   "frames": 12422,

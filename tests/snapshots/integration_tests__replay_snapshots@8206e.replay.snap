@@ -1,7 +1,7 @@
 ---
 source: tests/integration_tests.rs
 expression: snapshot
-input_file: assets/replays/good/8206ef81-dfa5-41bd-b48c-68d3f27c606b.replay
+input_file: assets/replays/good/8206e.replay
 ---
 {
   "frames": 9657,

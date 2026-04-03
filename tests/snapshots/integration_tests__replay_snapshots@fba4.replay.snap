@@ -2,7 +2,6 @@
 source: tests/integration_tests.rs
 expression: snapshot
 input_file: assets/replays/good/fba4.replay
-snapshot_kind: text
 ---
 {
   "frames": 11070,

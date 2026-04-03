@@ -1,8 +1,7 @@
 ---
 source: tests/integration_tests.rs
-assertion_line: 41
 expression: snapshot
-input_file: assets/replays/good/rl-255-3.replay
+input_file: assets/replays/good/rl-255.replay
 ---
 {
   "frames": 10629,
