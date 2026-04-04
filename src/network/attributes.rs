@@ -396,7 +396,7 @@ pub struct RepStatTitle {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct PickupInfo {
-    pub available_pickups: Vec<ActiveActor>,
+    pub available_pickups: [ActiveActor; 3],
     pub items_are_preview: bool,
 }
 
@@ -894,7 +894,7 @@ impl AttributeDecoder {
     }
 
     fn _decode_pickup_info(&self, bits: &mut LittleEndianReader<'_>) -> Option<PickupInfo> {
-        let available_pickups = vec![
+        let available_pickups = [
             self._decode_active_actor(bits)?,
             self._decode_active_actor(bits)?,
             self._decode_active_actor(bits)?,
