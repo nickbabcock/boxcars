@@ -1,0 +1,9 @@
+---
+source: tests/integration_tests.rs
+expression: snapshot
+input_file: assets/replays/good/possession_rumble.replay
+---
+{
+  "frames": 5781,
+  "hex": "0xfc9ff39029e13e1b062d9b27c171870cb36d523628634adbe3bd62b6bab76aa9"
+}

@@ -396,11 +396,8 @@ pub struct RepStatTitle {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct PickupInfo {
-    pub active: bool,
-    pub actor: ActorId,
+    pub available_pickups: Vec<ActiveActor>,
     pub items_are_preview: bool,
-    pub unknown: bool,
-    pub unknown2: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -896,35 +893,27 @@ impl AttributeDecoder {
         }))
     }
 
+    fn _decode_pickup_info(&self, bits: &mut LittleEndianReader<'_>) -> Option<PickupInfo> {
+        let available_pickups = vec![
+            self._decode_active_actor(bits)?,
+            self._decode_active_actor(bits)?,
+            self._decode_active_actor(bits)?,
+        ];
+        let items_are_preview = bits.read_bit()?;
+
+        Some(PickupInfo {
+            available_pickups,
+            items_are_preview,
+        })
+    }
+
     pub fn decode_pickup_info(
         &self,
         bits: &mut LittleEndianReader<'_>,
     ) -> Result<Attribute, AttributeError> {
-        let active = bits
-            .read_bit()
-            .ok_or(AttributeError::NotEnoughDataFor("PickupInfo"))?;
-        let actor = bits
-            .read_i32()
-            .map(ActorId)
-            .ok_or(AttributeError::NotEnoughDataFor("PickupInfo"))?;
-
-        let items_are_preview = bits
-            .read_bit()
-            .ok_or(AttributeError::NotEnoughDataFor("PickupInfo"))?;
-        let unknown = bits
-            .read_bit()
-            .ok_or(AttributeError::NotEnoughDataFor("PickupInfo"))?;
-        let unknown2 = bits
-            .read_bit()
-            .ok_or(AttributeError::NotEnoughDataFor("PickupInfo"))?;
-
-        Ok(Attribute::PickupInfo(PickupInfo {
-            active,
-            actor,
-            items_are_preview,
-            unknown,
-            unknown2,
-        }))
+        self._decode_pickup_info(bits)
+            .map(Attribute::PickupInfo)
+            .ok_or(AttributeError::NotEnoughDataFor("Pickup Info"))
     }
 
     pub fn decode_impulse(
