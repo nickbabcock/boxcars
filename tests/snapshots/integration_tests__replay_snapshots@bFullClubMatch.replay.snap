@@ -1,0 +1,9 @@
+---
+source: tests/integration_tests.rs
+expression: snapshot
+input_file: assets/replays/good/bFullClubMatch.replay
+---
+{
+  "frames": 12195,
+  "hex": "0x446dff71b660eb6b74ca8ac205d9b7491314011df11ecdc8d18672e63d90b5bc"
+}
