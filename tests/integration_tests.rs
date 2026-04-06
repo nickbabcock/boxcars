@@ -1,8 +1,7 @@
 use boxcars::ParserBuilder;
 use highway::HighwayHash;
 use insta::{assert_json_snapshot, glob};
-use std::{env, fs, ffi::OsString, io::BufWriter, collections::HashSet};
-
+use std::{collections::HashSet, env, ffi::OsString, fs, io::BufWriter};
 
 #[test]
 fn test_replay_snapshots() {
@@ -16,15 +15,15 @@ fn test_replay_snapshots() {
         .collect();
 
     glob!("../assets/replays/good", "*.replay", |path| {
-        if target_replays.is_empty() || (
-            path.file_stem().is_some_and(|x| target_replays.contains(x))
-        ) {
+        if target_replays.is_empty()
+            || (path.file_stem().is_some_and(|x| target_replays.contains(x)))
+        {
             let data = fs::read(path).unwrap();
             let parsed = ParserBuilder::new(&data[..])
                 .always_check_crc()
                 .must_parse_network_data()
                 .parse();
-    
+
             let replay = match parsed {
                 Ok(x) => x,
                 Err(e) => panic!(
@@ -33,10 +32,10 @@ fn test_replay_snapshots() {
                     e
                 ),
             };
-    
+
             // Hash the output otherwise we'll have 2.5GB+ of snapshot data
             let hasher = highway::HighwayHasher::new(highway::Key::default());
-    
+
             // HighwayHash is fast, but we still want to buffer writes as much as
             // possible. Makes tests run 3x faster in release mode.
             let mut writer = BufWriter::with_capacity(0x8000, hasher);
@@ -46,7 +45,7 @@ fn test_replay_snapshots() {
                 "0x{:016x}{:016x}{:016x}{:016x}",
                 hash[0], hash[1], hash[2], hash[3]
             );
-    
+
             let snapshot = serde_json::json!({
                 "frames": replay.network_frames.unwrap().frames.len(),
                 "hex": hex
