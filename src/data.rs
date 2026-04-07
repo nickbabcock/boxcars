@@ -1,4 +1,3 @@
-#![cfg_attr(rustfmt, rustfmt::skip)]
 use crate::network::{AttributeTag, SpawnTrajectory};
 
 pub(crate) static SPAWN_STATS: &[(&str, SpawnTrajectory)] = &[
@@ -12,7 +11,10 @@ pub(crate) static SPAWN_STATS: &[(&str, SpawnTrajectory)] = &[
     ("TAGame.PlayerStart_Platform_TA", SpawnTrajectory::None),
     ("TAGame.RBActor_TA", SpawnTrajectory::LocationAndRotation),
     ("TAGame.VehiclePickup_Boost_TA", SpawnTrajectory::None),
-    ("TAGame.KeepUpIndicator_TA", SpawnTrajectory::LocationAndRotation),
+    (
+        "TAGame.KeepUpIndicator_TA",
+        SpawnTrajectory::LocationAndRotation,
+    ),
 ];
 
 // Please keep entries sorted alphabetically by key (ascending)
