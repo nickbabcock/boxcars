@@ -15,6 +15,7 @@ pub(crate) static SPAWN_STATS: &[(&str, SpawnTrajectory)] = &[
     ("TAGame.KeepUpIndicator_TA", SpawnTrajectory::LocationAndRotation),
 ];
 
+// Please keep entries sorted alphabetically by key (ascending)
 pub(crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = phf::phf_map! {
     "Engine.Actor:bBlockActors" => AttributeTag::Boolean,
     "Engine.Actor:bCollideActors" => AttributeTag::Boolean,
@@ -293,6 +294,7 @@ pub(crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = phf::phf_ma
     "TAGame.ViralItemActor_TA:InfectedStatus" => AttributeTag::Byte,
 };
 
+// Please keep entries sorted alphabetically by key (ascending)
 pub(crate) static PARENT_CLASSES: phf::Map<&'static str, &'static str> = phf::phf_map! {
     "Archetypes.Ball.Ball_Anniversary" => "TAGame.Ball_TA",
     "Archetypes.Ball.Ball_BasketBall_Mutator" => "TAGame.Ball_TA",
@@ -367,6 +369,7 @@ pub(crate) static PARENT_CLASSES: phf::Map<&'static str, &'static str> = phf::ph
     "Archetypes.SpecialPickups.SpecialPickup_GravityWell" => "TAGame.SpecialPickup_BallGravity_TA",
     "Archetypes.SpecialPickups.SpecialPickup_HauntedBallBeam" => "TAGame.SpecialPickup_HauntedBallBeam_TA",
     "Archetypes.SpecialPickups.SpecialPickup_Rugby" => "TAGame.SpecialPickup_Rugby_TA",
+    "Archetypes.SpecialPickups.SpecialPickup_RugbyLightDark" => "TAGame.SpecialPickup_Rugby_TA",
     "Archetypes.SpecialPickups.SpecialPickup_StrongHit" => "TAGame.SpecialPickup_HitForce_TA",
     "Archetypes.SpecialPickups.SpecialPickup_Swapper" => "TAGame.SpecialPickup_Swapper_TA",
     "Archetypes.SpecialPickups.SpecialPickup_Tornado" => "TAGame.SpecialPickup_Tornado_TA",
