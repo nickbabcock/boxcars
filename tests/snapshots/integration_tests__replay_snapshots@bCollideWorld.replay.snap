@@ -1,0 +1,9 @@
+---
+source: tests/integration_tests.rs
+expression: snapshot
+input_file: assets/replays/good/bCollideWorld.replay
+---
+{
+  "frames": 10041,
+  "hex": "0x7cbd3a21823691e4a14333374dc18ec53b04718af5936a328ff2ec54caabf1fd"
+}
