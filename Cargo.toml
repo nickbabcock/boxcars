@@ -39,6 +39,12 @@ path = "benches/bench_boxcars_gungraun.rs"
 name = "bench_boxcars_gungraun"
 harness = false
 
+# Execute tests with some optimizations as the test suite
+# has gotten large this basic optimization drop the time
+# from 43s to 4.3s, a 10x improvement
+[profile.test]
+opt-level = 1
+
 [profile.dev.package]
 insta.opt-level = 3
 similar.opt-level = 3
