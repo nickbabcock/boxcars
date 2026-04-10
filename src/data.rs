@@ -298,6 +298,8 @@ pub(crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = phf::phf_ma
     "TAGame.VehiclePickup_TA:ReplicatedPickupData" => AttributeTag::Pickup,
     "TAGame.ViralItemActor_TA:ClientFXInfectedType" => AttributeTag::Byte,
     "TAGame.ViralItemActor_TA:InfectedStatus" => AttributeTag::Byte,
+    "TAGame.Vehicle_TA:InputRestriction" => AttributeTag::Byte,
+    "TAGame.CarComponent_Boost_TA:BoostRestriction" => AttributeTag::Byte,
 };
 
 // Please keep entries sorted alphabetically by key (ascending)
@@ -306,6 +308,8 @@ pub(crate) static PARENT_CLASSES: phf::Map<&'static str, &'static str> = phf::ph
     "Archetypes.Ball.Ball_BasketBall_Mutator" => "TAGame.Ball_TA",
     "Archetypes.Ball.Ball_Basketball" => "TAGame.Ball_TA",
     "Archetypes.Ball.Ball_BasketBall" => "TAGame.Ball_TA",
+    "GameInfo_LTM_DropshotRumble.GameInfo.GameInfo_LTM_DropshotRumble:Archetype" => "TAGame.GameEvent_Soccar_TA",
+    "GameInfo_LTM_DropshotRumble.GameInfo.GameInfo_LTM_DropshotRumble:GameReplicationInfoArchetype" => "TAGame.GRI_TA",
     "Archetypes.Ball.Ball_Beachball" => "TAGame.Ball_TA",
     "Archetypes.Ball.Ball_Breakout" => "TAGame.Ball_Breakout_TA",
     "Archetypes.Ball.Ball_Default" => "TAGame.Ball_TA",
