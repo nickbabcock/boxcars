@@ -1,0 +1,9 @@
+---
+source: tests/integration_tests.rs
+expression: snapshot
+input_file: assets/replays/good/sonic_spin.replay
+---
+{
+  "frames": 8760,
+  "hex": "0xa1ca033acadb71a37215fdd99189a76976260edbbe9e1fec891aba2b1227dc16"
+}
