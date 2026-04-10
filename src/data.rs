@@ -315,6 +315,7 @@ pub(crate) static PARENT_CLASSES: phf::Map<&'static str, &'static str> = phf::ph
     "Archetypes.Ball.Ball_Football" => "TAGame.Ball_TA",
     "Archetypes.Ball.Ball_God" => "TAGame.Ball_God_TA",
     "Archetypes.Ball.Ball_Haunted" => "TAGame.Ball_Haunted_TA",
+    "Archetypes.Ball.Ball_PizzaPuck" => "TAGame.Ball_TA",
     "Archetypes.Ball.Ball_Puck" => "TAGame.Ball_TA",
     "Archetypes.Ball.Ball_Shoe" => "TAGame.Ball_TA",
     "Archetypes.Ball.Ball_SpookyBalloon" => "TAGame.Ball_TA",
