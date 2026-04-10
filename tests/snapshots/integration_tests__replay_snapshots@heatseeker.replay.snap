@@ -1,0 +1,9 @@
+---
+source: tests/integration_tests.rs
+expression: snapshot
+input_file: assets/replays/good/heatseeker.replay
+---
+{
+  "frames": 726,
+  "hex": "0xcf73a8d716df392048a193bc8d0c18416fa8d49dbe9d652102fb42cd5db2c8d3"
+}
