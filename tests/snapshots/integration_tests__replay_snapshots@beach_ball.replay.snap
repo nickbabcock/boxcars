@@ -1,0 +1,9 @@
+---
+source: tests/integration_tests.rs
+expression: snapshot
+input_file: assets/replays/good/beach_ball.replay
+---
+{
+  "frames": 438,
+  "hex": "0x78728b05619cf0d4041b892ee6946dbe33dab6f4c44c2687d2a5916bc633d614"
+}
