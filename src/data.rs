@@ -71,6 +71,7 @@ pub(crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = phf::phf_ma
     "TAGame.Ball_TA:AdditionalCarGroundBounceScaleXY" => AttributeTag::Float,
     "TAGame.Ball_TA:AdditionalCarGroundBounceScaleZ" => AttributeTag::Float,
     "TAGame.Ball_TA:AirResistance" => AttributeTag::Location, // probably not actually a location, but it *is* a Vec3
+    "TAGame.Ball_TA:BallHitSpinScale" => AttributeTag::Float,
     "TAGame.Ball_TA:bPossessionEnabled" => AttributeTag::Boolean,
     "TAGame.Ball_TA:bWarnBallReset" => AttributeTag::Boolean,
     "TAGame.Ball_TA:GameEvent" => AttributeTag::ActiveActor,
@@ -82,6 +83,7 @@ pub(crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = phf::phf_ma
     "TAGame.Ball_TA:ReplicatedBallScale" => AttributeTag::Float,
     "TAGame.Ball_TA:ReplicatedExplosionData" => AttributeTag::Explosion,
     "TAGame.Ball_TA:ReplicatedExplosionDataExtended" => AttributeTag::ExtendedExplosion,
+    "TAGame.Ball_TA:ReplicatedPhysMatOverride" => AttributeTag::ActiveActor,
     "TAGame.Ball_TA:ReplicatedWorldBounceScale" => AttributeTag::Float,
     "TAGame.BallKeepUpComponent_TA:BallOwner" => AttributeTag::ActiveActor,
     "TAGame.BallKeepUpComponent_TA:KeepUpState" => AttributeTag::Byte,
@@ -300,8 +302,6 @@ pub(crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = phf::phf_ma
     "TAGame.VehiclePickup_TA:ReplicatedPickupData" => AttributeTag::Pickup,
     "TAGame.ViralItemActor_TA:ClientFXInfectedType" => AttributeTag::Byte,
     "TAGame.ViralItemActor_TA:InfectedStatus" => AttributeTag::Byte,
-    "TAGame.Vehicle_TA:InputRestriction" => AttributeTag::Byte,
-    "TAGame.CarComponent_Boost_TA:BoostRestriction" => AttributeTag::Byte,
 };
 
 // Please keep entries sorted alphabetically by key (ascending)
@@ -419,6 +419,8 @@ pub(crate) static PARENT_CLASSES: phf::Map<&'static str, &'static str> = phf::ph
     "GameInfo_KnockOut.KnockOut.GameInfo_KnockOut:GameReplicationInfoArchetype" => "TAGame.GRI_TA",
     "GameInfo_LTM_AprilFool.GameInfo.GameInfo_LTM_AprilFool:Archetype" => "TAGame.GameEvent_Soccar_TA",
     "GameInfo_LTM_AprilFool.GameInfo.GameInfo_LTM_AprilFool:GameReplicationInfoArchetype" => "TAGame.GRI_TA",
+    "GameInfo_LTM_BeachBall.GameInfo.GameInfo_LTM_BeachBall:Archetype" => "TAGame.GameEvent_Soccar_TA",
+    "GameInfo_LTM_BeachBall.GameInfo.GameInfo_LTM_BeachBall:GameReplicationInfoArchetype" => "TAGame.GRI_TA",
     "GameInfo_LTM_DropshotRumble.GameInfo.GameInfo_LTM_DropshotRumble:Archetype" => "TAGame.GameEvent_Soccar_TA",
     "GameInfo_LTM_DropshotRumble.GameInfo.GameInfo_LTM_DropshotRumble:GameReplicationInfoArchetype" => "TAGame.GRI_TA",
     "GameInfo_LTM_SpikeRush.GameInfo.GameInfo_LTM_SpikeRush:Archetype" => "TAGame.GameEvent_Soccar_TA",
