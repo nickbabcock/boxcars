@@ -1,0 +1,9 @@
+---
+source: tests/integration_tests.rs
+expression: snapshot
+input_file: assets/replays/good/P3_Soccar Strike.replay
+---
+{
+  "frames": 10897,
+  "hex": "0xa4cc4331af8059048aa25d2b4b1faf2875d26f8c1eac4627d5b921e9d82441cd"
+}
