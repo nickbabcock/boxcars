@@ -1,0 +1,9 @@
+---
+source: tests/integration_tests.rs
+expression: snapshot
+input_file: assets/replays/good/P3_Jump Jam.replay
+---
+{
+  "frames": 11015,
+  "hex": "0x20be6abd5dd363dbaaf823edad46ff6374a499023fbd3e574ca50b3177808bd1"
+}
