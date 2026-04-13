@@ -1,0 +1,9 @@
+---
+source: tests/integration_tests.rs
+expression: snapshot
+input_file: assets/replays/good/multiple_balls.replay
+---
+{
+  "frames": 1949,
+  "hex": "0x9807696e813145e0a12387cf722c2d9ef40486c91b67b34bd10cc489ed23c6eb"
+}
