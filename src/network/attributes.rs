@@ -433,19 +433,19 @@ pub(crate) struct ProductValueDecoder {
 impl ProductValueDecoder {
     pub fn create(version: VersionTriplet, object_index: &ObjectIndex) -> Self {
         let color_ind = object_index
-            .primary_by_name("TAGame.ProductAttribute_UserColor_TA")
+            .by_name("TAGame.ProductAttribute_UserColor_TA")
             .unwrap_or_default();
         let painted_ind = object_index
-            .primary_by_name("TAGame.ProductAttribute_Painted_TA")
+            .by_name("TAGame.ProductAttribute_Painted_TA")
             .unwrap_or_default();
         let title_ind = object_index
-            .primary_by_name("TAGame.ProductAttribute_TitleID_TA")
+            .by_name("TAGame.ProductAttribute_TitleID_TA")
             .unwrap_or_default();
         let special_edition_ind = object_index
-            .primary_by_name("TAGame.ProductAttribute_SpecialEdition_TA")
+            .by_name("TAGame.ProductAttribute_SpecialEdition_TA")
             .unwrap_or_default();
         let team_edition_ind = object_index
-            .primary_by_name("TAGame.ProductAttribute_TeamEdition_TA")
+            .by_name("TAGame.ProductAttribute_TeamEdition_TA")
             .unwrap_or_default();
 
         ProductValueDecoder {
