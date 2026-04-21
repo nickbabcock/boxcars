@@ -52,13 +52,11 @@ pub(crate) fn parse(header: &Header, body: &ReplayBody) -> Result<NetworkFrames,
     // when they spawn as a new actor
     let mut spawns: Vec<Option<SpawnTrajectory>> = vec![None; body.objects.len()];
     for (object_name, spawn) in SPAWN_STATS.iter() {
-        let Some(id) = object_index.primary_by_name(object_name) else {
+        let Some(id) = object_index.by_name(object_name) else {
             continue;
         };
 
-        for i in object_index.all_indices(id) {
-            spawns[i.0 as usize] = Some(*spawn);
-        }
+        spawns[id.0 as usize] = Some(*spawn);
     }
 
     let mut parent_stack = Vec::with_capacity(body.objects.len());
@@ -74,10 +72,7 @@ pub(crate) fn parse(header: &Header, body: &ReplayBody) -> Result<NetworkFrames,
             }
         }
 
-        let inds = parent_stack
-            .drain(..)
-            .flat_map(|ind| object_index.all_indices(ind));
-        for ind in inds {
+        for ind in parent_stack.drain(..) {
             spawns[ind.0 as usize] = Some(result)
         }
     }
@@ -86,8 +81,7 @@ pub(crate) fn parse(header: &Header, body: &ReplayBody) -> Result<NetworkFrames,
         FnvHashMap::with_capacity_and_hasher(body.net_cache.len(), Default::default());
     for cache in &body.net_cache {
         let key = ObjectId(cache.object_ind);
-        let primary_object = object_index.primary_by_index(key);
-        let properties = net_properties.entry(primary_object).or_default();
+        let properties = net_properties.entry(key).or_default();
         properties.reserve(cache.properties.len());
 
         for x in &cache.properties {
@@ -224,9 +218,7 @@ fn net_traversal(
         acc_attrs.extend(attrs);
         cache_attrs.clear();
         cache_attrs.extend(acc_attrs.iter().cloned());
-        for parent in object_index.all_indices(ind) {
-            object_ind_attrs.insert(parent, cache_attrs.clone());
-        }
+        object_ind_attrs.insert(ind, cache_attrs.clone());
     }
 }
 
