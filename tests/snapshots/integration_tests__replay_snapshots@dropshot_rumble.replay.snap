@@ -1,0 +1,9 @@
+---
+source: tests/integration_tests.rs
+expression: snapshot
+input_file: assets/replays/good/dropshot_rumble.replay
+---
+{
+  "frames": 468,
+  "hex": "0x018e0919e006ca3111ea4b7e8b286fc88dced234b03d2091d2016a8dd8ad30b4"
+}
