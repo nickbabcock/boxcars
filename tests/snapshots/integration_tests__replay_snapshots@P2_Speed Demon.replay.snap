@@ -1,0 +1,9 @@
+---
+source: tests/integration_tests.rs
+expression: snapshot
+input_file: assets/replays/good/P2_Speed Demon.replay
+---
+{
+  "frames": 12836,
+  "hex": "0x27bab497ef97a4c9e8c07a2e0c4c032835c710dcbcadb90f81ffd08ca74d9dd3"
+}
