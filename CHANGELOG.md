@@ -1,3 +1,15 @@
+# v0.11.0 - April 25, 2026
+
+Breaking changes:
+
+- `PickupInfo` struct has been reworked: the `active`, `actor`, `unknown`, and `unknown2` fields have been replaced with `available_pickups: [ActiveActor; 3]` to correctly model the Possession Rumble LTM
+
+New features and improvements:
+
+- Support for multiple concurrent balls in a single match
+- Support for numerous LTMs: Confidential Third-Wheel, Spike Rush, Super Cube, Free Aerials, Up to No Good, Possession Rumble, Car Wars, Sonic Spin, Beach Ball, Heatseeker, Pizza Party, Jump Jam, Dropshot Rumble, Spike Drop, Soccar Strike, Speed Demon, and the 2026 April Fools game mode
+- 15% performance improvement in network parsing
+
 # v0.10.11 - March 11, 2026
 
 - Support for v2.66 replays with `DodgesRefreshedCounter` attribute
