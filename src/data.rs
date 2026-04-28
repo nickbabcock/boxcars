@@ -238,6 +238,7 @@ pub(crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = phf::phf_ma
     "TAGame.PRI_TA:ClientLoadoutsOnline" => AttributeTag::LoadoutsOnline,
     "TAGame.PRI_TA:ClubID" => AttributeTag::Int64,
     "TAGame.PRI_TA:CurrentVoiceRoom" => AttributeTag::String,
+    "TAGame.PRI_TA:EpicPUID" => AttributeTag::String,
     "TAGame.PRI_TA:KeepUpPossessions" => AttributeTag::Int,
     "TAGame.PRI_TA:MatchAssists" => AttributeTag::Int,
     "TAGame.PRI_TA:MatchBreakoutDamage" => AttributeTag::Int,
