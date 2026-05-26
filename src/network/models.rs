@@ -232,6 +232,25 @@ pub struct UpdatedAttribute {
     pub attribute: Attribute,
 }
 
+/// Describes a lossy recovery applied while decoding network frames.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct NetworkWarning {
+    pub frame: usize,
+    pub actor_id: ActorId,
+    pub actor_object_id: ObjectId,
+    pub stream_id: StreamId,
+    pub attribute_object_id: Option<ObjectId>,
+    pub attribute_name: Option<String>,
+    pub recovery: RecoveryKind,
+}
+
+/// The speculative action used to continue decoding after an unknown attribute.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub enum RecoveryKind {
+    GuessedAttribute { decoder: &'static str },
+    SkippedBits { bits: u32 },
+}
+
 /// Contains the time and any new information that occurred during a frame
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Frame {

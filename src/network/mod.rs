@@ -6,6 +6,7 @@ pub mod attributes;
 mod frame_decoder;
 mod models;
 mod object_index;
+mod recovery;
 
 use crate::data::{ATTRIBUTES, SPAWN_STATS};
 use crate::errors::NetworkError;
@@ -40,6 +41,21 @@ impl VersionTriplet {
 }
 
 pub(crate) fn parse(header: &Header, body: &ReplayBody) -> Result<NetworkFrames, NetworkError> {
+    parse_with_recovery(header, body, false)
+}
+
+pub(crate) fn parse_best_effort(
+    header: &Header,
+    body: &ReplayBody,
+) -> Result<NetworkFrames, NetworkError> {
+    parse_with_recovery(header, body, true)
+}
+
+fn parse_with_recovery(
+    header: &Header,
+    body: &ReplayBody,
+    recover_unknown_attributes: bool,
+) -> Result<NetworkFrames, NetworkError> {
     let version = VersionTriplet(
         header.major_version,
         header.minor_version,
@@ -184,12 +200,18 @@ pub(crate) fn parse(header: &Header, body: &ReplayBody) -> Result<NetworkFrames,
             version,
             is_lan,
             is_rl_223,
+            recover_unknown_attributes,
         };
+        let (frames, network_warnings) = frame_decoder.decode_frames()?;
         Ok(NetworkFrames {
-            frames: frame_decoder.decode_frames()?,
+            frames,
+            network_warnings,
         })
     } else {
-        Ok(NetworkFrames { frames: Vec::new() })
+        Ok(NetworkFrames {
+            frames: Vec::new(),
+            network_warnings: Vec::new(),
+        })
     }
 }
 
