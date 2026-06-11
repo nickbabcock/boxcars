@@ -1,3 +1,7 @@
+# v0.11.2 - June 11th, 2026
+
+- Support for v2.70 replays with world cup and anonymized name attributes
+
 # v0.11.1 - April 28, 2026
 
 - Support Easy Anti-Cheat replays
