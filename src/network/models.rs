@@ -2,7 +2,7 @@ use crate::{bits::RlBits, network::attributes::Attribute};
 use bitter::{BitReader, LittleEndianReader};
 use std::fmt;
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Vector3f {
     pub x: f32,
     pub y: f32,
@@ -21,7 +21,7 @@ impl Vector3f {
 }
 
 /// An object's current vector
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Vector3i {
     pub x: i32,
     pub y: i32,
@@ -85,7 +85,7 @@ impl Vector3i {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Quaternion {
     pub x: f32,
     pub y: f32,
@@ -175,7 +175,7 @@ impl Quaternion {
 }
 
 /// An object's current rotation
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Rotation {
     pub yaw: Option<i8>,
     pub pitch: Option<i8>,
@@ -217,7 +217,7 @@ pub enum SpawnTrajectory {
 
 /// Notifies that an actor has had one of their properties updated (most likely their rigid body
 /// state (location / rotation) has changed)
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct UpdatedAttribute {
     /// The actor that had an attribute updated
     pub actor_id: ActorId,
@@ -233,7 +233,7 @@ pub struct UpdatedAttribute {
 }
 
 /// Contains the time and any new information that occurred during a frame
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Frame {
     /// The time in seconds that the frame is recorded at
     pub time: f32,
@@ -254,7 +254,9 @@ pub struct Frame {
 /// A replay encodes a list of objects that appear in the network data. The index of an object in
 /// this list is used as a key in many places: reconstructing the attribute hierarchy and new
 /// actors in the network data.
-#[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Debug, Hash, Serialize, Default)]
+#[derive(
+    Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Debug, Hash, Serialize, Deserialize, Default,
+)]
 pub struct ObjectId(pub i32);
 
 impl From<ObjectId> for i32 {
@@ -278,7 +280,7 @@ impl fmt::Display for ObjectId {
 /// A `StreamId` is an attribute's object id in the network data. It is a more compressed form of
 /// the object id. Whereas the an object id might need to take up 9 bits, a stream id may only take
 /// up 6 bits.
-#[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Debug, Hash, Serialize)]
+#[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Debug, Hash, Serialize, Deserialize)]
 pub struct StreamId(pub i32);
 
 impl From<StreamId> for i32 {
@@ -301,7 +303,7 @@ impl fmt::Display for StreamId {
 
 /// An actor in the network data stream. Could identify a ball, car, etc. Ids are not unique
 /// across a replay (eg. an actor that is destroyed may have its id repurposed).
-#[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Debug, Hash, Serialize)]
+#[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Debug, Hash, Serialize, Deserialize)]
 pub struct ActorId(pub i32);
 
 impl From<ActorId> for i32 {
@@ -323,7 +325,7 @@ impl fmt::Display for ActorId {
 }
 
 /// Information for a new actor that appears in the game
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NewActor {
     /// The id given to the new actor
     pub actor_id: ActorId,
@@ -339,7 +341,7 @@ pub struct NewActor {
 }
 
 /// Contains the optional location and rotation of an object when it spawns
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Trajectory {
     pub location: Option<Vector3i>,
     pub rotation: Option<Rotation>,
