@@ -17,12 +17,12 @@ where
     serializer.collect_str(data)
 }
 
-/// Inverse of [`display_it`]: parse a value that was serialized via its `Display`
-/// representation (a string), while still tolerating a native numeric form so the
-/// same field can be deserialized from either encoding.
+/// Inverse of [`display_it`]: parse a value from its `Display` representation (a
+/// string). Using `deserialize_str` keeps this honest as the strict inverse of
+/// [`display_it`] and works for non-self-describing formats too.
 pub fn parse_it<'de, T, D>(deserializer: D) -> Result<T, D::Error>
 where
-    T: FromStr + TryFrom<i64> + TryFrom<u64>,
+    T: FromStr,
     <T as FromStr>::Err: Display,
     D: Deserializer<'de>,
 {
@@ -30,27 +30,19 @@ where
 
     impl<'de, T> Visitor<'de> for DisplayVisitor<T>
     where
-        T: FromStr + TryFrom<i64> + TryFrom<u64>,
+        T: FromStr,
         <T as FromStr>::Err: Display,
     {
         type Value = T;
 
         fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            f.write_str("a stringified integer or an integer")
+            f.write_str("a stringified integer")
         }
 
         fn visit_str<E: de::Error>(self, v: &str) -> Result<T, E> {
             v.parse().map_err(de::Error::custom)
         }
-
-        fn visit_i64<E: de::Error>(self, v: i64) -> Result<T, E> {
-            T::try_from(v).map_err(|_| de::Error::custom("integer out of range"))
-        }
-
-        fn visit_u64<E: de::Error>(self, v: u64) -> Result<T, E> {
-            T::try_from(v).map_err(|_| de::Error::custom("integer out of range"))
-        }
     }
 
-    deserializer.deserialize_any(DisplayVisitor(std::marker::PhantomData))
+    deserializer.deserialize_str(DisplayVisitor(std::marker::PhantomData))
 }
