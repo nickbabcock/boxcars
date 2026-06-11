@@ -61,7 +61,7 @@ pub(crate) enum AttributeTag {
 /// The vast majority of attributes in the network data are rigid bodies. As a performance
 /// improvent, any attribute variant larger than the size of a rigid body is moved to the heap (ie:
 /// `Box::new`). This change increased throughput by 40%.
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Attribute {
     Boolean(bool),
     Byte(u8),
@@ -81,7 +81,10 @@ pub enum Attribute {
     GameMode(u8, u8),
     Int(i32),
 
-    #[serde(serialize_with = "crate::serde_utils::display_it")]
+    #[serde(
+        serialize_with = "crate::serde_utils::display_it",
+        deserialize_with = "crate::serde_utils::parse_it"
+    )]
     Int64(i64),
     Loadout(Box<Loadout>),
     TeamLoadout(Box<TeamLoadout>),
@@ -91,7 +94,10 @@ pub enum Attribute {
     Pickup(Pickup),
     PickupNew(PickupNew),
 
-    #[serde(serialize_with = "crate::serde_utils::display_it")]
+    #[serde(
+        serialize_with = "crate::serde_utils::display_it",
+        deserialize_with = "crate::serde_utils::parse_it"
+    )]
     QWord(u64),
     Welded(Welded),
     Title(bool, bool, u32, u32, u32, u32, u32, bool),
@@ -113,13 +119,13 @@ pub enum Attribute {
     LogoData(LogoData),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ActiveActor {
     pub active: bool,
     pub actor: ActorId,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct CamSettings {
     pub fov: f32,
     pub height: f32,
@@ -130,7 +136,7 @@ pub struct CamSettings {
     pub transition: Option<f32>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClubColors {
     pub blue_flag: bool,
     pub blue_color: u8,
@@ -138,7 +144,7 @@ pub struct ClubColors {
     pub orange_color: u8,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct AppliedDamage {
     pub id: u8,
     pub position: Vector3f,
@@ -146,7 +152,7 @@ pub struct AppliedDamage {
     pub total_damage: i32,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct DamageState {
     /// State of the dropshot tile (0 - undamaged, 1 - damaged, 2 - destroyed)
     pub tile_state: u8,
@@ -165,7 +171,7 @@ pub struct DamageState {
     pub unknown1: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Demolish {
     pub attacker_flag: bool,
     pub attacker: ActorId,
@@ -175,7 +181,7 @@ pub struct Demolish {
     pub victim_velocity: Vector3f,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct DemolishExtended {
     pub attacker_pri: ActiveActor, // player replication info
     pub self_demo: ActiveActor,
@@ -187,7 +193,7 @@ pub struct DemolishExtended {
     pub victim_velocity: Vector3f,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct DemolishFx {
     pub custom_demo_flag: bool,
     pub custom_demo_id: i32,
@@ -199,21 +205,21 @@ pub struct DemolishFx {
     pub victim_velocity: Vector3f,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Explosion {
     pub flag: bool,
     pub actor: ActorId,
     pub location: Vector3f,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct ExtendedExplosion {
     pub explosion: Explosion,
     pub unknown1: bool,
     pub secondary_actor: ActorId,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Loadout {
     pub version: u8,
     pub body: u32,
@@ -231,38 +237,38 @@ pub struct Loadout {
     pub product_id: Option<u32>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TeamLoadout {
     pub blue: Loadout,
     pub orange: Loadout,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StatEvent {
     pub unknown1: bool,
     pub object_id: i32,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MusicStinger {
     pub flag: bool,
     pub cue: u32,
     pub trigger: u8,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Pickup {
     pub instigator: Option<ActorId>,
     pub picked_up: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PickupNew {
     pub instigator: Option<ActorId>,
     pub picked_up: u8,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Welded {
     pub active: bool,
     pub actor: ActorId,
@@ -271,7 +277,7 @@ pub struct Welded {
     pub rotation: Rotation,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TeamPaint {
     pub team: u8,
     pub primary_color: u8,
@@ -280,7 +286,7 @@ pub struct TeamPaint {
     pub accent_finish: u32,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct RigidBody {
     pub sleeping: bool,
     pub location: Vector3f,
@@ -289,54 +295,72 @@ pub struct RigidBody {
     pub angular_velocity: Option<Vector3f>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct UniqueId {
     pub system_id: u8,
     pub remote_id: RemoteId,
     pub local_id: u8,
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct PsyNetId {
-    #[serde(serialize_with = "crate::serde_utils::display_it")]
+    #[serde(
+        serialize_with = "crate::serde_utils::display_it",
+        deserialize_with = "crate::serde_utils::parse_it"
+    )]
     pub online_id: u64,
     pub unknown1: Vec<u8>,
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct SwitchId {
-    #[serde(serialize_with = "crate::serde_utils::display_it")]
+    #[serde(
+        serialize_with = "crate::serde_utils::display_it",
+        deserialize_with = "crate::serde_utils::parse_it"
+    )]
     pub online_id: u64,
     pub unknown1: Vec<u8>,
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Ps4Id {
-    #[serde(serialize_with = "crate::serde_utils::display_it")]
+    #[serde(
+        serialize_with = "crate::serde_utils::display_it",
+        deserialize_with = "crate::serde_utils::parse_it"
+    )]
     pub online_id: u64,
     pub name: String,
     pub unknown1: Vec<u8>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum RemoteId {
     PlayStation(Ps4Id),
     PsyNet(PsyNetId),
     SplitScreen(u32),
 
-    #[serde(serialize_with = "crate::serde_utils::display_it")]
+    #[serde(
+        serialize_with = "crate::serde_utils::display_it",
+        deserialize_with = "crate::serde_utils::parse_it"
+    )]
     Steam(u64),
     Switch(SwitchId),
 
-    #[serde(serialize_with = "crate::serde_utils::display_it")]
+    #[serde(
+        serialize_with = "crate::serde_utils::display_it",
+        deserialize_with = "crate::serde_utils::parse_it"
+    )]
     Xbox(u64),
 
-    #[serde(serialize_with = "crate::serde_utils::display_it")]
+    #[serde(
+        serialize_with = "crate::serde_utils::display_it",
+        deserialize_with = "crate::serde_utils::parse_it"
+    )]
     QQ(u64),
     Epic(String),
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Reservation {
     pub number: u32,
     pub unique_id: UniqueId,
@@ -346,7 +370,7 @@ pub struct Reservation {
     pub unknown3: Option<u8>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PrivateMatchSettings {
     pub mutators: String,
     pub joinable_by: u32,
@@ -356,14 +380,14 @@ pub struct PrivateMatchSettings {
     pub flag: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Product {
     pub unknown: bool,
     pub object_ind: ObjectId,
     pub value: ProductValue,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LoadoutsOnline {
     pub blue: Vec<Vec<Product>>,
     pub orange: Vec<Vec<Product>>,
@@ -371,7 +395,7 @@ pub struct LoadoutsOnline {
     pub unknown2: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ProductValue {
     NoColor,
     Absent,
@@ -385,7 +409,7 @@ pub enum ProductValue {
     NewTeamEdition(u32),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RepStatTitle {
     pub unknown: bool,
     pub name: String,
@@ -394,19 +418,19 @@ pub struct RepStatTitle {
     pub value: u32,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PickupInfo {
     pub available_pickups: [ActiveActor; 3],
     pub items_are_preview: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Impulse {
     pub compressed_rotation: i32,
     pub speed: f32,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ReplicatedBoost {
     pub grant_count: u8,
     pub boost_amount: u8,
@@ -414,7 +438,7 @@ pub struct ReplicatedBoost {
     pub unused2: u8,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LogoData {
     pub logo_id: u32,
     pub swap_colors: bool,
