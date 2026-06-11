@@ -265,6 +265,7 @@ pub struct ParserBuilder<'a> {
     data: &'a [u8],
     crc_check: Option<CrcCheck>,
     network_parse: Option<NetworkParse>,
+    recover_unknown_network_attributes: bool,
 }
 
 impl<'a> ParserBuilder<'a> {
@@ -273,6 +274,7 @@ impl<'a> ParserBuilder<'a> {
             data,
             crc_check: None,
             network_parse: None,
+            recover_unknown_network_attributes: false,
         }
     }
 
@@ -311,6 +313,12 @@ impl<'a> ParserBuilder<'a> {
         self
     }
 
+    pub fn best_effort_network_data(mut self) -> ParserBuilder<'a> {
+        self.network_parse = Some(NetworkParse::Always);
+        self.recover_unknown_network_attributes = true;
+        self
+    }
+
     pub fn with_network_parse(mut self, parse: NetworkParse) -> ParserBuilder<'a> {
         self.network_parse = Some(parse);
         self
@@ -322,6 +330,7 @@ impl<'a> ParserBuilder<'a> {
             self.crc_check.unwrap_or(CrcCheck::OnError),
             self.network_parse.unwrap_or(NetworkParse::IgnoreOnError),
         );
+        parser.recover_unknown_network_attributes = self.recover_unknown_network_attributes;
         parser.parse()
     }
 }
@@ -347,6 +356,7 @@ pub struct Parser<'a> {
     core: CoreParser<'a>,
     crc_check: CrcCheck,
     network_parse: NetworkParse,
+    recover_unknown_network_attributes: bool,
 }
 
 impl<'a> Parser<'a> {
@@ -355,6 +365,7 @@ impl<'a> Parser<'a> {
             core: CoreParser::new(data),
             crc_check,
             network_parse,
+            recover_unknown_network_attributes: false,
         }
     }
 
@@ -378,6 +389,10 @@ impl<'a> Parser<'a> {
         let body = self.crc_section(content_data, content_crc, "body", Self::parse_body)?;
 
         let network: Option<NetworkFrames> = match self.network_parse {
+            NetworkParse::Always if self.recover_unknown_network_attributes => Some(
+                self.parse_network_best_effort(&header, &body)
+                    .map_err(|x| ParseError::NetworkError(Box::new(x)))?,
+            ),
             NetworkParse::Always => Some(
                 self.parse_network(&header, &body)
                     .map_err(|x| ParseError::NetworkError(Box::new(x)))?,
@@ -418,6 +433,14 @@ impl<'a> Parser<'a> {
         body: &ReplayBody<'_>,
     ) -> Result<NetworkFrames, NetworkError> {
         network::parse(header, body)
+    }
+
+    fn parse_network_best_effort(
+        &mut self,
+        header: &Header,
+        body: &ReplayBody<'_>,
+    ) -> Result<NetworkFrames, NetworkError> {
+        network::parse_best_effort(header, body)
     }
 
     fn parse_header(&mut self) -> Result<Header, ParseError> {
@@ -689,6 +712,26 @@ mod tests {
         let mut parser = Parser::new(&data[..], CrcCheck::Never, NetworkParse::Always);
         let err = parser.parse().unwrap_err();
         assert!(err.source().is_some());
+    }
+
+    #[test]
+    fn test_best_effort_is_opt_in_and_quiet_for_known_replays() {
+        let data = include_bytes!("../assets/replays/good/rumble.replay");
+        let strict = ParserBuilder::new(&data[..])
+            .never_check_crc()
+            .must_parse_network_data()
+            .parse()
+            .unwrap();
+        let best_effort = ParserBuilder::new(&data[..])
+            .never_check_crc()
+            .best_effort_network_data()
+            .parse()
+            .unwrap();
+
+        let strict_frames = strict.network_frames.unwrap();
+        let best_effort_frames = best_effort.network_frames.unwrap();
+        assert_eq!(strict_frames.frames.len(), best_effort_frames.frames.len());
+        assert!(best_effort_frames.network_warnings.is_empty());
     }
 
     #[test]

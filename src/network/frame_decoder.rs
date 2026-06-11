@@ -2,11 +2,13 @@ use bitter::{BitReader, LittleEndianReader};
 use fnv::FnvHashMap;
 
 use crate::bits::RlBits;
-use crate::errors::{AttributeError, FrameContext, FrameError, NetworkError};
+use crate::errors::{FrameContext, FrameError, NetworkError};
 use crate::network::attributes::{AttributeDecoder, ProductValueDecoder};
 use crate::network::models::{
-    ActorId, Frame, NewActor, ObjectId, SpawnTrajectory, StreamId, Trajectory, UpdatedAttribute,
+    ActorId, Frame, NetworkWarning, NewActor, ObjectId, SpawnTrajectory, StreamId, Trajectory,
+    UpdatedAttribute,
 };
+use crate::network::recovery::{self, AttributeDecodeResult};
 use crate::network::{CacheInfo, VersionTriplet};
 use crate::parser::ReplayBody;
 
@@ -125,6 +127,7 @@ pub(crate) struct FrameDecoder<'a, 'b: 'a> {
     pub version: VersionTriplet,
     pub is_lan: bool,
     pub is_rl_223: bool,
+    pub recover_unknown_attributes: bool,
 }
 
 #[derive(Debug)]
@@ -182,6 +185,8 @@ impl FrameDecoder<'_, '_> {
         new_actors: &mut Vec<NewActor>,
         deleted_actors: &mut Vec<ActorId>,
         updated_actors: &mut Vec<UpdatedAttribute>,
+        warnings: &mut Vec<NetworkWarning>,
+        frame_index: usize,
     ) -> Result<DecodedFrame, FrameError> {
         let time = bits
             .read_f32()
@@ -265,40 +270,26 @@ impl FrameDecoder<'_, '_> {
                         );
                         let stream_id = StreamId(stream_id_raw as i32);
 
-                        // Look the stream id up and find the corresponding attribute
-                        // decoding function. Experience has told me replays that fail to
-                        // parse, fail to do so here, so a large chunk is dedicated to
-                        // generating an error message with context
-                        let attr = cache_info.attributes.get(stream_id).ok_or(
-                            FrameError::MissingAttribute {
-                                actor: actor_id,
-                                actor_object: *object_id,
-                                attribute_stream: stream_id,
-                            },
-                        )?;
-
-                        let attribute = attr_decoder.decode(attr.attribute, bits, buf).map_err(
-                            |e| match e {
-                                AttributeError::Unimplemented => FrameError::MissingAttribute {
-                                    actor: actor_id,
-                                    actor_object: *object_id,
-                                    attribute_stream: stream_id,
-                                },
-                                e => FrameError::AttributeError {
-                                    actor: actor_id,
-                                    actor_object: *object_id,
-                                    attribute_stream: stream_id,
-                                    error: e,
-                                },
-                            },
-                        )?;
-
-                        updated_actors.push(UpdatedAttribute {
+                        match recovery::decode_attribute_update(recovery::AttributeDecodeRequest {
+                            attr_decoder,
+                            bits,
+                            buf,
+                            cache_info,
+                            objects: &self.body.objects,
                             actor_id,
+                            actor_object_id: *object_id,
                             stream_id,
-                            object_id: attr.object_id,
-                            attribute,
-                        });
+                            frame_index,
+                            recover_unknown_attributes: self.recover_unknown_attributes,
+                        })? {
+                            AttributeDecodeResult::Decoded(attribute) => {
+                                updated_actors.push(attribute);
+                            }
+                            AttributeDecodeResult::Recovered(warning) => {
+                                warnings.push(warning);
+                                continue;
+                            }
+                        }
                     }
                 }
             } else {
@@ -343,7 +334,7 @@ impl FrameDecoder<'_, '_> {
         }))
     }
 
-    pub fn decode_frames(&self) -> Result<Vec<Frame>, NetworkError> {
+    pub fn decode_frames(&self) -> Result<(Vec<Frame>, Vec<NetworkWarning>), NetworkError> {
         let attr_decoder = AttributeDecoder {
             version: self.version,
             product_decoder: self.product_decoder,
@@ -356,6 +347,7 @@ impl FrameDecoder<'_, '_> {
         let mut new_actors = Vec::new();
         let mut updated_actors = Vec::new();
         let mut deleted_actors = Vec::new();
+        let mut warnings = Vec::new();
         let mut buf = [0u8; 1024];
 
         while !bits.is_empty() && frames.len() < self.frames_len {
@@ -368,6 +360,8 @@ impl FrameDecoder<'_, '_> {
                     &mut new_actors,
                     &mut deleted_actors,
                     &mut updated_actors,
+                    &mut warnings,
+                    frames.len(),
                 )
                 .map_err(|e| {
                     NetworkError::FrameError(
@@ -410,6 +404,6 @@ impl FrameDecoder<'_, '_> {
             let _ = bits.read_u32();
         }
 
-        Ok(frames)
+        Ok((frames, warnings))
     }
 }
