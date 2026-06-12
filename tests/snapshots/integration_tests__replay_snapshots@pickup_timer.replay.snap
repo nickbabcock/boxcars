@@ -1,0 +1,9 @@
+---
+source: tests/integration_tests.rs
+expression: snapshot
+input_file: assets/replays/good/pickup_timer.replay
+---
+{
+  "frames": 7601,
+  "hex": "0x53913c111d5dbbe84e790572aebd0f865cf6707ce2fe7ef53ef4ddc428ae7387"
+}
