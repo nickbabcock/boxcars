@@ -15,7 +15,7 @@ include = ["src/**/*.rs", "Cargo.toml", "build.rs"]
 bitter = "0.9"
 encoding_rs = "0.8"
 fnv = "1.0"
-phf = { version = "0.13", features = ["macros"] }
+phf = { version = "0.14", features = ["macros"] }
 serde = { version = "1", features = ["derive"] }
 
 [dev-dependencies]
