@@ -202,6 +202,7 @@ pub(crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = phf::phf_ma
     "TAGame.GameEvent_Team_TA:bForfeit" => AttributeTag::Boolean,
     "TAGame.GameEvent_Team_TA:MaxTeamSize" => AttributeTag::Int,
     "TAGame.GRI_TA:bAllowTargetFind" => AttributeTag::Boolean,
+    "TAGame.GRI_TA:LanMatchGUID" => AttributeTag::String,
     "TAGame.GRI_TA:NewDedicatedServerIP" => AttributeTag::String,
     "TAGame.KeepUpIndicator_TA:ComponentOwner" => AttributeTag::ActiveActor,
     "TAGame.MaxTimeWarningData_TA:EndGameEpochTime" => AttributeTag::Int64,
