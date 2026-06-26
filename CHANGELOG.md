@@ -1,3 +1,7 @@
+# v0.11.4 - June 25th, 2026
+
+- Support for v2.71 TAGame.GRI_TA:LanMatchGUID attribute
+
 # v0.11.3 - June 11th, 2026
 
 - Support for v2.70 additional attributes (PickupTimer_TA and PRI_TA anonymization)
