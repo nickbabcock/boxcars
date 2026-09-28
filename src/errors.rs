@@ -25,34 +25,29 @@ impl Display for ParseError {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
             ParseError::Utf8Error(utf8_error) => {
-                write!(f, "Unable decode data as utf8: {}", utf8_error)
+                write!(f, "Unable decode data as utf8: {utf8_error}")
             }
-            ParseError::TextTooLarge(size) => write!(f, "Text of size {} is too large", size),
+            ParseError::TextTooLarge(size) => write!(f, "Text of size {size} is too large"),
             ParseError::InsufficientData(expected, left) => write!(
                 f,
-                "Insufficient data. Expected {} bytes, but only {} left",
-                expected, left
+                "Insufficient data. Expected {expected} bytes, but only {left} left"
             ),
             ParseError::UnexpectedProperty(property) => {
-                write!(f, "Did not expect a property of: {}", property)
+                write!(f, "Did not expect a property of: {property}")
             }
-            ParseError::CrcMismatch(expected, found) => write!(
-                f,
-                "Crc mismatch. Expected {} but received {}",
-                expected, found
-            ),
+            ParseError::CrcMismatch(expected, found) => {
+                write!(f, "Crc mismatch. Expected {expected} but received {found}")
+            }
             ParseError::CorruptReplay(section, _) => write!(
                 f,
-                "Failed to parse {} and crc check failed. Replay is corrupt",
-                section
+                "Failed to parse {section} and crc check failed. Replay is corrupt"
             ),
-            ParseError::ListTooLarge(size) => write!(f, "list of size {} is too large", size),
+            ParseError::ListTooLarge(size) => write!(f, "list of size {size} is too large"),
             ParseError::ParseError(section, bytes_read, parse_error) => write!(
                 f,
-                "Could not decode replay {} at offset ({}): {}",
-                section, bytes_read, parse_error
+                "Could not decode replay {section} at offset ({bytes_read}): {parse_error}"
             ),
-            ParseError::NetworkError(network_error) => write!(f, "{}", network_error),
+            ParseError::NetworkError(network_error) => write!(f, "{network_error}"),
         }
     }
 }
@@ -93,13 +88,13 @@ impl Display for AttributeError {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
             AttributeError::NotEnoughDataFor(message) => {
-                write!(f, "Not enough data to decode attribute {}", message)
+                write!(f, "Not enough data to decode attribute {message}")
             }
             AttributeError::UnrecognizedRemoteId(id) => {
-                write!(f, "Unrecognized remote id of {}", id)
+                write!(f, "Unrecognized remote id of {id}")
             }
             AttributeError::Unimplemented => write!(f, "Does not have an attribute implementation"),
-            AttributeError::TooBigString(size) => write!(f, "Unexpected size for string: {}", size),
+            AttributeError::TooBigString(size) => write!(f, "Unexpected size for string: {size}"),
         }
     }
 }
@@ -154,7 +149,7 @@ impl FrameContext {
 
         writeln!(f, "actor id: {}", attr.actor_id)?;
         if let Some(object_id) = self.actors.get(&attr.actor_id) {
-            writeln!(f, "object id: {}", object_id)?;
+            writeln!(f, "object id: {object_id}")?;
             writeln!(f, "object name: {}", self.object_ind_to_string(*object_id))?;
         } else {
             writeln!(f, "object id: <none>")?;
@@ -253,7 +248,7 @@ impl FrameError {
         match self {
             FrameError::MissingCache { actor_object, .. } => {
                 if let Some(name) = context.objects.get(usize::from(*actor_object)) {
-                    write!(f, "({})", name)
+                    write!(f, "({name})")
                 } else {
                     Ok(())
                 }
@@ -310,8 +305,7 @@ impl FrameError {
                 } else {
                     write!(
                         f,
-                        "did not find attribute id ({}) on {} in object hierarchy: ",
-                        attribute_stream, actor_obj_name
+                        "did not find attribute id ({attribute_stream}) on {actor_obj_name} in object hierarchy: "
                     )?;
                 }
 
@@ -335,7 +329,7 @@ impl FrameError {
 
                 let stringify_names = obj_attr_names
                     .iter()
-                    .map(|attr_name| format!("({})", attr_name))
+                    .map(|attr_name| format!("({attr_name})"))
                     .collect::<Vec<_>>();
 
                 write!(f, "searching all attributes with the same stream id, ")?;
@@ -368,20 +362,20 @@ impl Error for FrameError {
 impl Display for FrameError {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            FrameError::NotEnoughDataFor(message) => write!(f, "not enough data to decode {}", message),
-            FrameError::TimeOutOfRange {time} => write!(f, "time is out of range: {}", time),
-            FrameError::DeltaOutOfRange {delta} => write!(f, "delta is out of range: {}", delta),
-            FrameError::ObjectIdOutOfRange {obj} => write!(f, "new actor object id out of range: {}", obj),
-            FrameError::MissingActor {actor} => write!(f, "attribute update references unknown actor: {}", actor),
-            FrameError::MissingCache {actor, actor_object} => write!(f, "no known attributes found for actor id / object id: {} / {}", actor, actor_object),
+            FrameError::NotEnoughDataFor(message) => write!(f, "not enough data to decode {message}"),
+            FrameError::TimeOutOfRange {time} => write!(f, "time is out of range: {time}"),
+            FrameError::DeltaOutOfRange {delta} => write!(f, "delta is out of range: {delta}"),
+            FrameError::ObjectIdOutOfRange {obj} => write!(f, "new actor object id out of range: {obj}"),
+            FrameError::MissingActor {actor} => write!(f, "attribute update references unknown actor: {actor}"),
+            FrameError::MissingCache {actor, actor_object} => write!(f, "no known attributes found for actor id / object id: {actor} / {actor_object}"),
             FrameError::MissingAttribute {actor, actor_object, attribute_stream} =>{
                 writeln!(f, "attribute unknown or not implemented:")?;
                 writeln!(f, "{}", "-".repeat(10))?;
-                writeln!(f, "actor id: {}", actor)?;
-                writeln!(f, "actor object id: {}", actor_object)?;
-                writeln!(f, "attribute stream id: {}", attribute_stream)
+                writeln!(f, "actor id: {actor}")?;
+                writeln!(f, "actor object id: {actor_object}")?;
+                writeln!(f, "attribute stream id: {attribute_stream}")
             },
-            FrameError::AttributeError {actor, actor_object, attribute_stream, error} => write!(f, "attribute decoding error encountered: {} for actor id / actor object id / attribute id: {} / {} / {}", error, actor, actor_object, attribute_stream),
+            FrameError::AttributeError {actor, actor_object, attribute_stream, error} => write!(f, "attribute decoding error encountered: {error} for actor id / actor object id / attribute id: {actor} / {actor_object} / {attribute_stream}"),
         }
     }
 }
@@ -410,34 +404,31 @@ impl Display for NetworkError {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
             NetworkError::NotEnoughDataFor(message) => {
-                write!(f, "Not enough data to decode {}", message)
+                write!(f, "Not enough data to decode {message}")
             }
-            NetworkError::ObjectIdOutOfRange(id) => write!(f, "Object Id of {} exceeds range", id),
+            NetworkError::ObjectIdOutOfRange(id) => write!(f, "Object Id of {id} exceeds range"),
             NetworkError::StreamTooLargeIndex(steam_id, object_index) => write!(
                 f,
-                "Stream id of {} references out of range object index: {}",
-                steam_id, object_index
+                "Stream id of {steam_id} references out of range object index: {object_index}"
             ),
             NetworkError::MissingParentClass(obj, parent) => write!(
                 f,
-                "Replay contained object: {} but not the parent class: {}",
-                obj, parent
+                "Replay contained object: {obj} but not the parent class: {parent}"
             ),
             NetworkError::ParentHasNoAttributes(parent_id, object_id) => write!(
                 f,
-                "Parent id of {} for object id of {} was not recognized to have attributes",
-                parent_id, object_id
+                "Parent id of {parent_id} for object id of {object_id} was not recognized to have attributes"
             ),
-            NetworkError::TooManyFrames(size) => write!(f, "Too many frames to decode: {}", size),
+            NetworkError::TooManyFrames(size) => write!(f, "Too many frames to decode: {size}"),
             NetworkError::FrameError(err, context) => {
-                write!(f, "Error decoding frame: {}", err)?;
+                write!(f, "Error decoding frame: {err}")?;
                 if !matches!(err, FrameError::MissingAttribute { .. }) {
                     write!(f, ". ")?;
                 }
 
                 err.contextualize(f, context)?;
                 writeln!(f)?;
-                write!(f, "{}", context)
+                write!(f, "{context}")
             }
         }
     }
