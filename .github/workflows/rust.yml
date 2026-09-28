@@ -33,7 +33,7 @@ jobs:
         include:
         - build: pinned
           os: ubuntu-latest
-          rust: 1.80.0
+          rust: 1.88.0
         - build: stable
           os: ubuntu-latest
           rust: stable
@@ -113,7 +113,7 @@ jobs:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@master
       with:
-        toolchain: 1.80.0
+        toolchain: 1.88.0
         components: clippy
     - name: Run clippy
       run: cargo clippy --lib --all-features -- -D warnings

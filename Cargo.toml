@@ -4,6 +4,7 @@ license = "MIT"
 name = "boxcars"
 readme = "README.md"
 edition = "2021"
+rust-version = "1.88"
 repository = "https://github.com/nickbabcock/boxcars"
 description = "Rocket league replay parser"
 keywords = ["rocket-league"]
