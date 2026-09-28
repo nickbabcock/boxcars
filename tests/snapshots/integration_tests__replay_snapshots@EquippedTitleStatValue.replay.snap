@@ -1,0 +1,9 @@
+---
+source: tests/integration_tests.rs
+expression: snapshot
+input_file: assets/replays/good/EquippedTitleStatValue.replay
+---
+{
+  "frames": 7774,
+  "hex": "0xde87cad58f3be99f8eaec749e918075bb9a8d54ad5ac425e12c4e2abb25671af"
+}

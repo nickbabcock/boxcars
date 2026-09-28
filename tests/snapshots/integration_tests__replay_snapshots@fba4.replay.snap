@@ -2,9 +2,8 @@
 source: tests/integration_tests.rs
 expression: snapshot
 input_file: assets/replays/good/fba4.replay
-snapshot_kind: text
 ---
 {
   "frames": 11070,
-  "hex": "0x882ded893c154d7443aa6ac58041c4c2a5b7200888dd7f38cd2545b55d9f0034"
+  "hex": "0xf65138ed51e5966e71674dcbf929f3bedf09036cb0f14bb8eba020a396bd0e7c"
 }

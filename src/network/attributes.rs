@@ -54,6 +54,7 @@ pub(crate) enum AttributeTag {
     Impulse,
     ReplicatedBoost,
     LogoData,
+    HonorDuelChallenge,
 }
 
 /// The attributes for updated actors in the network data.
@@ -117,6 +118,7 @@ pub enum Attribute {
     Impulse(Impulse),
     ReplicatedBoost(ReplicatedBoost),
     LogoData(LogoData),
+    HonorDuelChallenge(Box<HonorDuelChallenge>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -134,6 +136,19 @@ pub struct CamSettings {
     pub stiffness: f32,
     pub swivel: f32,
     pub transition: Option<f32>,
+
+    pub camera_accel_rate: Option<f32>,
+    pub camera_decel_rate: Option<f32>,
+    pub free_look_speed: Option<f32>,
+    pub unconstrain_rotation: Option<bool>,
+    pub free_look_smoothing: Option<bool>,
+}
+
+/// The two players involved in an honor duel that was accepted.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct HonorDuelChallenge {
+    pub challenger: UniqueId,
+    pub defender: UniqueId,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -606,6 +621,7 @@ impl AttributeDecoder {
             AttributeTag::Impulse => self.decode_impulse(bits),
             AttributeTag::ReplicatedBoost => self.decode_replicated_boost(bits),
             AttributeTag::LogoData => self.decode_logo_data(bits),
+            AttributeTag::HonorDuelChallenge => self.decode_honor_duel_challenge(bits, buf),
             _ => unreachable!(),
         }
     }
@@ -716,6 +732,24 @@ impl AttributeDecoder {
             None
         };
 
+        let (
+            camera_accel_rate,
+            camera_decel_rate,
+            free_look_speed,
+            unconstrain_rotation,
+            free_look_smoothing,
+        ) = if self.version >= VersionTriplet(868, 34, 12) {
+            (
+                Some(bits.read_f32()?),
+                Some(bits.read_f32()?),
+                Some(bits.read_f32()?),
+                Some(bits.read_bit()?),
+                Some(bits.read_bit()?),
+            )
+        } else {
+            (None, None, None, None, None)
+        };
+
         Some(CamSettings {
             fov,
             height,
@@ -724,6 +758,11 @@ impl AttributeDecoder {
             stiffness,
             swivel,
             transition,
+            camera_accel_rate,
+            camera_decel_rate,
+            free_look_speed,
+            unconstrain_rotation,
+            free_look_smoothing,
         })
     }
 
@@ -1382,6 +1421,21 @@ impl AttributeDecoder {
         }
     }
 
+    pub fn decode_honor_duel_challenge(
+        &self,
+        bits: &mut LittleEndianReader<'_>,
+        buf: &mut [u8],
+    ) -> Result<Attribute, AttributeError> {
+        let challenger = decode_unique_id(bits, self.version.net_version(), buf)?;
+        let defender = decode_unique_id(bits, self.version.net_version(), buf)?;
+        Ok(Attribute::HonorDuelChallenge(Box::new(
+            HonorDuelChallenge {
+                challenger,
+                defender,
+            },
+        )))
+    }
+
     pub fn decode_private_match_settings(
         &self,
         bits: &mut LittleEndianReader<'_>,
@@ -1738,6 +1792,49 @@ mod tests {
     #[test]
     fn test_size_of_rigid_body() {
         assert_eq!(::std::mem::size_of::<RigidBody>(), 64);
+    }
+
+    #[test]
+    fn test_decode_honor_duel_challenge() {
+        // Two consecutive unique ids: system id 1 (Steam) + u64 id + local id.
+        let data = [
+            1, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 7, // challenger
+            1, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x00, 9, // defender
+        ];
+        let mut bits = LittleEndianReader::new(&data);
+        let mut buf = [0u8; 1024];
+        let version = VersionTriplet(868, 34, 12);
+        let objects: Vec<String> = Vec::new();
+        let decoder = AttributeDecoder {
+            version,
+            product_decoder: ProductValueDecoder::create(version, &ObjectIndex::new(&objects)),
+            is_rl_223: false,
+        };
+
+        let attr = decoder
+            .decode_honor_duel_challenge(&mut bits, &mut buf)
+            .unwrap();
+
+        let Attribute::HonorDuelChallenge(challenge) = attr else {
+            panic!("expected an honor duel challenge");
+        };
+
+        assert_eq!(challenge.challenger.system_id, 1);
+        assert_eq!(
+            challenge.challenger.remote_id,
+            RemoteId::Steam(0x8877_6655_4433_2211)
+        );
+        assert_eq!(challenge.challenger.local_id, 7);
+
+        assert_eq!(challenge.defender.system_id, 1);
+        assert_eq!(
+            challenge.defender.remote_id,
+            RemoteId::Steam(0x00FF_EEDD_CCBB_AA99)
+        );
+        assert_eq!(challenge.defender.local_id, 9);
+
+        // Both ids should have been consumed exactly, leaving nothing behind.
+        assert_eq!(bits.bits_remaining(), Some(0));
     }
 
     #[test]
