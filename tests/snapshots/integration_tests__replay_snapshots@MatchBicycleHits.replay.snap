@@ -1,0 +1,9 @@
+---
+source: tests/integration_tests.rs
+expression: snapshot
+input_file: assets/replays/good/MatchBicycleHits.replay
+---
+{
+  "frames": 7501,
+  "hex": "0xeca3fcd61bf701aa9fa5152de7a937fe25f4f79912a882b956c6971508f5f3d8"
+}

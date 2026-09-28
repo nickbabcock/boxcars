@@ -1,0 +1,9 @@
+---
+source: tests/integration_tests.rs
+expression: snapshot
+input_file: assets/replays/good/blade_ball.replay
+---
+{
+  "frames": 4509,
+  "hex": "0xd62c1e860dd45403a8d9961311a572f9b9515f62f30ab196feb6c0ff8e273e1e"
+}
