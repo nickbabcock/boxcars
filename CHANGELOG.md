@@ -1,3 +1,9 @@
+# v0.12.0 - September 28th, 2026
+
+- Support Season 24 replays, including accepted honor duels (new attribute)
+- Support BladeBall replays
+- MSRV is now 1.88
+
 # v0.11.5 - July 8th, 2026
 
 - Support for DemoFXOverride attribute
