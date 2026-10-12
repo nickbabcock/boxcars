@@ -122,6 +122,7 @@ pub(crate) static ATTRIBUTES: phf::Map<&'static str, AttributeTag> = phf::phf_ma
     "TAGame.Car_TA:bUnlimitedTimeForDodge" => AttributeTag::Boolean,
     "TAGame.Car_TA:ClubColors" => AttributeTag::ClubColors,
     "TAGame.Car_TA:DodgesRefreshedCounter" => AttributeTag::Int,
+    "TAGame.Car_TA:MaxNumJumps" => AttributeTag::Int,
     "TAGame.Car_TA:ReplicatedCarMaxLinearSpeedScale" => AttributeTag::Float,
     "TAGame.Car_TA:ReplicatedCarScale" => AttributeTag::Float,
     "TAGame.Car_TA:ReplicatedDemolish_CustomFX" => AttributeTag::DemolishFx,

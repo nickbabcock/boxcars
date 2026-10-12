@@ -1,0 +1,9 @@
+---
+source: tests/integration_tests.rs
+expression: snapshot
+input_file: assets/replays/good/MaxNumJumps.replay
+---
+{
+  "frames": 6065,
+  "hex": "0x8efca873ac8161b7939d1a6a4c3535583d8b141b1243cb17ef5e88865b5734b6"
+}
