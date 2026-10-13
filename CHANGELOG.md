@@ -1,3 +1,7 @@
+# v0.12.1 - October 12th, 2026
+
+- Support the `TAGame.Car_TA:MaxNumJumps` replay attribute
+
 # v0.12.0 - September 28th, 2026
 
 - Support Season 24 replays, including accepted honor duels (new attribute)
