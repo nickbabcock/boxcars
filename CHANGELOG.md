@@ -1,6 +1,6 @@
 # v0.13.0 - October 18th, 2026
 
-- To better guard aginst breaking rocket league changes causing compilation issues to boxcars consumers, many enums, errors, and structs are annotated with `#[non_exhaustive]`.
+- To better guard against breaking rocket league changes causing compilation issues to boxcars consumers, many enums, errors, and structs are annotated with `#[non_exhaustive]`.
 - Support the `TAGame.ProductAttribute_Certified_TA` product attribute with the new `ProductValue::Certified` variant
 - Update internal `phf` dependency from 0.13 to 0.14
 
