@@ -422,6 +422,7 @@ pub enum ProductValue {
     SpecialEdition(u32),
     OldTeamEdition(u32),
     NewTeamEdition(u32),
+    Certified { stat: u32, value: u32 },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -467,6 +468,7 @@ pub(crate) struct ProductValueDecoder {
     special_edition_ind: ObjectId,
     team_edition_ind: ObjectId,
     title_ind: ObjectId,
+    certified_ind: ObjectId,
 }
 
 impl ProductValueDecoder {
@@ -486,6 +488,9 @@ impl ProductValueDecoder {
         let team_edition_ind = object_index
             .by_name("TAGame.ProductAttribute_TeamEdition_TA")
             .unwrap_or_default();
+        let certified_ind = object_index
+            .by_name("TAGame.ProductAttribute_Certified_TA")
+            .unwrap_or_default();
 
         ProductValueDecoder {
             version,
@@ -494,6 +499,7 @@ impl ProductValueDecoder {
             title_ind,
             special_edition_ind,
             team_edition_ind,
+            certified_ind,
         }
     }
 
@@ -540,6 +546,10 @@ impl ProductValueDecoder {
                     .map(|x| x as u32)
                     .map(ProductValue::OldTeamEdition)
             }
+        } else if obj_ind == self.certified_ind {
+            let stat = bits.read_bits(31)? as u32;
+            let value = bits.read_u32()?;
+            Some(ProductValue::Certified { stat, value })
         } else {
             Some(ProductValue::Absent)
         }
