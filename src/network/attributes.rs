@@ -63,6 +63,7 @@ pub(crate) enum AttributeTag {
 /// improvent, any attribute variant larger than the size of a rigid body is moved to the heap (ie:
 /// `Box::new`). This change increased throughput by 40%.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum Attribute {
     Boolean(bool),
     Byte(u8),
@@ -128,6 +129,7 @@ pub struct ActiveActor {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct CamSettings {
     pub fov: f32,
     pub height: f32,
@@ -235,6 +237,7 @@ pub struct ExtendedExplosion {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct Loadout {
     pub version: u8,
     pub body: u32,
@@ -349,6 +352,7 @@ pub struct Ps4Id {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum RemoteId {
     PlayStation(Ps4Id),
     PsyNet(PsyNetId),
@@ -411,6 +415,7 @@ pub struct LoadoutsOnline {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum ProductValue {
     NoColor,
     Absent,
