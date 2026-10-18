@@ -9,6 +9,7 @@ use std::ops::Deref;
 use std::str;
 
 #[derive(PartialEq, Debug, Clone)]
+#[non_exhaustive]
 pub enum ParseError {
     ParseError(&'static str, i32, Box<ParseError>),
     Utf8Error(str::Utf8Error),
@@ -71,6 +72,7 @@ impl From<str::Utf8Error> for ParseError {
 }
 
 #[derive(PartialEq, Debug, Clone)]
+#[non_exhaustive]
 pub enum AttributeError {
     NotEnoughDataFor(&'static str),
     UnrecognizedRemoteId(u8),
@@ -212,6 +214,7 @@ impl fmt::Display for FrameContext {
 }
 
 #[derive(PartialEq, Debug, Clone)]
+#[non_exhaustive]
 pub enum FrameError {
     NotEnoughDataFor(&'static str),
     TimeOutOfRange {
@@ -381,6 +384,7 @@ impl Display for FrameError {
 }
 
 #[derive(PartialEq, Debug, Clone)]
+#[non_exhaustive]
 pub enum NetworkError {
     NotEnoughDataFor(&'static str),
     ObjectIdOutOfRange(ObjectId),
