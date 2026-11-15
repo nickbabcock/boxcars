@@ -1,3 +1,7 @@
+# v0.13.1 - November 15th, 2026
+
+- Support cleared accepted honor duels, which previously failed to parse. `HonorDuelChallenge`'s `challenger` and `defender` are now `Option<UniqueId>`, and are `None` for an empty side (e.g. a player left the match)
+
 # v0.13.0 - October 18th, 2026
 
 - To better guard against breaking rocket league changes causing compilation issues to boxcars consumers, many enums, errors, and structs are annotated with `#[non_exhaustive]`.
