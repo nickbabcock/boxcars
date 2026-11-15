@@ -1,0 +1,9 @@
+---
+source: tests/integration_tests.rs
+expression: snapshot
+input_file: assets/replays/good/ClearedHonorDuel.replay
+---
+{
+  "frames": 8523,
+  "hex": "0x68408d6f580542c8a0b2ab8548cc7146fb3e60c38fccc11d09183505922693d6"
+}
