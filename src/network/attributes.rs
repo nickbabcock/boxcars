@@ -148,9 +148,8 @@ pub struct CamSettings {
 
 /// The two players involved in an honor duel that was accepted.
 ///
-/// Either side is `None` when its id is replicated with a system id of 0. This happens when the
-/// duel is cleared, for instance when one of the two players leaves the match, and then both
-/// sides are `None`.
+/// A side is `None` when only a system id of 0 is replicated for it, as seen when a duel is
+/// cleared (e.g. a player leaves the match).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct HonorDuelChallenge {
     pub challenger: Option<UniqueId>,
@@ -1423,21 +1422,8 @@ impl AttributeDecoder {
         bits: &mut LittleEndianReader<'_>,
         buf: &mut [u8],
     ) -> Result<Attribute, AttributeError> {
-        if let Some(system_id) = bits.read_u8() {
-            if system_id != 0 {
-                let id = decode_unique_id_with_system_id(
-                    bits,
-                    self.version.net_version(),
-                    system_id,
-                    buf,
-                )?;
-                Ok(Attribute::PartyLeader(Some(Box::new(id))))
-            } else {
-                Ok(Attribute::PartyLeader(None))
-            }
-        } else {
-            Err(AttributeError::NotEnoughDataFor("Party Leader"))
-        }
+        let id = decode_optional_unique_id(bits, self.version.net_version(), buf)?;
+        Ok(Attribute::PartyLeader(id.map(Box::new)))
     }
 
     pub fn decode_honor_duel_challenge(
@@ -1698,7 +1684,8 @@ fn decode_unique_id(
 }
 
 /// A unique id that is absent when its system id is 0, in which case only the
-/// system id byte is on the wire.
+/// system id byte is on the wire. This means a split-screen id (also system id
+/// 0) can't be represented here, which matches the replays observed so far.
 fn decode_optional_unique_id(
     bits: &mut LittleEndianReader<'_>,
     net_version: i32,
@@ -1830,14 +1817,9 @@ mod tests {
         assert_eq!(::std::mem::size_of::<RigidBody>(), 64);
     }
 
-    #[test]
-    fn test_decode_honor_duel_challenge() {
-        // Two consecutive unique ids: system id 1 (Steam) + u64 id + local id.
-        let data = [
-            1, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 7, // challenger
-            1, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x00, 9, // defender
-        ];
-        let mut bits = LittleEndianReader::new(&data);
+    /// Decodes an honor duel challenge, returning it with the number of bits left over.
+    fn decode_honor_duel(data: &[u8]) -> (HonorDuelChallenge, Option<usize>) {
+        let mut bits = LittleEndianReader::new(data);
         let mut buf = [0u8; 1024];
         let version = VersionTriplet(868, 34, 12);
         let objects: Vec<String> = Vec::new();
@@ -1855,18 +1837,29 @@ mod tests {
             panic!("expected an honor duel challenge");
         };
 
-        let challenger = challenge.challenger.as_ref().unwrap();
+        (*challenge, bits.bits_remaining())
+    }
+
+    #[test]
+    fn test_decode_honor_duel_challenge() {
+        // Two consecutive unique ids: system id 1 (Steam) + u64 id + local id.
+        let (challenge, remaining) = decode_honor_duel(&[
+            1, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 7, // challenger
+            1, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x00, 9, // defender
+        ]);
+
+        let challenger = challenge.challenger.unwrap();
         assert_eq!(challenger.system_id, 1);
         assert_eq!(challenger.remote_id, RemoteId::Steam(0x8877_6655_4433_2211));
         assert_eq!(challenger.local_id, 7);
 
-        let defender = challenge.defender.as_ref().unwrap();
+        let defender = challenge.defender.unwrap();
         assert_eq!(defender.system_id, 1);
         assert_eq!(defender.remote_id, RemoteId::Steam(0x00FF_EEDD_CCBB_AA99));
         assert_eq!(defender.local_id, 9);
 
         // Both ids should have been consumed exactly, leaving nothing behind.
-        assert_eq!(bits.bits_remaining(), Some(0));
+        assert_eq!(remaining, Some(0));
     }
 
     #[test]
@@ -1874,28 +1867,10 @@ mod tests {
         // A cleared duel replicates a lone system id of 0 for each side, with
         // no remote id or local id after it. The trailing byte belongs to the
         // next attribute and must not be consumed.
-        let data = [0, 0, 0xAB];
-        let mut bits = LittleEndianReader::new(&data);
-        let mut buf = [0u8; 1024];
-        let version = VersionTriplet(868, 34, 12);
-        let objects: Vec<String> = Vec::new();
-        let decoder = AttributeDecoder {
-            version,
-            product_decoder: ProductValueDecoder::create(version, &ObjectIndex::new(&objects)),
-            is_rl_223: false,
-        };
-
-        let attr = decoder
-            .decode_honor_duel_challenge(&mut bits, &mut buf)
-            .unwrap();
-
-        let Attribute::HonorDuelChallenge(challenge) = attr else {
-            panic!("expected an honor duel challenge");
-        };
-
+        let (challenge, remaining) = decode_honor_duel(&[0, 0, 0xAB]);
         assert_eq!(challenge.challenger, None);
         assert_eq!(challenge.defender, None);
-        assert_eq!(bits.bits_remaining(), Some(8));
+        assert_eq!(remaining, Some(8));
     }
 
     #[test]
